@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3 uid="uid://n383gm1hms3s"]
+
+[ext_resource type="Script" uid="uid://xvkuskj4kbkq" path="res://scenes/waste_beaker.gd" id="1_1ceie"]
+[ext_resource type="Texture2D" uid="uid://ckqnydjjmho8e" path="res://assets/probe.png" id="2_spkwn"]
+[ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="2_tl0e3"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_t5yyk"]
+shader = ExtResource("2_tl0e3")
+shader_parameter/highlight = false
+shader_parameter/highlight_strength = 0.0
+shader_parameter/outline_color = Color(1, 0.95, 0.2, 1)
+shader_parameter/outline_width = 10.0
+shader_parameter/alpha_threshold = 0.35
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_tl0e3"]
+size = Vector2(550, 548)
+
+[node name="WasteBeaker" type="Node2D"]
+script = ExtResource("1_1ceie")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_t5yyk")
+scale = Vector2(3.7717395, 0.7109471)
+texture = ExtResource("2_spkwn")
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("RectangleShape2D_tl0e3")
+
+[node name="AudioStreamPlayer2D" type="AudioStreamPlayer2D" parent="."]
+
+[connection signal="input_event" from="Area2D" to="." method="_on_area_input"]
+[connection signal="mouse_entered" from="Area2D" to="." method="_on_mouse_entered"]
+[connection signal="mouse_exited" from="Area2D" to="." method="_on_mouse_exited"]

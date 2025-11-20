@@ -1,0 +1,42 @@
+[gd_scene load_steps=6 format=3 uid="uid://sau5e4cxte1m"]
+
+[ext_resource type="PackedScene" uid="uid://cc78m6ydl4qdf" path="res://scenes/probe.tscn" id="1_rlcxi"]
+[ext_resource type="Shader" uid="uid://cgwyg0gfeeys5" path="res://resources/turbidity_2d.gdshader" id="2_78isd"]
+[ext_resource type="Shader" uid="uid://dme1hcdfnx27m" path="res://resources/level_clip_scroll.gdshader" id="3_372nq"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_8lp7e"]
+resource_local_to_scene = true
+shader = ExtResource("2_78isd")
+shader_parameter/turbidity = 0.0
+shader_parameter/fog_color = Color(1.353256, 1.353256, 1.353256, 0.90200007)
+shader_parameter/level01 = 0.0
+shader_parameter/level_softness_px = 2.0
+shader_parameter/level_scale = 1.0
+shader_parameter/level_bias = 0.0
+shader_parameter/use_procedural_noise = false
+shader_parameter/noise_scale = 6.0
+shader_parameter/flow_speed = 0.12
+shader_parameter/noise_strength = 0.8
+shader_parameter/top_clear_zone = 0.12
+shader_parameter/depth_bias = 0.3
+shader_parameter/wall_softness_px = 2.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_s606s"]
+resource_local_to_scene = true
+shader = ExtResource("3_372nq")
+shader_parameter/level01 = 1.0
+shader_parameter/edge_softness_px = 2.000000095
+shader_parameter/scroll_uv = true
+shader_parameter/use_mask = false
+shader_parameter/mask_texel = Vector2(0, 0)
+shader_parameter/wall_softness_px = 1.5
+shader_parameter/meniscus_boost = 0.0
+shader_parameter/meniscus_band_px = 1.0
+
+[node name="Probe" instance=ExtResource("1_rlcxi")]
+
+[node name="TurbidityOverlay" parent="LiquidFill" index="0"]
+material = SubResource("ShaderMaterial_8lp7e")
+
+[node name="LiquidLevelSprite2D" parent="LiquidFill" index="2"]
+material = SubResource("ShaderMaterial_s606s")

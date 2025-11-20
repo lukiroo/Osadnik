@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://brrw7vgih8ufj"]
+
+[ext_resource type="Shader" uid="uid://cgwyg0gfeeys5" path="res://resources/turbidity_2d.gdshader" id="1_1ajl5"]
+
+[resource]
+resource_local_to_scene = true
+shader = ExtResource("1_1ajl5")
+shader_parameter/turbidity = 0.0
+shader_parameter/fog_color = Color(1.353256, 1.353256, 1.353256, 0.90200007)
+shader_parameter/level01 = 0.0
+shader_parameter/meniscus_softness_px = 2.0
+shader_parameter/wall_softness_px = 2.0
+shader_parameter/noise_scale = 6.0
+shader_parameter/flow_speed = 0.12
+shader_parameter/noise_strength = 0.8
+shader_parameter/top_clear_zone = 0.12
+shader_parameter/depth_bias = 0.3

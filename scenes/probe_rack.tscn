@@ -1,0 +1,38 @@
+[gd_scene load_steps=5 format=3 uid="uid://cje4bowu4owl8"]
+
+[ext_resource type="Script" uid="uid://cd1t6gsp6gc2c" path="res://scenes/probe_rack.gd" id="1_b2nyk"]
+[ext_resource type="Texture2D" uid="uid://bgqtac35kfmlo" path="res://assets/rack.png" id="1_vwoxw"]
+[ext_resource type="PackedScene" uid="uid://nt5ipyk1bagx" path="res://scenes/probe_slot.tscn" id="2_wmkea"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_b2nyk"]
+size = Vector2(432, 179)
+
+[node name="ProbeRack" type="Node2D"]
+script = ExtResource("1_b2nyk")
+
+[node name="HandleArea2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="HandleArea2D"]
+position = Vector2(0, -17.5)
+shape = SubResource("RectangleShape2D_b2nyk")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+scale = Vector2(0.3, 0.3)
+texture = ExtResource("1_vwoxw")
+
+[node name="ProbeSlot1" parent="." groups=["work_slots"] instance=ExtResource("2_wmkea")]
+position = Vector2(-128, -13)
+
+[node name="ProbeSlot2" parent="." groups=["work_slots"] instance=ExtResource("2_wmkea")]
+position = Vector2(-63, -13)
+
+[node name="ProbeSlot3" parent="." groups=["work_slots"] instance=ExtResource("2_wmkea")]
+position = Vector2(3, -12)
+
+[node name="ProbeSlot4" parent="." groups=["work_slots"] instance=ExtResource("2_wmkea")]
+position = Vector2(68, -11)
+
+[node name="ProbeSlot5" parent="." groups=["work_slots"] instance=ExtResource("2_wmkea")]
+position = Vector2(132, -12)
+
+[connection signal="input_event" from="HandleArea2D" to="." method="_on_handle_input_event"]

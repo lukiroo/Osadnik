@@ -1,0 +1,32 @@
+[gd_scene load_steps=6 format=3 uid="uid://ch2xav7s8qbt2"]
+
+[ext_resource type="Texture2D" uid="uid://b0d5emldw42o0" path="res://assets/squirtbottle.png" id="1_e7l7g"]
+[ext_resource type="Script" uid="uid://5l7tyefgkw4g" path="res://scenes/squirt_bottle_on_table.gd" id="1_ndgmv"]
+[ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="2_vfe84"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_ujby7"]
+shader = ExtResource("2_vfe84")
+shader_parameter/highlight = false
+shader_parameter/highlight_strength = 0.0
+shader_parameter/outline_color = Color(1, 0.95, 0.2, 1)
+shader_parameter/outline_width = 10.0
+shader_parameter/alpha_threshold = 0.35
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ndgmv"]
+size = Vector2(296, 624)
+
+[node name="SquirtBottleOnTable" type="Node2D"]
+script = ExtResource("1_ndgmv")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_ujby7")
+texture = ExtResource("1_e7l7g")
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("RectangleShape2D_ndgmv")
+
+[connection signal="input_event" from="Area2D" to="." method="_on_area_input"]
+[connection signal="mouse_entered" from="Area2D" to="." method="_on_mouse_entered"]
+[connection signal="mouse_exited" from="Area2D" to="." method="_on_mouse_exited"]

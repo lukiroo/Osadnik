@@ -1,0 +1,21 @@
+[gd_scene load_steps=4 format=3 uid="uid://b334lnqj42j3l"]
+
+[ext_resource type="Script" uid="uid://cb23a1edwhk5m" path="res://scenes/stir_rod_cursor.gd" id="1_5kyi4"]
+[ext_resource type="Texture2D" uid="uid://gxdbn5wdre0m" path="res://assets/stirrod.png" id="2_e23fw"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ylokq"]
+size = Vector2(102, 334)
+
+[node name="StirRodCursor" type="Node2D"]
+script = ExtResource("1_5kyi4")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+rotation = 2.22704
+scale = Vector2(0.51155114, 0.5945946)
+texture = ExtResource("2_e23fw")
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+position = Vector2(-2, -11)
+shape = SubResource("RectangleShape2D_ylokq")

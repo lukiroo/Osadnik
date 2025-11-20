@@ -1,0 +1,10 @@
+[gd_scene load_steps=2 format=3 uid="uid://c62pj6l4r6bxb"]
+
+[ext_resource type="Texture2D" uid="uid://scwlb16mb70d" path="res://assets/pipete.png" id="1_2q12e"]
+
+[node name="PipetteCursor" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+rotation = 0.2443461
+scale = Vector2(0.4, 0.4)
+texture = ExtResource("1_2q12e")

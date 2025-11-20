@@ -1,0 +1,18 @@
+[gd_scene load_steps=3 format=3 uid="uid://nt5ipyk1bagx"]
+
+[ext_resource type="Script" uid="uid://b8qkeehnx1s2a" path="res://scenes/probe_slot.gd" id="1_6iv6f"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_eey1h"]
+size = Vector2(54, 190)
+
+[node name="ProbeSlot" type="Node2D" groups=["probe_dropzones"]]
+script = ExtResource("1_6iv6f")
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("RectangleShape2D_eey1h")
+
+[node name="Anchor" type="Node2D" parent="."]
+
+[connection signal="child_exiting_tree" from="." to="." method="_on_child_exiting_tree"]

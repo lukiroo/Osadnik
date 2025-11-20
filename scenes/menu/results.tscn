@@ -1,0 +1,72 @@
+[gd_scene load_steps=2 format=3 uid="uid://wsqmq0fpm10x"]
+
+[ext_resource type="Script" uid="uid://cmu0da4cb6uj5" path="res://scenes/menu/results.gd" id="1_72w1k"]
+
+[node name="Results" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_72w1k")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="MarginContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = "Sprawdź"
+
+[node name="Scroll" type="ScrollContainer" parent="MarginContainer/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+size_flags_stretch_ratio = 2.0
+
+[node name="Items" type="VBoxContainer" parent="MarginContainer/VBox/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="GradeLabel" type="Label" parent="MarginContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="ConfirmBtn" type="Button" parent="MarginContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+text = "Sprawdź odpowiedzi"
+
+[node name="TryAgainBtn" type="Button" parent="MarginContainer/VBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 2
+text = "Spróbuj jeszcze raz"
+
+[node name="NextBtn" type="Button" parent="MarginContainer/VBox"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 6
+text = "Następne Ćwiczenie"
+
+[node name="BackBtn" type="Button" parent="MarginContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Powrót"
+
+[connection signal="pressed" from="MarginContainer/VBox/ConfirmBtn" to="." method="_on_confirm_btn_pressed"]
+[connection signal="pressed" from="MarginContainer/VBox/TryAgainBtn" to="." method="_on_try_again_btn_pressed"]
+[connection signal="pressed" from="MarginContainer/VBox/NextBtn" to="." method="_on_next_btn_pressed"]
+[connection signal="pressed" from="MarginContainer/VBox/BackBtn" to="." method="_on_back_btn_pressed"]

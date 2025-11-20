@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://ddcyjjt8om7oe"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_4ejtw"]
+
+[resource]
+script = ExtResource("1_4ejtw")
+id = "PbCl2_precip"
+priority = 5
+reactants_ions = {
+"Cl-": 1,
+"Pb2+": 1
+}
+products_solids = {
+"PbCl2_s": 1
+}
+forbid_tags_any = Array[String](["bath_boiling", "cooling_ready", "cooled_enough"])
+note = "biały osad PbCl2"
+intensity = 0.8
+metadata/_custom_type_script = "uid://djapafftkk5kc"

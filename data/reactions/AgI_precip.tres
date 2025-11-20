@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://d0pv3f4pwb1wo"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_s1bq2"]
+
+[resource]
+script = ExtResource("1_s1bq2")
+id = "AgI_precip"
+priority = 10
+reactants_ions = {
+"Ag+": 1,
+"I-": 1
+}
+products_solids = {
+"AgI_s": 1
+}
+note = "jasnożółty osad AgI"
+precip_color = Color(1, 0.95468724, 0.5917481, 1)
+intensity = 0.9
+metadata/_custom_type_script = "uid://djapafftkk5kc"

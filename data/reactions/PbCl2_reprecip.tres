@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://cbrt0r1d2uhyw"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_f07es"]
+
+[resource]
+script = ExtResource("1_f07es")
+id = "PbCl2_reprecip"
+priority = 10
+reactants_ions = {
+"Cl-": 1,
+"Pb2+": 1
+}
+products_solids = {
+"PbCl2_s": 1
+}
+require_tags_all = {
+"cooled_enough": true,
+"cooling_ready": true
+}
+forbid_tags_any = Array[String](["bath_boiling", "is_hot"])
+clear_tags = Array[String](["cooling_ready", "cooled_enough", "cooling_t_s"])
+note = "PbCl2 krystalizuje"
+precip_mode = "crystal"
+intensity = 1.0
+metadata/_custom_type_script = "uid://djapafftkk5kc"

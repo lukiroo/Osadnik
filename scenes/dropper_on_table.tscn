@@ -1,0 +1,35 @@
+[gd_scene load_steps=6 format=3 uid="uid://b5q72wc3qjvkm"]
+
+[ext_resource type="Script" uid="uid://dgtd65x518no4" path="res://scenes/dropper_on_table.gd" id="1_ot4vj"]
+[ext_resource type="Texture2D" uid="uid://dubbvkku3yoin" path="res://assets/dropperlaying.png" id="1_ugjjp"]
+[ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="2_6pvfk"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_4256i"]
+shader = ExtResource("2_6pvfk")
+shader_parameter/highlight = false
+shader_parameter/highlight_strength = 0.0
+shader_parameter/outline_color = Color(1, 0.95, 0.2, 1)
+shader_parameter/outline_width = 10.0
+shader_parameter/alpha_threshold = 0.35
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_ot4vj"]
+radius = 46.07241
+height = 217.23376
+
+[node name="DropperOnTable" type="Node2D"]
+script = ExtResource("1_ot4vj")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_4256i")
+scale = Vector2(0.41025642, 0.42708334)
+texture = ExtResource("1_ugjjp")
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+rotation = 1.0419616
+shape = SubResource("CapsuleShape2D_ot4vj")
+
+[connection signal="input_event" from="Area2D" to="." method="_on_area_input"]
+[connection signal="mouse_entered" from="Area2D" to="." method="_on_mouse_entered"]
+[connection signal="mouse_exited" from="Area2D" to="." method="_on_mouse_exited"]

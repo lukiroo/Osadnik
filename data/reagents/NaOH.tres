@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://i6kvr2se4m4n"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_bg72r"]
+
+[resource]
+script = ExtResource("1_bg72r")
+id = "NaOH"
+display_name = "NaOH"
+ions = {
+"Na+": 1,
+"OH-": 1
+}
+ph_value = nan
+eq_per_click = 0.01
+vol_per_click = 0.1
+is_base = true
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

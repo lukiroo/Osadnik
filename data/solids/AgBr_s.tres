@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://bxvi0q4gn8p42"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_i7beo"]
+
+[resource]
+script = ExtResource("1_i7beo")
+id = "AgBr_s"
+display_name = "AgBr"
+color = Color(1, 0.9607843, 0.8509804, 1)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

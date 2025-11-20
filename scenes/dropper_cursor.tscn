@@ -1,0 +1,31 @@
+[gd_scene load_steps=7 format=3 uid="uid://digrsfs0c6ybd"]
+
+[ext_resource type="Texture2D" uid="uid://dmt4qkj6g5yg3" path="res://assets/dropper.png" id="1_vtwc0"]
+[ext_resource type="Script" uid="uid://bo4kd3vn7wul5" path="res://scenes/fill_dot.gd" id="2_5stg7"]
+[ext_resource type="Shader" uid="uid://crensrlvfb8rv" path="res://resources/fill_dot.gdshader" id="3_afola"]
+[ext_resource type="Texture2D" uid="uid://c2jslu1hjal6k" path="res://assets/circlefill.png" id="3_ir81o"]
+[ext_resource type="Texture2D" uid="uid://c8diks3yk3po" path="res://assets/circle.png" id="5_jgine"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_jgine"]
+shader = ExtResource("3_afola")
+shader_parameter/level01 = 0.0
+shader_parameter/edge_px = 1.0
+
+[node name="DropperCursor" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(42, -55)
+scale = Vector2(0.30107522, 0.32069972)
+texture = ExtResource("1_vtwc0")
+
+[node name="FillDot" type="Node2D" parent="."]
+position = Vector2(100, -111)
+scale = Vector2(0.295, 0.295)
+script = ExtResource("2_5stg7")
+
+[node name="CircleFill" type="Sprite2D" parent="FillDot"]
+material = SubResource("ShaderMaterial_jgine")
+texture = ExtResource("3_ir81o")
+
+[node name="Circle" type="Sprite2D" parent="FillDot"]
+texture = ExtResource("5_jgine")

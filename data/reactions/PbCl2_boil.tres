@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://cfmoeafqmy6qc"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_2yykc"]
+
+[resource]
+script = ExtResource("1_2yykc")
+id = "PbCl2_boil"
+priority = 6
+reactants_solids = {
+"PbCl2_s": 1
+}
+products_ions = {
+"Cl-": 1,
+"Pb2+": 1
+}
+require_boiling = true
+set_tags = {
+"cooling_ready": true
+}
+clear_tags = Array[String](["cooled_enough", "cooling_t_s"])
+note = "Osad PbCl2 rozpuszcza sie"
+intensity = 0.0
+metadata/_custom_type_script = "uid://djapafftkk5kc"

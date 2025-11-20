@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://cu47sf4nk6s85"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_pgvbq"]
+
+[resource]
+script = ExtResource("1_pgvbq")
+id = "KI"
+display_name = "KI"
+ions = {
+"I-": 1,
+"K+": 1
+}
+sets_pH = "neutral"
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

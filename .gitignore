@@ -1,0 +1,13 @@
+# Godot
+.godot/
+.import/
+mono_temp/
+
+# Pliki systemowe
+.DS_Store
+Thumbs.db
+
+# IDE / edytory
+.vscode/
+.idea/
+*.user
