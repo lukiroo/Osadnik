@@ -61,7 +61,7 @@ var sediment_level: float = 0.0
 @export_subgroup("Poziom cieczy")
 @export_range(0.0, 1.0, 0.01) var fill_level: float = 1.0
 @export_range(0.0, 0.5, 0.01) var min_fill_level: float = 0.10
-@export_range(0.05, 5.0, 0.05) var capacity_units: float = 1.0
+@export_range(0.05, 15.0, 0.05) var capacity_units: float = 1.0
 
 @export_subgroup("Krople reagentów")
 @export_range(0.0, 0.5, 0.005) var reagent_level_per_drop: float = 0.10

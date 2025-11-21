@@ -144,9 +144,24 @@ func level_key(group_id: int, mode_str: String) -> String:
 		return "G%d_%s" % [group_id, suffix]
 
 
-func max_errors_allowed() -> int:
-	## Ile błędów jeszcze dopuszczamy przy zaliczeniu levelu.
-	return 1
+## Nowa wersja – „limit błędów” zależny od grupy, ćwiczenia i trudności.
+func max_errors_allowed_for(group_id: int, exercise_id: String, difficulty_now: int) -> int:
+	# Grupa 1: 0 błędów = 3★, 1 błąd = 1★, >=2 = 0★ → limit błędów = 1
+	if group_id == 1:
+		return 1
+
+	# Pozostałe grupy:
+	if difficulty_now == 0:
+		# tryb normalny: 0 błędów = 2★, 1 błąd = 1★, >=2 = 0★ → limit = 1
+		return 1
+	else:
+		# tryb trudny
+		if exercise_id == "EX1":
+			# hard EX1: 0 → 3★, 1 → 2★, 2 → 1★, >=3 → 0★ → limit = 2
+			return 2
+		else:
+			# hard EX2 (w tym EXAM): 0 → 3★, 1 → 2★, >=2 → 0★ → limit = 1
+			return 1
 
 
 func is_unlocked(level_key_str: String) -> bool:
@@ -213,16 +228,59 @@ func count_mistakes_mix(correct_list: Array, user_list: Array) -> int:
 
 
 # ───────────────────────── GWIAZDKI I PROGRES ─────────────────────────
-func compute_stars(mistakes: int, difficulty_now: int) -> int:
-	## Liczy gwiazdki na podstawie liczby błędów i trybu trudności.
-	## - normalny: 2 gwiazdki za 0 błędów, 1 gwiazdka przy dopuszczalnym błędzie,
-	## - trudny:    3 gwiazdki za 0 błędów, 2 gwiazdki przy dopuszczalnym błędzie.
-	if mistakes > max_errors_allowed():
-		return 0
+## group_id, exercise_id, difficulty_now
+func compute_stars(	mistakes: int, difficulty_now: int, group_id: int, exercise_id: String) -> int:
+	# Grupa 1 (EX1 i EX2):
+	# 0 błędów = 3★
+	# 1 błąd   = 1★
+	# ≥2 błędów = 0★ (niezaliczone)
+	if group_id == 1:
+		if mistakes == 0:
+			return 3
+		elif mistakes == 1:
+			return 1
+		else:
+			return 0
+
+	# Pozostałe grupy:
 	if difficulty_now == 0:
-		return (2 if mistakes == 0 else 1)
+		# tryb normalny:
+		# 0 błędów = 2★
+		# 1 błąd   = 1★
+		# ≥2 błędów = 0★
+		if mistakes == 0:
+			return 2
+		elif mistakes == 1:
+			return 1
+		else:
+			return 0
 	else:
-		return (3 if mistakes == 0 else 2)
+		# tryb trudny
+		if exercise_id == "EX1":
+			# hard EX1:
+			# 0 błędów = 3★
+			# 1 błąd   = 2★
+			# 2 błędy  = 1★
+			# ≥3 błędów = 0★
+			if mistakes == 0:
+				return 3
+			elif mistakes == 1:
+				return 2
+			elif mistakes == 2:
+				return 1
+			else:
+				return 0
+		else:
+			# hard EX2 (w tym egzamin, jeśli chcesz):
+			# 0 błędów = 3★
+			# 1 błąd   = 2★
+			# ≥2 błędów = 0★
+			if mistakes == 0:
+				return 3
+			elif mistakes == 1:
+				return 2
+			else:
+				return 0
 
 
 func get_best_stars(level_key_str: String) -> int:
@@ -233,6 +291,22 @@ func get_best_stars(level_key_str: String) -> int:
 
 func submit_result(level_key_str: String, mistakes: int) -> Dictionary:
 	## Aktualizuje zapis progresu dla danego poziomu po jednym podejściu.
+
+	# Rozkodowanie group_id i exercise_id z level_key_str.
+	var group_id: int = 0
+	var exercise_id: String = "EX1"
+
+	if level_key_str == "EXAM":
+		group_id = 0
+		exercise_id = "EX2"
+	else:
+		# "G1_EX1", "G2_EX2", "G45_EX1", ...
+		var parts: Array = level_key_str.split("_")
+		if parts.size() >= 2 and String(parts[0]).begins_with("G"):
+			var num_str: String = String(parts[0]).substr(1) # "1"/"2"/"3"/"45"
+			group_id = 4 if num_str == "45" else int(num_str)
+			exercise_id = String(parts[1])  # "EX1" / "EX2"
+
 	var rec: Dictionary = level_progress.get(level_key_str, {
 		"passed": false,
 		"best_mistakes": 9999,
@@ -243,13 +317,13 @@ func submit_result(level_key_str: String, mistakes: int) -> Dictionary:
 	if mistakes < int(rec.get("best_mistakes", 9999)):
 		rec["best_mistakes"] = mistakes
 
-	# Gwiazdki dla aktualnego podejścia.
-	var stars_now: int = compute_stars(mistakes, difficulty_mode)
+	# Gwiazdki dla aktualnego podejścia wg nowych zasad.
+	var stars_now: int = compute_stars(mistakes, difficulty_mode, group_id, exercise_id)
 	if stars_now > int(rec.get("best_stars", 0)):
 		rec["best_stars"] = stars_now
 
-	# Zaliczenie poziomu (do odblokowania następnego).
-	var passed_now: bool = (mistakes <= max_errors_allowed())
+	# Zaliczenie poziomu = >=1 gwiazdka.
+	var passed_now: bool = (stars_now > 0)
 	if passed_now:
 		rec["passed"] = true
 

@@ -2,42 +2,49 @@ extends Node
 class_name LevelManager
 
 ## =========================================================================
-## LevelManager – losowanie kationów, spawn probówek i numerowanie
+## LevelManager – losowanie kationów, spawn probówek, numerowanie, reagenty
 ## -------------------------------------------------------------------------
-## Odpowiada za:
-## - odczyt konfiguracji levelu z autoloada Settings (tryb, grupa, itp.),
-## - spawn probówek startowych (z kationami) oraz roboczych (pustych),
-## - przechowywanie poprawnych odpowiedzi dla EX1 (mapa slot → kation)
-##   oraz EX2 (lista kationów w mieszance),
-## - nadawanie etykiet probówkom:
-##     * racki robocze: numery 1, 2, 3, ...
-##     * beaker startowy w EX1: litery A, B, C, D, E,
-## - udostępnianie danych dla ekranu wyników
-##   (get_single_answer_map, get_mix_answer_list).
+## - czyta konfigurację levelu (mode, group_id, itp.),
+## - spawnuje probówki startowe / robocze,
+## - przechowuje poprawne odpowiedzi (EX1, EX2),
+## - nadaje etykiety probówkom,
+## - ustawia reagenty w butelkach na półce.
 ## =========================================================================
 
-# ───────────────────────── TRYB PRACY I PODSTAWOWA KONFIG ─────────────────
+# ───────────────────────── TRYB PRACY I PARAMETRY ─────────────────
 enum Mode { SANDBOX, EXERCISE_SINGLE, EXERCISE_MIX }
 
-@export var mode: Mode = Mode.EXERCISE_SINGLE
-@export_range(0, 4, 1) var group_id: int = 1           ## 0 = tryb egzaminu
-
-@export var starter_count: int = 3                     ## Ile startowych probówek w EX1.
-@export_range(1, 5, 1) var mix_difficulty: int = 2     ## Ile kationów w mieszance w EX2.
+var mode: Mode = Mode.EXERCISE_SINGLE
+var group_id: int = 1
+var starter_count: int = 3
+var mix_difficulty: int = 2
 
 # ───────────────────────── REFERENCJE SCENY ───────────────────────────────
-@onready var probe_beaker: Node2D = $"../ProbeBeaker"  ## Zlewka z probówką do identyfikacji.
+@onready var probe_beaker:  Node2D = $"../ProbeBeaker1"   ## Zlewka dla ćw. 1
+@onready var probe_beaker2: Node2D = $"../ProbeBeaker2"   ## Zlewka dla ćw. 2 + egzamin
+@onready var reagent_shelf: Node2D = $"../ReagentShelf"   ## Półka z butelkami reagentów
 
-@export var starter_probe_scene: PackedScene           ## Scena probówki startowej.
-@export var work_probe_scene: PackedScene              ## Scena probówki roboczej.
+const STARTER_PROBE_SCENE: PackedScene     = preload("res://scenes/starter_probe.tscn")
+const BIG_STARTER_PROBE_SCENE: PackedScene = preload("res://scenes/starter_probe_big.tscn")
+const WORK_PROBE_SCENE: PackedScene        = preload("res://scenes/work_probe.tscn")
 
-# ───────────────────────── STAŁE WIZUALNE ─────────────────────────────────
+# ───────────────────────── REAGENTY ─────────────────────────────
+const REAGENT_PATH_PREFIX := "res://data/reagents/"
+const REAGENT_PATH_SUFFIX := ".tres"
+
+# ───────────────────────── CZCIONKA ─────────────────────────────────
 const WORK_LABEL_FONT_SIZE: int = 20
 const STARTER_LABEL_FONT_SIZE: int = 13
 
+# ───────────────────────── PARAMETRY CHEMICZNE ────────────────────────────
+## Ile „sztuk” kationu w pojedynczej probówki startowej w EX1.
+const STARTER_CATION_AMOUNT: int = 100
+## Ile „sztuk” kationu na KAŻDY kation w mieszance (EX2 / egzamin).
+const MIX_CATION_AMOUNT: int = 500
+
 # ───────────────────────── STAN ODPOWIEDZI I PROBÓWEK ─────────────────────
 ## EX1: mapa „slot indeks → kation”.
-var _single_answer_map: Dictionary = {} 
+var _single_answer_map: Dictionary = {}
 ## EX2: lista kationów w mieszance.
 var _mix_answer_list: Array[String] = []
 
@@ -45,19 +52,15 @@ var _mix_answer_list: Array[String] = []
 var _starter_probes: Array[Node2D] = []
 var _work_probes: Array[Node2D] = []
 
-# ───────────────────────── PARAMETRY CHEMICZNE MIESZANKI ──────────────────
-@export var mix_cation_amount: int = 100               ## „Porcja” ładunku na każdy kation w mieszance.
-
 
 # =================================================================
 # INIT – konfiguracja startowa levelu
 # =================================================================
 func _ready() -> void:
-	## Korekta zakresów (na wypadek nietypowych wartości z Inspectora).
 	starter_count = clamp(starter_count, 1, 12)
 	mix_difficulty = clamp(mix_difficulty, 1, 5)
 
-	## Autoload Settings może przekazać konfigurację kolejnego levelu.
+	# Konfiguracja levelu przekazana z LevelSelect (Settings)
 	var settings_node := get_tree().get_root().get_node_or_null("Settings")
 	if settings_node and settings_node.has_method("get_and_clear_next_level_config"):
 		var cfg: Dictionary = settings_node.get_and_clear_next_level_config()
@@ -72,23 +75,16 @@ func _ready() -> void:
 			if cfg.has("mix_difficulty"):
 				mix_difficulty = int(cfg["mix_difficulty"])
 
-	if starter_probe_scene == null:
-		push_warning("[LevelManager] starter_probe_scene nie ustawione w Inspectorze.")
-	if work_probe_scene == null:
-		push_warning("[LevelManager] work_probe_scene nie ustawione w Inspectorze.")
-
-	## Docelowy spawn probówek dopiero po starcie sceny.
 	call_deferred("respawn_level")
 
 
 # =================================================================
 # METODY WYWOŁYWANE Z ZEWNĄTRZ
 # =================================================================
-
-## Reset levelu: czyści probówki w slotach i tworzy konfigurację od nowa.
 func respawn_level() -> void:
 	_clear_all_slots("starter_slots")
 	_clear_all_slots("work_slots")
+	_clear_reagent_bottles()
 
 	_single_answer_map.clear()
 	_mix_answer_list.clear()
@@ -103,29 +99,21 @@ func respawn_level() -> void:
 		Mode.EXERCISE_MIX:
 			_setup_exercise_mix()
 
-	print(
-		"[LM] starters=", _starter_probes.size(),
-		" single_answers=", _single_answer_map.size(),
-		" mix=", _mix_answer_list
-	)
+	_spawn_reagents_for_current_level()
 
-	## Po spawnie probówek odświeża highlighty
 	var lab_root := get_tree().get_first_node_in_group("lab_root")
 	if lab_root != null and lab_root.has_method("_refresh_probe_highlights"):
 		lab_root._refresh_probe_highlights()
 
 
-## EX1 – zwraca kopię mapy odpowiedzi (slot → kation).
 func get_single_answer_map() -> Dictionary:
 	return _single_answer_map.duplicate(true)
 
 
-## EX2 – zwraca kopię listy kationów w mieszance.
 func get_mix_answer_list() -> Array[String]:
 	return _mix_answer_list.duplicate()
 
 
-## Używane np. przy zmianie opcji etykiet – ponownie nadaje numerację.
 func relabel_now() -> void:
 	_relabel_group("work_slots")
 	_relabel_group("starter_slots")
@@ -134,48 +122,48 @@ func relabel_now() -> void:
 # =================================================================
 # KONFIGURACJA LEVELU – TRYBY SANDBOX / EX1 / EX2
 # =================================================================
-
-## Prosty sandbox – wyłącznie probówki robocze
 func _setup_sandbox() -> void:
 	_spawn_work_tubes()
 
 
-## EXERCISE_SINGLE – kilka startowych probówek z pojedynczym kationem + probówki robocze.
 func _setup_exercise_single() -> void:
+	# Ćwiczenie 1 – klasyczna zlewka i normalne probówki startowe.
 	if probe_beaker:
 		probe_beaker.visible = true
+	if probe_beaker2:
+		probe_beaker2.visible = false
 
 	var group_cations: Array[String] = _get_group_cations(group_id)
 	if group_cations.is_empty():
-		push_warning("Brak kationów dla grupy %d" % group_id)
+		push_error("[LevelManager] Brak kationów dla grupy %d" % group_id)
 		return
 
 	var chosen_ids: Array[String] = _pick_distinct(group_cations, starter_count)
-
 	var starter_slots: Array = _get_slots("starter_slots")
 	var count: int = min(starter_slots.size(), chosen_ids.size())
 
 	for i in count:
 		var cation_id: String = String(chosen_ids[i])
 		var solution: Mixture = _make_simple_solution(cation_id)
-		var tube: Node2D = _instantiate_probe_as_starter(solution)
+		var tube: Node2D = _instantiate_probe_as_starter(solution, false) # normalna startowa
 		if tube:
 			_snap_to_slot(tube, starter_slots[i])
 			_starter_probes.append(tube)
-			## Uwaga: kluczem jest indeks slotu (0..), a nie tekst na etykiecie.
 			_single_answer_map[i] = cation_id
 
 	_spawn_work_tubes()
 
 
-## EXERCISE_MIX – jedna probówka startowa z mieszanką + probówki robocze.
 func _setup_exercise_mix() -> void:
+	# Ćwiczenie 2 + egzamin – nowa zlewka i duża probówka startowa.
 	if probe_beaker:
-		probe_beaker.visible = true
+		probe_beaker.visible = false
+	if probe_beaker2:
+		probe_beaker2.visible = true
 
 	var group_cations: Array[String] = _get_group_cations(group_id)
 	if group_cations.is_empty():
-		push_warning("Brak kationów dla grupy %d" % group_id)
+		push_error("[LevelManager] Brak kationów dla grupy %d" % group_id)
 		return
 
 	var chosen_ids: Array[String] = _pick_distinct(group_cations, mix_difficulty)
@@ -183,27 +171,18 @@ func _setup_exercise_mix() -> void:
 
 	var mix_solution: Mixture = _make_multi_solution(chosen_ids)
 
-	## Szukamy sceny z węzłem Lab (bezpośrednio lub jako dziecko).
-	var lab_scene: Node = get_tree().current_scene
-	if lab_scene == null:
-		push_error("[LevelManager] Brak current_scene.")
-		return
-
-	if lab_scene.name != "Lab":
-		var lab_candidate := lab_scene.get_node_or_null("Lab")
-		if lab_candidate:
-			lab_scene = lab_candidate
-
-	var beaker_node := lab_scene.get_node_or_null("ProbeBeaker")
+	# Wybierz odpowiednią zlewkę: preferuj ProbeBeaker2, fallback na ProbeBeaker1.
+	var beaker_node: Node2D = probe_beaker2 if probe_beaker2 != null else probe_beaker
 	if beaker_node == null:
-		push_error("[LevelManager] Brak węzła 'ProbeBeaker'.")
+		push_error("[LevelManager] Brak węzła ProbeBeaker2 ani ProbeBeaker1.")
 		return
+
 	var first_slot := beaker_node.get_node_or_null("ProbeSlot1")
 	if first_slot == null:
-		push_error("[LevelManager] Brak węzła 'ProbeBeaker/ProbeSlot1'.")
+		push_error("[LevelManager] Brak węzła '%s/ProbeSlot1'." % beaker_node.name)
 		return
 
-	var starter_tube: Node2D = _instantiate_probe_as_starter(mix_solution)
+	var starter_tube: Node2D = _instantiate_probe_as_starter(mix_solution, true) # duża startowa
 	if starter_tube:
 		_snap_to_slot(starter_tube, first_slot)
 		_starter_probes.append(starter_tube)
@@ -212,10 +191,99 @@ func _setup_exercise_mix() -> void:
 
 
 # =================================================================
+# REAGENTY – LISTY PER LEVEL I KONFIG BUTELEK
+# =================================================================
+func _get_reagent_ids_for_current_level() -> Array[String]:
+	var ids: Array[String] = []
+
+	match mode:
+		Mode.SANDBOX:
+			ids = ["HCl", "NaOH"]
+
+		Mode.EXERCISE_SINGLE, Mode.EXERCISE_MIX:
+			match group_id:
+				1:
+					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+				2:
+					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+				3:
+					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+				4:
+					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+				_:
+					ids = []
+
+	return ids
+
+
+## Zwraca listę butelek z półki, posortowanych po numerze z nazwy (Bottle1, Bottle2, ...).
+func _get_reagent_bottles() -> Array[ReagentBottle]:
+	var out: Array[ReagentBottle] = []
+	if reagent_shelf == null:
+		return out
+
+	for child in reagent_shelf.get_children():
+		if child is ReagentBottle:
+			out.append(child as ReagentBottle)
+
+	out.sort_custom(func(a, b) -> bool:
+		return _parse_slot_index(String(a.name)) < _parse_slot_index(String(b.name))
+	)
+
+	return out
+
+
+## Czyści butelki: chowa je i wyzerowuje reagent.
+func _clear_reagent_bottles() -> void:
+	for bottle in _get_reagent_bottles():
+		bottle.reagent = null
+		bottle.visible = false
+
+
+func _load_reagent_by_id(id: String) -> Reagent:
+	var safe_id := id.strip_edges()
+	if safe_id == "":
+		return null
+
+	var path := REAGENT_PATH_PREFIX + safe_id + REAGENT_PATH_SUFFIX
+	var res := ResourceLoader.load(path)
+	if res == null:
+		# Po prostu nie ustawiamy reagentu, bez ostrzeżeń.
+		return null
+
+	return res as Reagent
+
+
+## Ustawia reagenty w gotowych butelkach na półce.
+func _spawn_reagents_for_current_level() -> void:
+	var bottles: Array[ReagentBottle] = _get_reagent_bottles()
+	if bottles.is_empty():
+		return
+
+	var ids: Array[String] = _get_reagent_ids_for_current_level()
+	if ids.is_empty():
+		_clear_reagent_bottles()
+		return
+
+	var count: int = min(bottles.size(), ids.size())
+
+	for i in bottles.size():
+		if i < count:
+			var reagent_res: Reagent = _load_reagent_by_id(ids[i])
+			if reagent_res:
+				bottles[i].reagent = reagent_res
+				bottles[i].visible = true
+			else:
+				bottles[i].reagent = null
+				bottles[i].visible = false
+		else:
+			bottles[i].reagent = null
+			bottles[i].visible = false
+
+
+# =================================================================
 # SPAWN PROBÓWEK ROBOCZYCH
 # =================================================================
-
-## Spawnuje puste probówki robocze w slotach z grupy „work_slots”.
 func _spawn_work_tubes() -> void:
 	var work_slots: Array = []
 	for slot in get_tree().get_nodes_in_group("work_slots"):
@@ -223,10 +291,8 @@ func _spawn_work_tubes() -> void:
 			work_slots.append(slot)
 
 	if work_slots.is_empty():
-		push_warning("[LevelManager] Brak slotów w grupie 'work_slots'.")
 		return
 
-	## Sortowanie po współrzędnej X, żeby kolejność była intuicyjna.
 	work_slots.sort_custom(
 		func(a, b) -> bool:
 			return a.global_position.x < b.global_position.x
@@ -259,12 +325,15 @@ func _spawn_work_tubes() -> void:
 
 
 # =================================================================
-# FABRYKA PROBÓWEK (INSTANTIATE)
+# SPAWN PROBÓWEK
 # =================================================================
+func _instantiate_probe_as_starter(mix: Mixture, use_big: bool = false) -> Node2D:
+	var scene: PackedScene = null
+	if use_big:
+		scene = BIG_STARTER_PROBE_SCENE
+	else:
+		scene = STARTER_PROBE_SCENE
 
-## Tworzy probówkę startową z podaną mieszaniną (pełna, „duża”).
-func _instantiate_probe_as_starter(mix: Mixture) -> Node2D:
-	var scene: PackedScene = starter_probe_scene if starter_probe_scene != null else work_probe_scene
 	if scene == null:
 		push_error("[LevelManager] Brak sceny probówki startowej.")
 		return null
@@ -274,21 +343,19 @@ func _instantiate_probe_as_starter(mix: Mixture) -> Node2D:
 		push_error("[LevelManager] instantiate() zwróciło obiekt, który nie jest Probe (starter).")
 		return null
 
-	# Ustawiamy podstawowe parametry bez kombinowania z property_list:
 	tube.tube_role = Probe.TubeRole.STARTER
 	tube.mixture = mix
 	tube.fill_level = 1.0
+	tube.draggable = false        # startery w beakerze mają być nieruchome
 
-	# Upewniamy się, że wizualny poziom cieczy jest spójny ze stanem.
 	if tube.has_method("_apply_liquid_fill_visual"):
 		tube._apply_liquid_fill_visual()
 
 	return tube
 
 
-## Tworzy pustą probówkę roboczą (rola „WORK”).
 func _instantiate_probe_as_work_empty() -> Node2D:
-	var scene: PackedScene = work_probe_scene if work_probe_scene != null else starter_probe_scene
+	var scene: PackedScene = WORK_PROBE_SCENE
 	if scene == null:
 		push_error("[LevelManager] Brak sceny probówki roboczej.")
 		return null
@@ -298,7 +365,6 @@ func _instantiate_probe_as_work_empty() -> Node2D:
 		push_error("[LevelManager] instantiate() zwróciło obiekt, który nie jest Probe (work).")
 		return null
 
-	# Pusta probówka robocza – nowa mieszanina, brak cieczy na starcie.
 	tube.tube_role = Probe.TubeRole.WORK
 	tube.mixture = Mixture.new()
 	tube.fill_level = 0.0
@@ -310,10 +376,8 @@ func _instantiate_probe_as_work_empty() -> Node2D:
 
 
 # =================================================================
-# SLOTY I DOKOWANIE
+# SLOTY / ETYKIETY / LOSOWANIE
 # =================================================================
-
-## Zwraca listę slotów z danej grupy, które mają metodę `accept_probe`.
 func _get_slots(group_name: String) -> Array:
 	var slot_list: Array = []
 	for node in get_tree().get_nodes_in_group(group_name):
@@ -322,12 +386,10 @@ func _get_slots(group_name: String) -> Array:
 	return slot_list
 
 
-## Dokuje probówkę w danym slocie, w razie potrzeby szukając innego wolnego.
 func _snap_to_slot(probe: Node2D, slot: Node) -> void:
 	if probe == null or slot == null:
 		return
 
-	## Jeśli slot jest zajęty i nie ma flagi `allow_when_occupied`, szukamy alternatywy.
 	if slot.has_method("is_occupied") and slot.call("is_occupied") and not bool(slot.get("allow_when_occupied")):
 		var group_name := "starter_slots" if slot.is_in_group("starter_slots") else "work_slots"
 		for candidate in _get_slots(group_name):
@@ -351,7 +413,6 @@ func _snap_to_slot(probe: Node2D, slot: Node) -> void:
 	_label_probe_for_slot(probe, slot)
 
 
-## Usuwa probówki (z grupy „probes”) ze wszystkich slotów danej grupy.
 func _clear_all_slots(group_name: String) -> void:
 	for slot in _get_slots(group_name):
 		for child in slot.get_children():
@@ -359,11 +420,6 @@ func _clear_all_slots(group_name: String) -> void:
 				child.queue_free()
 
 
-# =================================================================
-# NUMEROWANIE / ETYKIETY PROBÓWEK
-# =================================================================
-
-## Ustawia etykietę probówki na podstawie slotu i trybu.
 func _label_probe_for_slot(probe: Node2D, slot: Node) -> void:
 	if probe == null or slot == null:
 		return
@@ -380,20 +436,14 @@ func _label_probe_for_slot(probe: Node2D, slot: Node) -> void:
 
 	match container_name:
 		"ProbeRack1":
-			## Pierwszy stojak – numery 1, 2, 3, ...
 			_set_probe_num_label(probe, str(slot_index), WORK_LABEL_FONT_SIZE, false)
-
 		"ProbeRack2":
-			## Drugi stojak – kontynuacja (np. 6, 7, ...).
 			_set_probe_num_label(probe, str(5 + slot_index), WORK_LABEL_FONT_SIZE, false)
-
-		"ProbeBeaker":
-			## Beaker – startowe probówki w EX1 mają litery A..E.
+		"ProbeBeaker1", "ProbeBeaker2":
 			match mode:
 				Mode.EXERCISE_SINGLE:
 					if slot_index <= starter_count:
 						var letter_label := _index_to_letter(slot_index)
-						## W EX1 litery zawsze widoczne, niezależnie od opcji Settings.
 						_set_probe_num_label(probe, letter_label, STARTER_LABEL_FONT_SIZE, true)
 					else:
 						_hide_probe_label(probe)
@@ -401,12 +451,10 @@ func _label_probe_for_slot(probe: Node2D, slot: Node) -> void:
 					_hide_probe_label(probe)
 				_:
 					_hide_probe_label(probe)
-
 		_:
 			_hide_probe_label(probe)
 
 
-## Wyciąga numeryczną końcówkę z nazwy slotu, np. "ProbeSlot3" → 3.
 func _parse_slot_index(slot_name: String) -> int:
 	var re := RegEx.new()
 	re.compile("(\\d+)$")
@@ -416,7 +464,6 @@ func _parse_slot_index(slot_name: String) -> int:
 	return -1
 
 
-## Przelicza etykiety probówek w slotach danej grupy.
 func _relabel_group(group_name: String) -> void:
 	for slot in _get_slots(group_name):
 		var tube := _find_probe_in_slot(slot)
@@ -424,7 +471,6 @@ func _relabel_group(group_name: String) -> void:
 			_label_probe_for_slot(tube, slot)
 
 
-## Szuka probówki w danym slocie (przez metodę get_probe lub grupę „probes”).
 func _find_probe_in_slot(slot: Node) -> Node2D:
 	if slot.has_method("get_probe"):
 		return slot.call("get_probe") as Node2D
@@ -434,7 +480,6 @@ func _find_probe_in_slot(slot: Node) -> Node2D:
 	return null
 
 
-## Ustawia tekst etykiety, biorąc pod uwagę globalne ustawienia (Settings.show_tube_labels).
 func _set_probe_num_label(
 	probe: Node2D,
 	text: String,
@@ -463,7 +508,6 @@ func _set_probe_num_label(
 		lbl.add_theme_font_size_override("font_size", font_size)
 
 
-## Ukrywa etykietę probówki (jeśli istnieje).
 func _hide_probe_label(probe: Node2D) -> void:
 	var lbl: Label = probe.get_node_or_null("NumLabel") as Label
 	if lbl == null:
@@ -474,20 +518,16 @@ func _hide_probe_label(probe: Node2D) -> void:
 		lbl.visible = false
 
 
-## Zamienia indeks slotu (1..5) na literę A..E (dla beakera).
 func _index_to_letter(index: int) -> String:
 	var letters := ["A", "B", "C", "D", "E"]
 	if index >= 1 and index <= letters.size():
 		return letters[index - 1]
-	## Fallback (gdyby kiedyś slotów było więcej niż liter).
 	return str(index)
 
 
 # =================================================================
-# DANE CHEMICZNE / LOSOWANIE
+# LISTY KATIONÓW + LOSOWANIE
 # =================================================================
-
-## Zwraca listę kationów dla danej grupy (albo wszystkich, gdy group == 0).
 func _get_group_cations(group: int) -> Array[String]:
 	if group == 0:
 		var all: Array[String] = []
@@ -510,7 +550,6 @@ func _get_group_cations(group: int) -> Array[String]:
 			return []
 
 
-## Losuje n różnych kationów z podanej puli.
 func _pick_distinct(pool: Array[String], n: int) -> Array[String]:
 	var tmp: Array[String] = pool.duplicate()
 	tmp.shuffle()
@@ -521,23 +560,21 @@ func _pick_distinct(pool: Array[String], n: int) -> Array[String]:
 	return out
 
 
-## Tworzy prosty roztwór z jednym kationem (EX1).
 func _make_simple_solution(cation_id: String) -> Mixture:
 	var mix := Mixture.new()
-	mix.add_ions({cation_id: 100, "NO3-": 1})
+	mix.add_ions({cation_id: STARTER_CATION_AMOUNT, "NO3-": STARTER_CATION_AMOUNT})
 	return mix
 
 
-## Tworzy roztwór z kilkoma kationami (EX2).
 func _make_multi_solution(cation_ids: Array[String]) -> Mixture:
 	var mix := Mixture.new()
 	var ions_dict: Dictionary = {}
 
 	for c in cation_ids:
-		ions_dict[c] = mix_cation_amount
+		ions_dict[c] = MIX_CATION_AMOUNT
 
 	if ions_dict.size() > 0:
-		ions_dict["NO3-"] = cation_ids.size() * mix_cation_amount
+		ions_dict["NO3-"] = cation_ids.size() * MIX_CATION_AMOUNT
 
 	mix.add_ions(ions_dict)
 	return mix

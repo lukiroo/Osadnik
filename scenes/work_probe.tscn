@@ -20,6 +20,8 @@ shader_parameter/noise_strength = 0.8
 shader_parameter/top_clear_zone = 0.12
 shader_parameter/depth_bias = 0.3
 shader_parameter/wall_softness_px = 2.0
+shader_parameter/settle_front = 1.0
+shader_parameter/settle_softness = 0.12
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_s606s"]
 resource_local_to_scene = true

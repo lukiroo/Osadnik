@@ -1,18 +1,9 @@
-[gd_scene load_steps=47 format=3 uid="uid://cbijtqnh0c654"]
+[gd_scene load_steps=22 format=3 uid="uid://cbijtqnh0c654"]
 
 [ext_resource type="Script" uid="uid://cpu3bsk01o2g2" path="res://scenes/lab.gd" id="1_l8eg8"]
 [ext_resource type="PackedScene" uid="uid://c75ytlngbysag" path="res://scenes/indicator_paper.tscn" id="2_hxoer"]
 [ext_resource type="Texture2D" uid="uid://dyon62ngtyvul" path="res://assets/background.png" id="3_h0d28"]
 [ext_resource type="PackedScene" uid="uid://8uwsyddrgaam" path="res://scenes/reagent_bottle.tscn" id="4_yyhnv"]
-[ext_resource type="Resource" uid="uid://ckrs1gdjniqk3" path="res://data/reagents/HCl.tres" id="5_w0nm4"]
-[ext_resource type="Resource" uid="uid://cu47sf4nk6s85" path="res://data/reagents/KI.tres" id="6_06ujv"]
-[ext_resource type="Resource" uid="uid://cjya8r6ug0m60" path="res://data/reagents/KBr.tres" id="7_tnom2"]
-[ext_resource type="Resource" uid="uid://i6kvr2se4m4n" path="res://data/reagents/NaOH.tres" id="8_oj5m8"]
-[ext_resource type="Resource" uid="uid://vgn1tyxqi1ue" path="res://data/reagents/Pb(NO3)2.tres" id="9_viukl"]
-[ext_resource type="PackedScene" uid="uid://cc78m6ydl4qdf" path="res://scenes/probe.tscn" id="10_5ibxs"]
-[ext_resource type="Shader" uid="uid://cgwyg0gfeeys5" path="res://resources/turbidity_2d.gdshader" id="11_2st3x"]
-[ext_resource type="Shader" uid="uid://dme1hcdfnx27m" path="res://resources/level_clip_scroll.gdshader" id="12_ydy7y"]
-[ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="13_tdr5i"]
 [ext_resource type="PackedScene" uid="uid://cje4bowu4owl8" path="res://scenes/probe_rack.tscn" id="14_q5yt0"]
 [ext_resource type="PackedScene" uid="uid://digrsfs0c6ybd" path="res://scenes/dropper_cursor.tscn" id="15_bavs5"]
 [ext_resource type="PackedScene" uid="uid://c62pj6l4r6bxb" path="res://scenes/pipette_cursor.tscn" id="16_c5npc"]
@@ -22,207 +13,20 @@
 [ext_resource type="PackedScene" uid="uid://tpff1vn61y2c" path="res://scenes/centrifuge.tscn" id="20_l5iwd"]
 [ext_resource type="PackedScene" uid="uid://cf0iiytmhiupv" path="res://scenes/stir_rod_on_table.tscn" id="21_h88sg"]
 [ext_resource type="PackedScene" uid="uid://b334lnqj42j3l" path="res://scenes/stir_rod_cursor.tscn" id="22_mqst2"]
-[ext_resource type="PackedScene" uid="uid://br5xqy3dxuioy" path="res://scenes/probe_beaker.tscn" id="23_ylpa4"]
+[ext_resource type="PackedScene" uid="uid://br5xqy3dxuioy" path="res://scenes/probe_beaker1.tscn" id="23_ylpa4"]
 [ext_resource type="Script" uid="uid://2fnoreiqa0en" path="res://scenes/level_manager.gd" id="24_qempp"]
-[ext_resource type="PackedScene" uid="uid://dmdbt8u0sq7rd" path="res://scenes/starter_probe.tscn" id="25_hc38m"]
-[ext_resource type="PackedScene" uid="uid://sau5e4cxte1m" path="res://scenes/work_probe.tscn" id="26_e2pvq"]
+[ext_resource type="PackedScene" uid="uid://d4ng3sfiswdat" path="res://scenes/probe_beaker2.tscn" id="25_ffhs6"]
 [ext_resource type="Script" uid="uid://b0exgltg1dc3s" path="res://scenes/rack_place.gd" id="27_g70h3"]
 [ext_resource type="Texture2D" uid="uid://hxc3jjup6cct" path="res://assets/rackshadow.png" id="28_o3afa"]
 [ext_resource type="PackedScene" uid="uid://n383gm1hms3s" path="res://scenes/waste_beaker.tscn" id="29_t554p"]
 [ext_resource type="PackedScene" uid="uid://ch2xav7s8qbt2" path="res://scenes/squirt_bottle_on_table.tscn" id="30_exfyd"]
 [ext_resource type="PackedScene" uid="uid://dvkbqcgjlqkwr" path="res://scenes/squirt_bottle_cursor.tscn" id="31_h6p5o"]
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_5a7xe"]
-resource_local_to_scene = true
-shader = ExtResource("11_2st3x")
-shader_parameter/turbidity = 0.0
-shader_parameter/fog_color = Color(1.353256, 1.353256, 1.353256, 0.90200007)
-shader_parameter/level01 = 0.0
-shader_parameter/level_softness_px = 2.0
-shader_parameter/level_scale = 1.0
-shader_parameter/level_bias = 0.0
-shader_parameter/use_procedural_noise = false
-shader_parameter/noise_scale = 6.0
-shader_parameter/flow_speed = 0.12
-shader_parameter/noise_strength = 0.8
-shader_parameter/top_clear_zone = 0.12
-shader_parameter/depth_bias = 0.3
-shader_parameter/wall_softness_px = 2.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_y2r2p"]
-shader = ExtResource("12_ydy7y")
-shader_parameter/level01 = 1.0
-shader_parameter/edge_softness_px = 2.0
-shader_parameter/scroll_uv = true
-shader_parameter/use_mask = false
-shader_parameter/mask_texel = Vector2(0, 0)
-shader_parameter/wall_softness_px = 0.0
-shader_parameter/meniscus_boost = 0.0
-shader_parameter/meniscus_band_px = 1.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_4lfu3"]
-shader = ExtResource("13_tdr5i")
-shader_parameter/highlight = false
-shader_parameter/highlight_strength = 0.0
-shader_parameter/outline_color = Color(1, 0.95, 0.2, 1)
-shader_parameter/outline_width = 10.0
-shader_parameter/alpha_threshold = 0.1
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_q7olp"]
-resource_local_to_scene = true
-shader = ExtResource("11_2st3x")
-shader_parameter/turbidity = 0.0
-shader_parameter/fog_color = Color(1.353256, 1.353256, 1.353256, 0.90200007)
-shader_parameter/level01 = 0.0
-shader_parameter/level_softness_px = 2.0
-shader_parameter/level_scale = 1.0
-shader_parameter/level_bias = 0.0
-shader_parameter/use_procedural_noise = false
-shader_parameter/noise_scale = 6.0
-shader_parameter/flow_speed = 0.12
-shader_parameter/noise_strength = 0.8
-shader_parameter/top_clear_zone = 0.12
-shader_parameter/depth_bias = 0.3
-shader_parameter/wall_softness_px = 2.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_dabtt"]
-shader = ExtResource("12_ydy7y")
-shader_parameter/level01 = 1.0
-shader_parameter/edge_softness_px = 2.0
-shader_parameter/scroll_uv = true
-shader_parameter/use_mask = false
-shader_parameter/mask_texel = Vector2(0, 0)
-shader_parameter/wall_softness_px = 0.0
-shader_parameter/meniscus_boost = 0.0
-shader_parameter/meniscus_band_px = 1.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_oy0ig"]
-shader = ExtResource("13_tdr5i")
-shader_parameter/highlight = false
-shader_parameter/highlight_strength = 0.0
-shader_parameter/outline_color = Color(1, 0.95, 0.2, 1)
-shader_parameter/outline_width = 10.0
-shader_parameter/alpha_threshold = 0.1
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_68jsr"]
-resource_local_to_scene = true
-shader = ExtResource("11_2st3x")
-shader_parameter/turbidity = 0.0
-shader_parameter/fog_color = Color(1.353256, 1.353256, 1.353256, 0.90200007)
-shader_parameter/level01 = 0.0
-shader_parameter/level_softness_px = 2.0
-shader_parameter/level_scale = 1.0
-shader_parameter/level_bias = 0.0
-shader_parameter/use_procedural_noise = false
-shader_parameter/noise_scale = 6.0
-shader_parameter/flow_speed = 0.12
-shader_parameter/noise_strength = 0.8
-shader_parameter/top_clear_zone = 0.12
-shader_parameter/depth_bias = 0.3
-shader_parameter/wall_softness_px = 2.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_u6hx0"]
-shader = ExtResource("12_ydy7y")
-shader_parameter/level01 = 1.0
-shader_parameter/edge_softness_px = 2.0
-shader_parameter/scroll_uv = true
-shader_parameter/use_mask = false
-shader_parameter/mask_texel = Vector2(0, 0)
-shader_parameter/wall_softness_px = 0.0
-shader_parameter/meniscus_boost = 0.0
-shader_parameter/meniscus_band_px = 1.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_cr23m"]
-shader = ExtResource("13_tdr5i")
-shader_parameter/highlight = false
-shader_parameter/highlight_strength = 0.0
-shader_parameter/outline_color = Color(1, 0.95, 0.2, 1)
-shader_parameter/outline_width = 10.0
-shader_parameter/alpha_threshold = 0.1
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_buwc8"]
-resource_local_to_scene = true
-shader = ExtResource("11_2st3x")
-shader_parameter/turbidity = 0.0
-shader_parameter/fog_color = Color(1.353256, 1.353256, 1.353256, 0.90200007)
-shader_parameter/level01 = 0.0
-shader_parameter/level_softness_px = 2.0
-shader_parameter/level_scale = 1.0
-shader_parameter/level_bias = 0.0
-shader_parameter/use_procedural_noise = false
-shader_parameter/noise_scale = 6.0
-shader_parameter/flow_speed = 0.12
-shader_parameter/noise_strength = 0.8
-shader_parameter/top_clear_zone = 0.12
-shader_parameter/depth_bias = 0.3
-shader_parameter/wall_softness_px = 2.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_vcjrv"]
-shader = ExtResource("12_ydy7y")
-shader_parameter/level01 = 1.0
-shader_parameter/edge_softness_px = 2.0
-shader_parameter/scroll_uv = true
-shader_parameter/use_mask = false
-shader_parameter/mask_texel = Vector2(0, 0)
-shader_parameter/wall_softness_px = 0.0
-shader_parameter/meniscus_boost = 0.0
-shader_parameter/meniscus_band_px = 1.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_aow0q"]
-shader = ExtResource("13_tdr5i")
-shader_parameter/highlight = false
-shader_parameter/highlight_strength = 0.0
-shader_parameter/outline_color = Color(1, 0.95, 0.2, 1)
-shader_parameter/outline_width = 10.0
-shader_parameter/alpha_threshold = 0.1
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_ami4o"]
-resource_local_to_scene = true
-shader = ExtResource("11_2st3x")
-shader_parameter/turbidity = 0.0
-shader_parameter/fog_color = Color(1.353256, 1.353256, 1.353256, 0.90200007)
-shader_parameter/level01 = 0.0
-shader_parameter/level_softness_px = 2.0
-shader_parameter/level_scale = 1.0
-shader_parameter/level_bias = 0.0
-shader_parameter/use_procedural_noise = false
-shader_parameter/noise_scale = 6.0
-shader_parameter/flow_speed = 0.12
-shader_parameter/noise_strength = 0.8
-shader_parameter/top_clear_zone = 0.12
-shader_parameter/depth_bias = 0.3
-shader_parameter/wall_softness_px = 2.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_t001p"]
-shader = ExtResource("12_ydy7y")
-shader_parameter/level01 = 1.0
-shader_parameter/edge_softness_px = 2.0
-shader_parameter/scroll_uv = true
-shader_parameter/use_mask = false
-shader_parameter/mask_texel = Vector2(0, 0)
-shader_parameter/wall_softness_px = 0.0
-shader_parameter/meniscus_boost = 0.0
-shader_parameter/meniscus_band_px = 1.0
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_7wrk0"]
-shader = ExtResource("13_tdr5i")
-shader_parameter/highlight = false
-shader_parameter/highlight_strength = 0.0
-shader_parameter/outline_color = Color(1, 0.95, 0.2, 1)
-shader_parameter/outline_width = 10.0
-shader_parameter/alpha_threshold = 0.1
-
 [node name="Lab" type="Node2D"]
 script = ExtResource("1_l8eg8")
-dropper_capacity_units = 1.2
-pickup_rate_units_per_sec = 0.8
-pour_rate_units_per_sec = 0.8
-indicator_paper_scene = ExtResource("2_hxoer")
 
 [node name="LevelManager" type="Node" parent="."]
 script = ExtResource("24_qempp")
-starter_probe_scene = ExtResource("25_hc38m")
-work_probe_scene = ExtResource("26_e2pvq")
 
 [node name="Background" type="Sprite2D" parent="."]
 z_index = -2
@@ -230,144 +34,42 @@ position = Vector2(645.5, 365.50006)
 scale = Vector2(0.86914057, 0.73339844)
 texture = ExtResource("3_h0d28")
 
-[node name="ReagentBottle" parent="." instance=ExtResource("4_yyhnv")]
-position = Vector2(80, 93)
-reagent = ExtResource("5_w0nm4")
+[node name="ReagentShelf" type="Node2D" parent="."]
 
-[node name="ReagentBottle4" parent="." instance=ExtResource("4_yyhnv")]
-position = Vector2(450, 93)
-reagent = ExtResource("6_06ujv")
+[node name="Bottle1" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(53, 84)
 
-[node name="ReagentBottle3" parent="." instance=ExtResource("4_yyhnv")]
-position = Vector2(333, 93)
-reagent = ExtResource("7_tnom2")
+[node name="Bottle2" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(138, 82)
 
-[node name="ReagentBottle2" parent="." instance=ExtResource("4_yyhnv")]
-position = Vector2(212, 93)
-reagent = ExtResource("8_oj5m8")
+[node name="Bottle3" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(216, 82)
 
-[node name="ReagentBottle5" parent="." instance=ExtResource("4_yyhnv")]
-position = Vector2(71, 274)
-reagent = ExtResource("9_viukl")
+[node name="Bottle4" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(294, 80)
 
-[node name="WaterBath" parent="." instance=ExtResource("19_tyay7")]
-position = Vector2(622, 235)
-
-[node name="Probe" parent="." instance=ExtResource("10_5ibxs")]
-z_index = 1
-position = Vector2(177, 499.32)
-scale = Vector2(1.4, 1.2)
-capacity_units = 3.0
-
-[node name="TurbidityOverlay" parent="Probe/LiquidFill" index="0"]
-material = SubResource("ShaderMaterial_5a7xe")
-
-[node name="LiquidLevelSprite2D" parent="Probe/LiquidFill" index="2"]
-material = SubResource("ShaderMaterial_y2r2p")
-
-[node name="GlassSprite2D" parent="Probe" index="4"]
-material = SubResource("ShaderMaterial_4lfu3")
-
-[node name="ProbeRack1" parent="." groups=["probe_dropzones", "work_slots"] instance=ExtResource("14_q5yt0")]
-position = Vector2(1598, 665)
-shelf_place_path = NodePath("../ShelfPlace")
-table_place1_path = NodePath("../TablePlace1")
-table_place2_path = NodePath("../TablePlace2")
-
-[node name="ProbeRack2" parent="." groups=["probe_dropzones", "work_slots"] instance=ExtResource("14_q5yt0")]
-position = Vector2(1530, 400)
-start_on_shelf = true
-shelf_place_path = NodePath("../ShelfPlace")
-table_place1_path = NodePath("../TablePlace1")
-table_place2_path = NodePath("../TablePlace2")
-
-[node name="DropperCursor" parent="." instance=ExtResource("15_bavs5")]
-visible = false
-z_index = 100
-
-[node name="PipetteCursor" parent="." instance=ExtResource("16_c5npc")]
-visible = false
-z_index = 100
-
-[node name="DropperOnTable" parent="." instance=ExtResource("17_ky6ns")]
-position = Vector2(532, 630)
-
-[node name="Anchor" type="Node2D" parent="DropperOnTable"]
-position = Vector2(-17, 108)
-
-[node name="Probe2" parent="." instance=ExtResource("10_5ibxs")]
-visible = false
-position = Vector2(881, 512)
-
-[node name="TurbidityOverlay" parent="Probe2/LiquidFill" index="0"]
-material = SubResource("ShaderMaterial_q7olp")
-
-[node name="LiquidLevelSprite2D" parent="Probe2/LiquidFill" index="2"]
-material = SubResource("ShaderMaterial_dabtt")
-
-[node name="GlassSprite2D" parent="Probe2" index="4"]
-material = SubResource("ShaderMaterial_oy0ig")
-
-[node name="Probe3" parent="." instance=ExtResource("10_5ibxs")]
-visible = false
-position = Vector2(960, 512)
-
-[node name="TurbidityOverlay" parent="Probe3/LiquidFill" index="0"]
-material = SubResource("ShaderMaterial_68jsr")
-
-[node name="LiquidLevelSprite2D" parent="Probe3/LiquidFill" index="2"]
-material = SubResource("ShaderMaterial_u6hx0")
-
-[node name="GlassSprite2D" parent="Probe3" index="4"]
-material = SubResource("ShaderMaterial_cr23m")
-
-[node name="Probe4" parent="." instance=ExtResource("10_5ibxs")]
-visible = false
-position = Vector2(1043, 511)
-
-[node name="TurbidityOverlay" parent="Probe4/LiquidFill" index="0"]
-material = SubResource("ShaderMaterial_buwc8")
-
-[node name="LiquidLevelSprite2D" parent="Probe4/LiquidFill" index="2"]
-material = SubResource("ShaderMaterial_vcjrv")
-
-[node name="GlassSprite2D" parent="Probe4" index="4"]
-material = SubResource("ShaderMaterial_aow0q")
-
-[node name="Probe5" parent="." instance=ExtResource("10_5ibxs")]
-visible = false
-position = Vector2(1121, 510)
-
-[node name="TurbidityOverlay" parent="Probe5/LiquidFill" index="0"]
-material = SubResource("ShaderMaterial_ami4o")
-
-[node name="LiquidLevelSprite2D" parent="Probe5/LiquidFill" index="2"]
-material = SubResource("ShaderMaterial_t001p")
-
-[node name="GlassSprite2D" parent="Probe5" index="4"]
-material = SubResource("ShaderMaterial_7wrk0")
-
-[node name="IndicatorPaper" parent="." instance=ExtResource("2_hxoer")]
-visible = false
-
-[node name="IndicatorBox" parent="." instance=ExtResource("18_mluu5")]
-position = Vector2(864, 88)
-scale = Vector2(0.57, 0.57)
+[node name="Bottle5" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(54, 267)
 
 [node name="Centrifuge" parent="." instance=ExtResource("20_l5iwd")]
 position = Vector2(1154.0001, 114)
 scale = Vector2(0.205, 0.205)
 
-[node name="StirRodOnTable" parent="." instance=ExtResource("21_h88sg")]
-position = Vector2(244, 656)
+[node name="WaterBath" parent="." instance=ExtResource("19_tyay7")]
+position = Vector2(679, 218)
 
-[node name="StirRodCursor" parent="." instance=ExtResource("22_mqst2")]
-visible = false
-z_index = 100
+[node name="WasteBeaker" parent="." instance=ExtResource("29_t554p")]
+z_index = -1
+position = Vector2(709, 662)
+scale = Vector2(0.215, 0.215)
 
-[node name="ProbeBeaker" parent="." instance=ExtResource("23_ylpa4")]
+[node name="ProbeBeaker1" parent="." instance=ExtResource("23_ylpa4")]
 visible = false
-position = Vector2(304, 288)
+position = Vector2(339, 439)
+
+[node name="ProbeBeaker2" parent="." instance=ExtResource("25_ffhs6")]
+visible = false
+position = Vector2(360, 389)
 
 [node name="ShelfPlace" type="Node2D" parent="."]
 position = Vector2(1090, 300)
@@ -400,10 +102,39 @@ position = Vector2(3.0517578e-05, 2.9999862)
 scale = Vector2(0.29202843, 0.3039647)
 texture = ExtResource("28_o3afa")
 
-[node name="WasteBeaker" parent="." instance=ExtResource("29_t554p")]
-z_index = -1
-position = Vector2(709, 662)
-scale = Vector2(0.215, 0.215)
+[node name="ProbeRack1" parent="." groups=["probe_dropzones", "work_slots"] instance=ExtResource("14_q5yt0")]
+position = Vector2(1598, 665)
+shelf_place_path = NodePath("../ShelfPlace")
+table_place1_path = NodePath("../TablePlace1")
+table_place2_path = NodePath("../TablePlace2")
+
+[node name="ProbeRack2" parent="." groups=["probe_dropzones", "work_slots"] instance=ExtResource("14_q5yt0")]
+position = Vector2(1604, 400)
+start_on_shelf = true
+shelf_place_path = NodePath("../ShelfPlace")
+table_place1_path = NodePath("../TablePlace1")
+table_place2_path = NodePath("../TablePlace2")
+
+[node name="PipetteCursor" parent="." instance=ExtResource("16_c5npc")]
+visible = false
+z_index = 100
+
+[node name="DropperOnTable" parent="." instance=ExtResource("17_ky6ns")]
+position = Vector2(532, 630)
+
+[node name="Anchor" type="Node2D" parent="DropperOnTable"]
+position = Vector2(-17, 108)
+
+[node name="DropperCursor" parent="." instance=ExtResource("15_bavs5")]
+visible = false
+z_index = 100
+
+[node name="StirRodOnTable" parent="." instance=ExtResource("21_h88sg")]
+position = Vector2(244, 656)
+
+[node name="StirRodCursor" parent="." instance=ExtResource("22_mqst2")]
+visible = false
+z_index = 100
 
 [node name="SquirtBottleOnTable" parent="." instance=ExtResource("30_exfyd")]
 position = Vector2(50, 505)
@@ -414,17 +145,26 @@ visible = false
 z_index = 100
 scale = Vector2(0.255, 0.255)
 
+[node name="IndicatorBox" parent="." instance=ExtResource("18_mluu5")]
+position = Vector2(864, 88)
+scale = Vector2(0.57, 0.57)
+
+[node name="IndicatorPaper" parent="." instance=ExtResource("2_hxoer")]
+visible = false
+
 [node name="FinishBtn" type="Button" parent="."]
-offset_left = 1180.0
+offset_left = 1166.0
 offset_top = 682.0
-offset_right = 1252.0
+offset_right = 1274.0
 offset_bottom = 713.0
-text = "Zakończ"
+text = "Identyfikacja"
+
+[node name="BackBtn" type="Button" parent="."]
+offset_left = 14.0
+offset_top = 679.0
+offset_right = 68.0
+offset_bottom = 710.0
+text = "Wyjdź"
 
 [connection signal="pressed" from="FinishBtn" to="." method="_on_finish_btn_pressed"]
-
-[editable path="Probe"]
-[editable path="Probe2"]
-[editable path="Probe3"]
-[editable path="Probe4"]
-[editable path="Probe5"]
+[connection signal="pressed" from="BackBtn" to="." method="_on_back_btn_pressed"]

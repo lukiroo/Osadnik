@@ -21,28 +21,13 @@ grow_vertical = 2
 
 [node name="VBox" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
 
 [node name="Title" type="Label" parent="MarginContainer/VBox"]
 layout_mode = 2
 size_flags_horizontal = 4
 text = "Wybór ćwiczenia"
-
-[node name="HBoxDiff" type="HBoxContainer" parent="MarginContainer/VBox"]
-layout_mode = 2
-size_flags_horizontal = 4
-
-[node name="Label" type="Label" parent="MarginContainer/VBox/HBoxDiff"]
-layout_mode = 2
-text = "Poziom trudności"
-
-[node name="DiffSelect" type="OptionButton" parent="MarginContainer/VBox/HBoxDiff"]
-layout_mode = 2
-selected = 0
-item_count = 2
-popup/item_0/text = "Normalny"
-popup/item_0/id = 0
-popup/item_1/text = "Trudny"
-popup/item_1/id = 1
 
 [node name="Grid" type="GridContainer" parent="MarginContainer/VBox"]
 layout_mode = 2
@@ -92,4 +77,44 @@ size_flags_horizontal = 4
 size_flags_vertical = 6
 text = "Wstecz"
 
-[connection signal="pressed" from="MarginContainer/VBox/BackBtn" to="." method="_on_back_btn_pressed"]
+[node name="DifficultyPanel" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 399.0
+offset_top = 206.0
+offset_right = -399.0
+offset_bottom = -206.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBox" type="VBoxContainer" parent="DifficultyPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="DifficultyPanel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 10
+
+[node name="HBox" type="HBoxContainer" parent="DifficultyPanel/VBox"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="NormalBtn" type="Button" parent="DifficultyPanel/VBox/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Normalny"
+
+[node name="HardBtn" type="Button" parent="DifficultyPanel/VBox/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Trudny"
+
+[connection signal="pressed" from="MarginContainer/VBox/BackBtn" to="." method="_on_back_button_pressed"]

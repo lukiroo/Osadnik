@@ -12,13 +12,15 @@ extends Node2D  ## Główny węzeł sceny stołu laboratoryjnego – centralny k
 
 @onready var level_manager: LevelManager = $LevelManager      ## Odpowiada za tryb ćwiczenia i odpowiedzi.
 @onready var finish_btn: Button = $FinishBtn                  ## Przycisk zakończenia ćwiczenia / przejścia do wyników.
+@onready var back_btn: Button = $BackBtn                      ## Powrót
 
 # ==============================
 # TRYBY GLOBALNE
 # ==============================
 enum Mode { IDLE, HOLDING, TRANSFER, INDICATOR, STIR_ROD, SQUIRT }
-var mode: Mode = Mode.IDLE                                   ## Aktualny tryb pracy stołu.
+var mode: Mode = Mode.IDLE   ## Aktualny tryb pracy stołu.
 
+@export_group("Tools Parameters")
 @export var tool_return_time: float = 0.6                    ## Czas animacji odkładania narzędzia na stół.
 
 var _probe_drag_active: bool = false                         ## Czy jakaś probówka jest aktualnie przeciągana.
@@ -47,7 +49,7 @@ var _pipette_return_ghost: Node2D = null                     ## Tymczasowy dupli
 @onready var dropper_cursor: Node2D = $DropperCursor         ## Kursor droppera (nad myszą).
 @onready var dropper_on_table: Node2D = $DropperOnTable      ## Dropper leżący na stole.
 
-@export var dropper_capacity_units: float = 0.75             ## Umowna pojemność droppera (w „units”).
+@export var dropper_capacity_units: float = 1.00             ## Umowna pojemność droppera (w „units”).
 @export var pickup_rate_units_per_sec: float = 0.50          ## Ile units/s dropper zasysa z probówki.
 @export var pour_rate_units_per_sec: float = 0.60            ## Ile units/s dropper wylewa do probówki.
 
@@ -65,7 +67,7 @@ const DROPPER_OFFSET: Vector2 = Vector2(8, -40)              ## Offset kursorowe
 # ==============================
 # WSKAŹNIK (PAPIEREK)
 # ==============================
-@export var indicator_paper_scene: PackedScene               ## PackedScene papierka wskaźnikowego.
+var indicator_paper_scene: PackedScene = preload("res://scenes/indicator_paper.tscn")
 @onready var indicator_box: Node2D = $IndicatorBox           ## „Pudełko” na papierek, leżące na stole.
 
 var indicator_active: bool = false                           ## Czy papierek jest obecnie w użyciu.
@@ -275,17 +277,18 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 # =============================================================================
-# FINISH – zapis kontekstu i przejście do ekranu wyników
+# ZAKOŃCZENIE – zapis kontekstu i przejście do ekranu wyników
 # =============================================================================
+func _on_back_btn_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/menu/level_select.tscn")
+
+
 func _on_finish_btn_pressed() -> void:
 	## Handler przycisku "Zakończ":
 	## - zbiera kontekst z LevelManagera,
 	## - dorzuca mapę odpowiedzi/odpowiedzi złożonych,
-	## - zapisuje to w /root/Settings,
+	## - zapisuje to w Settings,
 	## - przełącza scenę na ekran wyników.
-	if level_manager == null:
-		push_error("[Lab] Brak węzła LevelManager.")
-		return
 
 	var mode_str: String = _mode_to_string(level_manager.get("mode"))
 	var group_id: int = int(level_manager.get("group_id"))
@@ -1027,7 +1030,6 @@ func _refresh_probe_highlights() -> void:
 		_set_all_probes_highlight(false)
 		return
 
-
 	if mode == Mode.IDLE:
 		_set_highlights_by(func(probe: Node) -> bool:
 			return not _probe_is_in_shelved_rack(probe) and not _probe_is_in_beaker(probe)
@@ -1109,14 +1111,13 @@ func _apply_shelf_guard_to_all_probes() -> void:
 
 
 func _probe_is_in_beaker(probe: Node) -> bool:
-	## Sprawdza, czy probówka siedzi w zlewce (ProbeBeaker / probe_beaker).
+	## Sprawdza, czy probówka siedzi w zlewce ProbeBeaker1 albo ProbeBeaker2.
 	if probe == null:
 		return false
 
 	var node_it: Node = probe
 	while node_it:
-		var name_lower: String = str(node_it.name).to_lower()
-		if name_lower == "probebeaker" or name_lower == "probe_beaker":
+		if node_it.name == "ProbeBeaker1" or node_it.name == "ProbeBeaker2":
 			return true
 		node_it = node_it.get_parent()
 
@@ -1214,12 +1215,10 @@ func _refresh_table_hovers() -> void:
 	_update_squirt_table_hover()
 
 
-
 func _can_pick_table_tool() -> bool:
 	## Sprawdza, czy w danym momencie możemy w ogóle podnieść narzędzie ze stołu.
 	return mode == Mode.IDLE \
 		and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
-
 
 
 func _update_dropper_table_hover() -> void:

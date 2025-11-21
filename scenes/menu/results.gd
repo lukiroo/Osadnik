@@ -43,23 +43,19 @@ const START_TUBE_LABELS: Array[String] = [
 
 # ───────────────────────── START PODSUMOWANIA ─────────────────────────────
 func _ready() -> void:
-	# Wynik tekstowy czyścimy na starcie.
 	grade_label.text = ""
 
-	# Kontekst z Settings (ustawiony w Lab.gd przy kliknięciu „Zakończ i sprawdź”).
 	var ctx: Dictionary = Settings.get_last_run_context()
 	_mode_str       = String(ctx.get("mode_str", "EXERCISE_SINGLE"))
 	_group_id       = int(ctx.get("group_id", 1))
 	_correct_single = ctx.get("single_answer_map", {}) as Dictionary
 	_correct_mix    = ctx.get("mix_answer_list", []) as Array
 
-	# Czy przycisk „Dalej” ma być od razu widoczny (jeśli kolejny poziom już odblokowany).
 	var current_key: String = Settings.level_key(_group_id, _mode_str)
 	var next_key: String = Settings.get_next_level_key(current_key)
 	var can_go_next: bool = (next_key != "" and Settings.is_unlocked(next_key))
 	next_button.visible = can_go_next
 
-	# Budowa layoutu w zależności od trybu ćwiczenia.
 	if _mode_str == "EXERCISE_SINGLE":
 		title_label.text = "Ćwiczenie 1: wybierz kation dla każdej probówki"
 		if _correct_single.is_empty():
@@ -77,7 +73,6 @@ func _ready() -> void:
 
 
 # ───────────────────────── DANE CHEMICZNE (LISTY JONÓW) ─────────
-## Zwraca listę dopuszczalnych kationów dla danej grupy.
 func _ions_for_group(group_id: int) -> Array[String]:
 	if group_id == 0:
 		return [
@@ -98,7 +93,6 @@ func _ions_for_group(group_id: int) -> Array[String]:
 
 
 # ───────────────────────── BUDOWANIE UI – EX1 (SINGLE) ───────────
-## Tworzy wiersze z radiobuttonami dla ćwiczenia 1 (jedna odpowiedź na probówkę).
 func _build_single_rows() -> void:
 	_clear_items()
 	_single_row_groups.clear()
@@ -146,7 +140,6 @@ func _build_single_rows() -> void:
 
 
 # ───────────────────────── BUDOWANIE UI – EX2 (MIX) ──────────────
-## Buduje siatkę checkboxów dla ćwiczenia 2 (dowolna liczba zaznaczeń).
 func _build_mix_row() -> void:
 	_clear_items()
 	_mix_checkboxes.clear()
@@ -178,7 +171,6 @@ func _build_mix_row() -> void:
 
 
 # ───────────────────────── ZATWIERDZANIE WYNIKU ──────────────────
-## Kliknięcie „Zatwierdź” – liczenie wyniku, gwiazdek i aktualizacja progresu.
 func _on_confirm_btn_pressed() -> void:
 	if _locked_after_submit:
 		return
@@ -186,7 +178,6 @@ func _on_confirm_btn_pressed() -> void:
 	var total_answers: int = 0
 	var correct_answers: int = 0
 	var mistakes: int = 0
-	var passed: bool = false
 
 	if _mode_str == "EXERCISE_SINGLE":
 		total_answers = _correct_single.size()
@@ -230,13 +221,26 @@ func _on_confirm_btn_pressed() -> void:
 				hits += 1
 		correct_answers = hits
 
-	passed = (mistakes <= Settings.max_errors_allowed())
+	var exercise_id: String = ("EX1" if _mode_str == "EXERCISE_SINGLE" else "EX2")
 
-	# Zaktualizuj progres levelu.
+	var stars: int = Settings.compute_stars(
+		mistakes,
+		Settings.difficulty_mode,
+		_group_id,
+		exercise_id
+	)
+
+	var max_err: int = Settings.max_errors_allowed_for(
+		_group_id,
+		exercise_id,
+		Settings.difficulty_mode
+	)
+
+	var passed: bool = (stars > 0)
+
 	var level_key: String = Settings.level_key(_group_id, _mode_str)
 	Settings.submit_result(level_key, mistakes)
 
-	# Tekst wyniku.
 	grade_label.text = "Wynik: {0}/{1} poprawnych".format([
 		int(correct_answers),
 		int(total_answers)
@@ -247,40 +251,24 @@ func _on_confirm_btn_pressed() -> void:
 	else:
 		grade_label.text += " — NIEZALICZONE (błędy: {0}, limit: {1})".format([
 			int(mistakes),
-			int(Settings.max_errors_allowed())
+			int(max_err)
 		])
 
-	# Gwiazdki jako liczba (bez symboli).
-	var stars: int = _compute_stars(Settings.difficulty_mode, mistakes)
 	grade_label.text += "\nGwiazdki: {0}/3".format([stars])
 
-	# Zablokuj wybory, ukryj „Zatwierdź”, pokaż „Spróbuj ponownie”.
 	_lock_all_choices()
 	confirm_button.disabled = true
 	confirm_button.visible = false
 	_locked_after_submit = true
 	try_again_button.visible = true
 
-	# Stan „Dalej”: jeśli kolejny poziom jest odblokowany (mogło się właśnie zmienić).
 	var current_key: String = Settings.level_key(_group_id, _mode_str)
 	var next_key: String = Settings.get_next_level_key(current_key)
 	var can_go_next: bool = (next_key != "" and Settings.is_unlocked(next_key))
 	next_button.visible = can_go_next
 
 
-# ───────────────────────── GWIAZDKI (LOKALNA WERSJA) ─────────────
-## Lokalna wersja liczenia gwiazdek (spójna z Settings.max_errors_allowed()).
-func _compute_stars(difficulty: int, mistakes: int) -> int:
-	if mistakes > Settings.max_errors_allowed():
-		return 0
-	if difficulty == 0: # normalny
-		return 2 if mistakes == 0 else 1
-	else: # trudny
-		return 3 if mistakes == 0 else 2
-
-
 # ───────────────────────── BLOKADA WYBORÓW ───────────────────────
-## Po zatwierdzeniu – blokuje wszystkie przyciski/checkboxy odpowiedzi.
 func _lock_all_choices() -> void:
 	if _mode_str == "EXERCISE_SINGLE":
 		for row_buttons in _single_row_buttons:
@@ -295,8 +283,21 @@ func _lock_all_choices() -> void:
 func _on_back_btn_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/menu/level_select.tscn")
 
+
 func _on_try_again_btn_pressed() -> void:
+	# Restartuje TEN SAM level z TĄ SAMĄ trudnością.
+	# Wystarczy ponownie ustawić config w Settings i odpalić lab.
+	var is_exam: bool = (_group_id == 0)  # egzamin = group_id 0
+	var counts: Dictionary = Settings.compute_level_counts(_mode_str, is_exam)
+	var cfg: Dictionary = {
+		"mode": _mode_str,
+		"group_id": _group_id,
+		"starter_count": counts.starter_count,
+		"mix_difficulty": counts.mix_difficulty
+	}
+	Settings.set_next_level_config(cfg)
 	get_tree().change_scene_to_file("res://scenes/lab.tscn")
+
 
 func _on_next_btn_pressed() -> void:
 	var curr_key: String = Settings.level_key(_group_id, _mode_str)
@@ -308,7 +309,6 @@ func _on_next_btn_pressed() -> void:
 
 
 # ───────────────────────── START KOLEJNEGO LEVELU ────────────────
-## Mapuje klucz typu "G1_EX2"/"G45_EX1"/"EXAM" na config Settings i odpala lab.
 func _start_next_level_from_key(next_key: String) -> void:
 	var next_group_id: int = 0
 	var next_mode_str: String = "EXERCISE_SINGLE"
@@ -319,7 +319,6 @@ func _start_next_level_from_key(next_key: String) -> void:
 		next_mode_str = "EXERCISE_MIX"
 		next_group_id = 0
 	else:
-		# Format: "G<NUM>_EX1" lub "G<NUM>_EX2", gdzie NUM to "1","2","3" lub "45".
 		var parts: Array = next_key.split("_")
 		if parts.size() >= 2 and String(parts[0]).begins_with("G"):
 			var num_str: String = String(parts[0]).substr(1) # "1"/"2"/"3"/"45"
@@ -342,6 +341,7 @@ func _clear_items() -> void:
 	for child in items_box.get_children():
 		child.queue_free()
 
+
 func _items_empty_msg(msg: String) -> void:
 	_clear_items()
 	var label: Label = Label.new()
@@ -350,8 +350,6 @@ func _items_empty_msg(msg: String) -> void:
 
 
 # ───────────────────────── POMOCNICZE (LITERY) ───────────────────
-## Zamienia indeks slotu (0,1,2,...) na literę probówki: A,B,C,...
-## Dla indeksu spoza tabelki awaryjnie zwraca numer (1-based).
 func _slot_index_to_letter(slot_idx: int) -> String:
 	if slot_idx >= 0 and slot_idx < START_TUBE_LABELS.size():
 		return START_TUBE_LABELS[slot_idx]

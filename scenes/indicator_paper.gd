@@ -14,7 +14,7 @@ signal used_on_probe(probe: Node, grade: int)
 @onready var tip_sprite: Sprite2D   = $Tip    ## Końcówka papierka, na niej widać kolor.
 
 # --------------------- KONFIGURACJA RUCHU -----------------------
-@export var follow_mouse: bool = true                  ## Czy papierek ma automatycznie śledzić kursor.
+@onready var follow_mouse: bool = true                  ## Czy papierek ma automatycznie śledzić kursor.
 @export var cursor_offset: Vector2 = Vector2(8, -40)   ## Przesunięcie względem pozycji myszy, żeby nie zasłaniać kursora.
 
 var is_spent: bool = false                             ## Flaga „zużyty” – po użyciu blokujemy kolejne oznaczenia.

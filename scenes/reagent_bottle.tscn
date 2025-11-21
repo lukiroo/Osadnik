@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3 uid="uid://8uwsyddrgaam"]
 
 [ext_resource type="Texture2D" uid="uid://8wqxs2fwbfpt" path="res://assets/bottle2.png" id="1_emdhe"]
-[ext_resource type="Script" uid="uid://cb8wpxif4axts" path="res://scenes/reagent_bottle.gd" id="1_npx57"]
+[ext_resource type="Script" uid="uid://n33n65c41lf3" path="res://scenes/reagent_bottle.gd" id="1_npx57"]
 [ext_resource type="Texture2D" uid="uid://cv4hbh6o5gcj0" path="res://assets/bottle1.png" id="2_npx57"]
 [ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="3_nqafp"]
 
