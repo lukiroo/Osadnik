@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://djra7aqu4pm7n"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_08wfl"]
+
+[resource]
+script = ExtResource("1_08wfl")
+id = "PbCrO4_precip"
+priority = 10
+reactants_ions = {
+"CrO42-": 1,
+"Pb2+": 1
+}
+products_solids = {
+"PbCrO4_s": 1
+}
+note = "jasnożółty osad AgI"
+intensity = 0.9
+metadata/_custom_type_script = "uid://djapafftkk5kc"

@@ -1,6 +1,36 @@
-[gd_scene load_steps=2 format=3 uid="uid://2kbqj28ce21i"]
+[gd_scene load_steps=10 format=3 uid="uid://2kbqj28ce21i"]
 
 [ext_resource type="Script" uid="uid://bkymngdfenpy8" path="res://scenes/menu/level_select.gd" id="1_rf3b5"]
+[ext_resource type="PackedScene" uid="uid://c5w8xsyg1yckg" path="res://scenes/menu/level_button.tscn" id="2_5lyxr"]
+[ext_resource type="PackedScene" uid="uid://caq8fn3xkeqfj" path="res://scenes/menu/exam_button.tscn" id="3_vs7y7"]
+[ext_resource type="PackedScene" uid="uid://dvj8vvv0hh078" path="res://scenes/menu/back_button.tscn" id="4_4ligt"]
+[ext_resource type="Texture2D" uid="uid://b4mxc4bcxr53y" path="res://assets/menu/panel.png" id="4_h2otk"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_4ligt"]
+texture = ExtResource("4_h2otk")
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4hjad"]
+bg_color = Color(0.050980393, 0.68235296, 0.96862745, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+shadow_color = Color(0, 0, 0, 0.7647059)
+shadow_size = 2
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_hr37o"]
+bg_color = Color(0.21945721, 0.26535207, 0.3935911, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_4ligt"]
+bg_color = Color(1.6115147e-06, 0.76124823, 1.0442142, 1)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
 
 [node name="LevelSelect" type="Control"]
 layout_mode = 3
@@ -19,102 +49,212 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
+[node name="Title" type="Label" parent="MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
+theme_override_constants/outline_size = 5
+theme_override_constants/shadow_outline_size = 5
+theme_override_font_sizes/font_size = 21
+text = "
+ANALIZA JAKOŚCIOWA KATIONÓW"
+
 [node name="VBox" type="VBoxContainer" parent="MarginContainer"]
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 4
+size_flags_vertical = 8
+theme_override_constants/separation = 4
 
-[node name="Title" type="Label" parent="MarginContainer/VBox"]
+[node name="Label" type="Label" parent="MarginContainer/VBox"]
 layout_mode = 2
 size_flags_horizontal = 4
-text = "Wybór ćwiczenia"
+theme_override_constants/outline_size = 4
+text = "GRUPA I"
 
-[node name="Grid" type="GridContainer" parent="MarginContainer/VBox"]
+[node name="HBox1" type="HBoxContainer" parent="MarginContainer/VBox"]
+layout_mode = 2
+
+[node name="G1_Ex1" parent="MarginContainer/VBox/HBox1" instance=ExtResource("2_5lyxr")]
+layout_mode = 2
+
+[node name="G1_Ex2" parent="MarginContainer/VBox/HBox1" instance=ExtResource("2_5lyxr")]
+layout_mode = 2
+
+[node name="Label2" type="Label" parent="MarginContainer/VBox"]
 layout_mode = 2
 size_flags_horizontal = 4
-columns = 2
+theme_override_constants/outline_size = 4
+text = "GRUPA II"
 
-[node name="G1_Ex1" type="Button" parent="MarginContainer/VBox/Grid"]
+[node name="HBox2" type="HBoxContainer" parent="MarginContainer/VBox"]
 layout_mode = 2
-text = "G1 - 1"
 
-[node name="G1_Ex2" type="Button" parent="MarginContainer/VBox/Grid"]
+[node name="G2_Ex1" parent="MarginContainer/VBox/HBox2" instance=ExtResource("2_5lyxr")]
 layout_mode = 2
-text = "G1 - 2"
 
-[node name="G2_Ex1" type="Button" parent="MarginContainer/VBox/Grid"]
+[node name="G2_Ex2" parent="MarginContainer/VBox/HBox2" instance=ExtResource("2_5lyxr")]
 layout_mode = 2
-text = "G2 - 1"
 
-[node name="G2_Ex2" type="Button" parent="MarginContainer/VBox/Grid"]
-layout_mode = 2
-text = "G2 - 2"
-
-[node name="G3_Ex1" type="Button" parent="MarginContainer/VBox/Grid"]
-layout_mode = 2
-text = "G3 - 1"
-
-[node name="G3_Ex2" type="Button" parent="MarginContainer/VBox/Grid"]
-layout_mode = 2
-text = "G3 - 2"
-
-[node name="G45_Ex1" type="Button" parent="MarginContainer/VBox/Grid"]
-layout_mode = 2
-text = "G4,5 - 1"
-
-[node name="G45_Ex2" type="Button" parent="MarginContainer/VBox/Grid"]
-layout_mode = 2
-text = "G4,5 - 2"
-
-[node name="ExamBtn" type="Button" parent="MarginContainer/VBox"]
+[node name="Label3" type="Label" parent="MarginContainer/VBox"]
 layout_mode = 2
 size_flags_horizontal = 4
-text = "Sprawdzian z grup I - V"
+theme_override_constants/outline_size = 4
+text = "GRUPA III"
 
-[node name="BackBtn" type="Button" parent="MarginContainer/VBox"]
+[node name="HBox3" type="HBoxContainer" parent="MarginContainer/VBox"]
+layout_mode = 2
+
+[node name="G3_Ex1" parent="MarginContainer/VBox/HBox3" instance=ExtResource("2_5lyxr")]
+layout_mode = 2
+
+[node name="G3_Ex2" parent="MarginContainer/VBox/HBox3" instance=ExtResource("2_5lyxr")]
+layout_mode = 2
+
+[node name="Label4" type="Label" parent="MarginContainer/VBox"]
 layout_mode = 2
 size_flags_horizontal = 4
-size_flags_vertical = 6
-text = "Wstecz"
+theme_override_constants/outline_size = 4
+text = "GRUPY  IV, V"
 
-[node name="DifficultyPanel" type="Panel" parent="."]
+[node name="HBox4" type="HBoxContainer" parent="MarginContainer/VBox"]
+layout_mode = 2
+
+[node name="G45_Ex1" parent="MarginContainer/VBox/HBox4" instance=ExtResource("2_5lyxr")]
+layout_mode = 2
+
+[node name="G45_Ex2" parent="MarginContainer/VBox/HBox4" instance=ExtResource("2_5lyxr")]
+layout_mode = 2
+
+[node name="Separator3" type="Control" parent="MarginContainer/VBox"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+
+[node name="Label5" type="Label" parent="MarginContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/outline_size = 4
+text = "GRUPY I - V"
+
+[node name="ExamBtn" parent="MarginContainer/VBox" instance=ExtResource("3_vs7y7")]
+layout_mode = 2
+size_flags_horizontal = 4
+
+[node name="Separator" type="Control" parent="MarginContainer/VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
+[node name="BackBtn" parent="MarginContainer/VBox" instance=ExtResource("4_4ligt")]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="MarginContainer/VBox/BackBtn"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -31.0
+offset_top = -11.5
+offset_right = 31.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6862745)
+theme_override_constants/outline_size = 3
+text = "WSTECZ"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Separator2" type="Control" parent="MarginContainer/VBox"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
+[node name="DifficultyOverlay" type="Control" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 399.0
-offset_top = 206.0
-offset_right = -399.0
-offset_bottom = -206.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBox" type="VBoxContainer" parent="DifficultyPanel"]
+[node name="ColorRect" type="ColorRect" parent="DifficultyOverlay"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_top = 8.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.6)
+
+[node name="DifficultyPanel" type="Panel" parent="DifficultyOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 428.0
+offset_top = 260.0
+offset_right = -428.0
+offset_bottom = -260.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_4ligt")
+
+[node name="VBox" type="VBoxContainer" parent="DifficultyOverlay/DifficultyPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -2.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Label" type="Label" parent="DifficultyPanel/VBox"]
+[node name="Label" type="Label" parent="DifficultyOverlay/DifficultyPanel/VBox"]
 layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 10
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 4
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+vertical_alignment = 1
 
-[node name="HBox" type="HBoxContainer" parent="DifficultyPanel/VBox"]
+[node name="Label2" type="Label" parent="DifficultyOverlay/DifficultyPanel/VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 10
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 4
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 15
+text = "WYBIERZ POZIOM TRUDNOŚCI"
+
+[node name="HBox" type="HBoxContainer" parent="DifficultyOverlay/DifficultyPanel/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="NormalBtn" type="Button" parent="DifficultyPanel/VBox/HBox"]
+[node name="NormalBtn" type="Button" parent="DifficultyOverlay/DifficultyPanel/VBox/HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Normalny"
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_4hjad")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hr37o")
+theme_override_styles/hover = SubResource("StyleBoxFlat_4ligt")
+text = "NORMALNY"
 
-[node name="HardBtn" type="Button" parent="DifficultyPanel/VBox/HBox"]
+[node name="HardBtn" type="Button" parent="DifficultyOverlay/DifficultyPanel/VBox/HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Trudny"
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_4hjad")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_hr37o")
+theme_override_styles/hover = SubResource("StyleBoxFlat_4ligt")
+text = "TRUDNY"
 
+[connection signal="pressed" from="MarginContainer/VBox/ExamBtn" to="." method="_on_exam_pressed"]
 [connection signal="pressed" from="MarginContainer/VBox/BackBtn" to="." method="_on_back_button_pressed"]
+[connection signal="pressed" from="DifficultyOverlay/DifficultyPanel/VBox/HBox/NormalBtn" to="." method="_on_diff_normal_pressed"]
+[connection signal="pressed" from="DifficultyOverlay/DifficultyPanel/VBox/HBox/HardBtn" to="." method="_on_diff_hard_pressed"]

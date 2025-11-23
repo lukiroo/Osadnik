@@ -1,4 +1,4 @@
-[gd_scene load_steps=22 format=3 uid="uid://cbijtqnh0c654"]
+[gd_scene load_steps=24 format=3 uid="uid://cbijtqnh0c654"]
 
 [ext_resource type="Script" uid="uid://cpu3bsk01o2g2" path="res://scenes/lab.gd" id="1_l8eg8"]
 [ext_resource type="PackedScene" uid="uid://c75ytlngbysag" path="res://scenes/indicator_paper.tscn" id="2_hxoer"]
@@ -12,7 +12,9 @@
 [ext_resource type="PackedScene" uid="uid://c0keditw53ojs" path="res://scenes/water_bath.tscn" id="19_tyay7"]
 [ext_resource type="PackedScene" uid="uid://tpff1vn61y2c" path="res://scenes/centrifuge.tscn" id="20_l5iwd"]
 [ext_resource type="PackedScene" uid="uid://cf0iiytmhiupv" path="res://scenes/stir_rod_on_table.tscn" id="21_h88sg"]
+[ext_resource type="PackedScene" uid="uid://dvj8vvv0hh078" path="res://scenes/menu/back_button.tscn" id="22_kxeyc"]
 [ext_resource type="PackedScene" uid="uid://b334lnqj42j3l" path="res://scenes/stir_rod_cursor.tscn" id="22_mqst2"]
+[ext_resource type="PackedScene" uid="uid://c41c7mrv50wyp" path="res://scenes/menu/menu_button.tscn" id="23_jie0k"]
 [ext_resource type="PackedScene" uid="uid://br5xqy3dxuioy" path="res://scenes/probe_beaker1.tscn" id="23_ylpa4"]
 [ext_resource type="Script" uid="uid://2fnoreiqa0en" path="res://scenes/level_manager.gd" id="24_qempp"]
 [ext_resource type="PackedScene" uid="uid://d4ng3sfiswdat" path="res://scenes/probe_beaker2.tscn" id="25_ffhs6"]
@@ -152,19 +154,63 @@ scale = Vector2(0.57, 0.57)
 [node name="IndicatorPaper" parent="." instance=ExtResource("2_hxoer")]
 visible = false
 
-[node name="FinishBtn" type="Button" parent="."]
-offset_left = 1166.0
-offset_top = 682.0
-offset_right = 1274.0
-offset_bottom = 713.0
-text = "Identyfikacja"
+[node name="BackBtn" parent="." instance=ExtResource("22_kxeyc")]
+offset_left = 12.0
+offset_top = 625.0
+offset_right = 92.0
+offset_bottom = 665.0
+metadata/_edit_use_anchors_ = true
 
-[node name="BackBtn" type="Button" parent="."]
-offset_left = 14.0
-offset_top = 679.0
-offset_right = 68.0
-offset_bottom = 710.0
-text = "Wyjdź"
+[node name="Label" type="Label" parent="BackBtn"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 18
+text = "WYJŚCIE"
 
-[connection signal="pressed" from="FinishBtn" to="." method="_on_finish_btn_pressed"]
+[node name="FinishBtn" parent="." instance=ExtResource("23_jie0k")]
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = 1001.0
+offset_top = 659.0
+offset_right = 1201.0
+offset_bottom = 699.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Label" type="Label" parent="FinishBtn"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 3
+theme_override_font_sizes/font_size = 22
+text = "IDENTYFIKACJA"
+
 [connection signal="pressed" from="BackBtn" to="." method="_on_back_btn_pressed"]
+[connection signal="pressed" from="FinishBtn" to="." method="_on_finish_btn_pressed"]

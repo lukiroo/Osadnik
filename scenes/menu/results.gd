@@ -1,296 +1,408 @@
 extends Control
 
 ## =========================================================================
-## Results.gd – ekran podsumowania ćwiczenia
+## Results.gd – ekran podsumowania ćwiczenia / egzaminu
 ## -------------------------------------------------------------------------
-## - Odczytuje kontekst ostatniego biegu z Settings (mode, group_id, odpowiedzi).
-## - Buduje UI odpowiedzi (EX1: radiobuttony, EX2: checkboxy).
-## - Liczy wynik, błędy i gwiazdki, aktualizuje progres w Settings.
-## - Pozwala spróbować ponownie albo przejść do kolejnego levelu.
+## Odpowiada za:
+## - zbudowanie listy przycisków z jonami do zaznaczenia odpowiedzi,
+## - zebranie odpowiedzi gracza po kliknięciu „Zatwierdź”,
+## - policzenie błędów i gwiazdek z użyciem Settings,
+## - pokolorowanie odpowiedzi na zielono/czerwono,
+## - przejście dalej, powrót albo powtórkę poziomu.
 ## =========================================================================
 
-# ───────────────────────── REFERENCJE UI ─────────────────────────
-@onready var title_label: Label         = $MarginContainer/VBox/Title
-@onready var scroll: ScrollContainer    = $MarginContainer/VBox/Scroll
-@onready var items_box: VBoxContainer   = $MarginContainer/VBox/Scroll/Items
-@onready var grade_label: Label         = $MarginContainer/VBox/GradeLabel
-@onready var confirm_button: Button     = $MarginContainer/VBox/ConfirmBtn
-@onready var back_button: Button        = $MarginContainer/VBox/BackBtn
-@onready var try_again_button: Button   = $MarginContainer/VBox/TryAgainBtn
-@onready var next_button: Button        = $MarginContainer/VBox/NextBtn
+const ANSWER_BUTTON_SCENE: PackedScene = preload("res://scenes/menu/answer_button.tscn")
 
-# EX1: po jednym ButtonGroup na wiersz + przyciski w tym wierszu.
-var _single_row_groups: Array = []
-var _single_row_buttons: Array = []
+const COLOR_NEUTRAL  := Color(1, 1, 1, 1)
+const COLOR_SELECTED := Color(0.565, 0.851, 1.0, 1.0)
+const COLOR_CORRECT  := Color(0.6, 1.0, 0.6, 1.0)
+const COLOR_WRONG    := Color(0.914, 0.325, 0.294, 1.0)
 
-# EX2: lista checkboxów (mix).
-var _mix_checkboxes: Array = []
+const ION_LABELS := {
+	"Ag+": "Ag⁺", "Hg22+": "Hg₂²⁺", "Pb2+": "Pb²⁺",
+	"Hg2+":"Hg²⁺", "Cu2+": "Cu²⁺", "Bi3+": "Bi³⁺", "Cd2+": "Cd²⁺",
+	"As3+":"As³⁺", "As5+": "As⁵⁺", "Sb3+": "Sb³⁺", "Sb5+": "Sb⁵⁺", "Sn2+":"Sn²⁺", "Sn4+": "Sn⁴⁺",
+	"Zn2+":"Zn²⁺", "Ni2+": "Ni²⁺", "Co2+": "Co²⁺", "Mn2+": "Mn²⁺", "Fe2+":"Fe²⁺", "Fe3+": "Fe³⁺", "Al3+": "Al³⁺", "Cr3+": "Cr³⁺",
+	"Ca2+":"Ca²⁺", "Sr2+": "Sr²⁺", "Ba2+": "Ba²⁺", "Mg2+": "Mg²⁺",
+	"K+": "K⁺", "Na+": "Na⁺", "NH4+": "NH₄⁺"
+}
 
-# Kontekst bieżącego podejścia.
-var _mode_str: String = ""
-var _group_id: int = 0
-var _correct_single: Dictionary = {}
-var _correct_mix: Array = []
+@onready var title_label: Label              = $MarginContainer/VBox/Title
+@onready var items_box: VBoxContainer        = $MarginContainer/VBox/Items
+@onready var result_box: VBoxContainer       = $ResultBox
+@onready var result_stars_row: HBoxContainer = $ResultBox/Stars
 
-# Flaga zablokowania po zatwierdzeniu.
+@onready var confirm_button: TextureButton   = $ConfirmBtn
+@onready var try_again_button: TextureButton = $TryAgainBtn
+@onready var next_button: TextureButton      = $NextBtn
+@onready var back_button: TextureButton      = $BackBtn
+
+# EX1 – po probówkach
+var _single_row_groups: Array = []      # Array[ButtonGroup]
+var _single_row_buttons: Array = []     # Array[Array[TextureButton]]
+
+# EX2 – mix
+var _mix_buttons: Array = []            # Array[TextureButton]
+
+var _exercise_mode: String = ""         # "EXERCISE_SINGLE" / "EXERCISE_MIX"
+var _group_id: int = 0                  # 1–4, 0 = egzamin
+var _single_correct_map: Dictionary = {}
+var _mix_correct_list: Array = []
+
 var _locked_after_submit: bool = false
 
-# Litery do oznaczania probówek startowych: A, B, C, ...
-const START_TUBE_LABELS: Array[String] = [
-	"A","B","C","D","E","F","G","H","I","J","K","L"
-]
+const START_TUBE_LABELS: Array[String] = ["A","B","C","D","E"]
 
 
-# ───────────────────────── START PODSUMOWANIA ─────────────────────────────
+## Zamienia numer grupy (1–4) na zapis rzymski używany w tytule ekranu wyników.
+func _group_to_roman(group_id: int) -> String:
+	match group_id:
+		1:
+			return "I"
+		2:
+			return "II"
+		3:
+			return "III"
+		4:
+			return "IV–V"
+		_:
+			return "?"
+
+
+## Inicjalizuje ekran wyników: ustawia odstępy, wczytuje kontekst z Settings, ustawia tytuł i buduje listę odpowiedzi.
 func _ready() -> void:
-	grade_label.text = ""
+	items_box.add_theme_constant_override("separation", 20)
 
-	var ctx: Dictionary = Settings.get_last_run_context()
-	_mode_str       = String(ctx.get("mode_str", "EXERCISE_SINGLE"))
-	_group_id       = int(ctx.get("group_id", 1))
-	_correct_single = ctx.get("single_answer_map", {}) as Dictionary
-	_correct_mix    = ctx.get("mix_answer_list", []) as Array
+	result_box.visible = false
+	try_again_button.visible = false
+	_update_result_stars(0)
 
-	var current_key: String = Settings.level_key(_group_id, _mode_str)
-	var next_key: String = Settings.get_next_level_key(current_key)
-	var can_go_next: bool = (next_key != "" and Settings.is_unlocked(next_key))
-	next_button.visible = can_go_next
+	var ctx := Settings.get_last_run_context()
+	_exercise_mode      = String(ctx.get("mode_str", "EXERCISE_SINGLE"))
+	_group_id           = int(ctx.get("group_id", 1))
+	_single_correct_map = ctx.get("single_answer_map", {}) as Dictionary
+	_mix_correct_list   = ctx.get("mix_answer_list", []) as Array
 
-	if _mode_str == "EXERCISE_SINGLE":
-		title_label.text = "Ćwiczenie 1: wybierz kation dla każdej probówki"
-		if _correct_single.is_empty():
-			_items_empty_msg("Brak mapy odpowiedzi — wróć do laboratorium i kliknij „Zakończ i sprawdź”.")
-			confirm_button.disabled = true
-			return
+	var current_key := Settings.level_key(_group_id, _exercise_mode)
+	var next_key := Settings.get_next_level_key(current_key)
+	next_button.visible = (next_key != "" and Settings.is_unlocked(next_key))
+
+	if _exercise_mode == "EXERCISE_SINGLE":
+		var roman := _group_to_roman(_group_id)
+		title_label.text = "ZADANIE 1\nIDENTYFIKACJA POJEDYNCZYCH KATIONÓW GRUPY %s" % roman
 		_build_single_rows()
 	else:
-		title_label.text = "Ćwiczenie 2: wybierz wszystkie kationy w próbce"
-		if _correct_mix.is_empty():
-			_items_empty_msg("Brak listy kationów mieszanki — wróć do laboratorium i kliknij „Zakończ i sprawdź”.")
-			confirm_button.disabled = true
-			return
+		if _group_id == 0:
+			title_label.text = "ANALIZA MIESZANINY KATIONÓW GRUP I – V"
+		else:
+			var roman := _group_to_roman(_group_id)
+			title_label.text = "ZADANIE 2\nIDENTYFIKACJA MIESZANINY KATIONÓW GRUPY %s" % roman
 		_build_mix_row()
 
 
-# ───────────────────────── DANE CHEMICZNE (LISTY JONÓW) ─────────
+# ==================== LISTY KATIONÓW DLA GRUP ====================
+
+## Zwraca listę jonów, które mogą wystąpić w danej grupie Freseniusa (albo wszystkie, gdy group_id == 0).
 func _ions_for_group(group_id: int) -> Array[String]:
 	if group_id == 0:
 		return [
-			"Ag+","Hg2 2+","Pb2+","Hg2+","Cu2+","Bi3+","Cd2+",
+			"Ag+","Hg22+","Pb2+","Hg2+","Cu2+","Bi3+","Cd2+",
 			"As3+","As5+","Sb3+","Sb5+","Sn2+","Sn4+","Zn2+",
 			"Ni2+","Co2+","Mn2+","Fe2+","Fe3+","Al3+","Cr3+",
 			"Ca2+","Sr2+","Ba2+","Mg2+","K+","Na+","NH4+"
 		]
 	if group_id == 1:
-		return ["Ag+","Hg2 2+","Pb2+"]
+		return ["Ag+","Hg22+","Pb2+"]
 	if group_id == 2:
 		return ["Hg2+","Pb2+","Cu2+","Bi3+","Cd2+","As3+","As5+","Sb3+","Sb5+","Sn2+","Sn4+"]
 	if group_id == 3:
 		return ["Zn2+","Ni2+","Co2+","Mn2+","Fe2+","Fe3+","Al3+","Cr3+"]
 
-	# Grupa IV+V (group_id == 4).
-	return ["Ca2+","Sr2+","Ba2+","Mg2+","K+","Na+","NH4+"]
+	return ["Ca2+","Sr2+","Ba2+","Mg2+","K+","Na+","NH4+"]   # grupa IV+V
 
 
-# ───────────────────────── BUDOWANIE UI – EX1 (SINGLE) ───────────
+# ===================== BUDOWANIE UI – EX1 ========================
+
+## Buduje wiersze odpowiedzi dla EX1: dla każdej probówki tworzy label „PROBÓWKA A/B/...” i rząd przycisków jonów.
 func _build_single_rows() -> void:
 	_clear_items()
 	_single_row_groups.clear()
 	_single_row_buttons.clear()
 
-	var slots: Array = _correct_single.keys()
+	var slots: Array = _single_correct_map.keys()
 	slots.sort()
 
-	var ion_choices: Array[String] = _ions_for_group(_group_id)
+	var ion_choices := _ions_for_group(_group_id)
 
-	for i in range(slots.size()):
-		var slot_idx: int = int(slots[i])
+	for row_idx in range(slots.size()):
+		var slot_idx: int = int(slots[row_idx])
 
-		var row: HBoxContainer = HBoxContainer.new()
+		var row := HBoxContainer.new()
 		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_theme_constant_override("separation", 12)
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 40)
 
-		var num_label: Label = Label.new()
-		var tube_label: String = _slot_index_to_letter(slot_idx)
-		num_label.text = "Probówka %s:" % tube_label
-		num_label.custom_minimum_size.x = 140
-		row.add_child(num_label)
+		var tube_label := Label.new()
+		var tube_name := _slot_index_to_letter(slot_idx)
+		tube_label.text = "PROBÓWKA %s:" % tube_name
+		row.add_child(tube_label)
 
-		var group: ButtonGroup = ButtonGroup.new()
+		var group := ButtonGroup.new()
 		_single_row_groups.append(group)
 
-		var flow: FlowContainer = FlowContainer.new()
-		flow.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		flow.add_theme_constant_override("h_separation", 6)
-		flow.add_theme_constant_override("v_separation", 6)
+		var buttons_box := HBoxContainer.new()
+		buttons_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		buttons_box.add_theme_constant_override("separation", 8)
 
 		var row_buttons: Array = []
-		for ion in ion_choices:
-			var btn: Button = Button.new()
-			btn.text = ion
-			btn.toggle_mode = true
-			btn.button_group = group
-			btn.focus_mode = Control.FOCUS_NONE
-			row_buttons.append(btn)
-			flow.add_child(btn)
+		for ion_id in ion_choices:
+			var ion_button := ANSWER_BUTTON_SCENE.instantiate() as TextureButton
 
-		row.add_child(flow)
+			ion_button.toggle_mode = true
+			ion_button.button_group = group
+			ion_button.focus_mode = Control.FOCUS_NONE
+			ion_button.self_modulate = COLOR_NEUTRAL
+			ion_button.set_meta("ion_id", ion_id)
+
+			var label_node := ion_button.get_node("Label") as Label
+			label_node.text = ION_LABELS.get(ion_id, ion_id)
+
+			ion_button.toggled.connect(_on_answer_button_toggled.bind(ion_button))
+			row_buttons.append(ion_button)
+			buttons_box.add_child(ion_button)
+
+		row.add_child(buttons_box)
 		items_box.add_child(row)
 		_single_row_buttons.append(row_buttons)
 
 
-# ───────────────────────── BUDOWANIE UI – EX2 (MIX) ──────────────
+# ===================== BUDOWANIE UI – EX2 ========================
+
+## Buduje UI odpowiedzi dla mieszaniny: dla egzaminu kilka rzędów pogrupowanych jonów, dla zwykłego EX2 jeden rząd.
 func _build_mix_row() -> void:
 	_clear_items()
-	_mix_checkboxes.clear()
+	_mix_buttons.clear()
 
-	var root_box: VBoxContainer = VBoxContainer.new()
+	var root_box := VBoxContainer.new()
 	root_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	root_box.add_theme_constant_override("separation", 8)
+	root_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	root_box.add_theme_constant_override("separation", 16)
 
-	var hint_label: Label = Label.new()
-	hint_label.text = "Zaznacz wszystkie kationy, które zidentyfikowałeś w próbce."
+	var hint_label := Label.new()
+	hint_label.text = "ZAZNACZ WSZYSTKIE KATIONY ZIDENTYFIKOWANE W PROBÓWCE"
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	root_box.add_child(hint_label)
 
-	var grid: GridContainer = GridContainer.new()
-	grid.columns = 5
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 6)
+	if _group_id == 0:
+		var exam_rows: Array = []
 
-	var ion_choices: Array[String] = _ions_for_group(_group_id)
-	for ion in ion_choices:
-		var cb: CheckBox = CheckBox.new()
-		cb.text = ion
-		cb.focus_mode = Control.FOCUS_NONE
-		_mix_checkboxes.append(cb)
-		grid.add_child(cb)
+		exam_rows.append(_ions_for_group(1))
 
-	root_box.add_child(grid)
+		var group2 := _ions_for_group(2).duplicate()
+		group2.erase("Pb2+")
+		exam_rows.append(group2)
+
+		exam_rows.append(_ions_for_group(3))
+		exam_rows.append(["Ca2+","Sr2+","Ba2+"])
+		exam_rows.append(["Mg2+","K+","Na+","NH4+"])
+
+		for ions_in_row in exam_rows:
+			var row := HBoxContainer.new()
+			row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			row.alignment = BoxContainer.ALIGNMENT_CENTER
+			row.add_theme_constant_override("separation", 8)
+
+			for ion_id in ions_in_row:
+				var ion_button := ANSWER_BUTTON_SCENE.instantiate() as TextureButton
+				ion_button.toggle_mode = true
+				ion_button.focus_mode = Control.FOCUS_NONE
+				ion_button.self_modulate = COLOR_NEUTRAL
+				ion_button.set_meta("ion_id", ion_id)
+
+				var label_node := ion_button.get_node("Label") as Label
+				label_node.text = ION_LABELS.get(ion_id, ion_id)
+
+				ion_button.toggled.connect(_on_answer_button_toggled.bind(ion_button))
+				_mix_buttons.append(ion_button)
+				row.add_child(ion_button)
+
+			root_box.add_child(row)
+	else:
+		var row := HBoxContainer.new()
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", 8)
+
+		var ion_choices := _ions_for_group(_group_id)
+		for ion_id in ion_choices:
+			var ion_button := ANSWER_BUTTON_SCENE.instantiate() as TextureButton
+			ion_button.toggle_mode = true
+			ion_button.focus_mode = Control.FOCUS_NONE
+			ion_button.self_modulate = COLOR_NEUTRAL
+			ion_button.set_meta("ion_id", ion_id)
+
+			var label_node := ion_button.get_node("Label") as Label
+			label_node.text = ION_LABELS.get(ion_id, ion_id)
+
+			ion_button.toggled.connect(_on_answer_button_toggled.bind(ion_button))
+			_mix_buttons.append(ion_button)
+			row.add_child(ion_button)
+
+		root_box.add_child(row)
+
 	items_box.add_child(root_box)
 
 
-# ───────────────────────── ZATWIERDZANIE WYNIKU ──────────────────
+# ======================= KLIK W ODPOWIEDŹ ========================
+
+## Reaguje na kliknięcie w przycisk jonu; przed zatwierdzeniem tylko zmienia jego kolor na „wybrany”.
+func _on_answer_button_toggled(pressed: bool, btn: TextureButton) -> void:
+	if _locked_after_submit:
+		return
+	btn.self_modulate = COLOR_SELECTED if pressed else COLOR_NEUTRAL
+
+
+# ======================= ZATWIERDZENIE ===========================
+
+## Zbiera odpowiedzi gracza, liczy błędy i gwiazdki, pokazuje wynik i koloruje zaznaczenia.
 func _on_confirm_btn_pressed() -> void:
 	if _locked_after_submit:
 		return
 
-	var total_answers: int = 0
-	var correct_answers: int = 0
-	var mistakes: int = 0
+	var mistakes := 0
+	var single_user_answers: Dictionary = {}
+	var mix_user_answers: Array = []
 
-	if _mode_str == "EXERCISE_SINGLE":
-		total_answers = _correct_single.size()
-		var user_map: Dictionary = {}
-
-		var slots: Array = _correct_single.keys()
+	if _exercise_mode == "EXERCISE_SINGLE":
+		var slots: Array = _single_correct_map.keys()
 		slots.sort()
 
-		for row_index in range(_single_row_groups.size()):
-			var chosen_text: String = ""
-			for btn in _single_row_buttons[row_index]:
-				var b: Button = btn as Button
-				if b.button_pressed:
-					chosen_text = b.text
+		for row_idx in range(_single_row_groups.size()):
+			var chosen_ion := ""
+			for btn in _single_row_buttons[row_idx]:
+				var ion_button := btn as TextureButton
+				if ion_button.button_pressed:
+					chosen_ion = String(ion_button.get_meta("ion_id", ion_button.name))
 					break
-			var slot_idx: int = int(slots[row_index])
-			user_map[slot_idx] = chosen_text
 
-		mistakes = Settings.count_mistakes_single(_correct_single, user_map)
-		correct_answers = max(0, total_answers - mistakes)
+			var slot_idx: int = int(slots[row_idx])
+			single_user_answers[slot_idx] = chosen_ion
+
+		mistakes = Settings.count_mistakes_single(_single_correct_map, single_user_answers)
 	else:
-		total_answers = _correct_mix.size()
-
-		var user_list: Array = []
 		var seen: Dictionary = {}
-		for btn in _mix_checkboxes:
-			var cb: CheckBox = btn as CheckBox
-			if cb.button_pressed and cb.text != "" and not seen.has(cb.text):
-				seen[cb.text] = true
-				user_list.append(cb.text)
+		for btn in _mix_buttons:
+			var ion_button := btn as TextureButton
+			if ion_button.button_pressed:
+				var ion_id: String = String(ion_button.get_meta("ion_id", ""))
+				if ion_id != "" and not seen.has(ion_id):
+					seen[ion_id] = true
+					mix_user_answers.append(ion_id)
 
-		mistakes = Settings.count_mistakes_mix(_correct_mix, user_list)
+		mistakes = Settings.count_mistakes_mix(_mix_correct_list, mix_user_answers)
 
-		var expected_set: Dictionary = {}
-		for ion in _correct_mix:
-			expected_set[ion] = true
+	var exercise_id := ("EX1" if _exercise_mode == "EXERCISE_SINGLE" else "EX2")
 
-		var hits: int = 0
-		for ion in user_list:
-			if expected_set.has(ion):
-				hits += 1
-		correct_answers = hits
-
-	var exercise_id: String = ("EX1" if _mode_str == "EXERCISE_SINGLE" else "EX2")
-
-	var stars: int = Settings.compute_stars(
+	var stars := Settings.compute_stars(
 		mistakes,
 		Settings.difficulty_mode,
 		_group_id,
 		exercise_id
 	)
 
-	var max_err: int = Settings.max_errors_allowed_for(
-		_group_id,
-		exercise_id,
-		Settings.difficulty_mode
-	)
-
-	var passed: bool = (stars > 0)
-
-	var level_key: String = Settings.level_key(_group_id, _mode_str)
+	var level_key := Settings.level_key(_group_id, _exercise_mode)
 	Settings.submit_result(level_key, mistakes)
 
-	grade_label.text = "Wynik: {0}/{1} poprawnych".format([
-		int(correct_answers),
-		int(total_answers)
-	])
-
-	if passed:
-		grade_label.text += " — ZALICZONE"
-	else:
-		grade_label.text += " — NIEZALICZONE (błędy: {0}, limit: {1})".format([
-			int(mistakes),
-			int(max_err)
-		])
-
-	grade_label.text += "\nGwiazdki: {0}/3".format([stars])
-
-	_lock_all_choices()
-	confirm_button.disabled = true
+	result_box.visible = true
+	_update_result_stars(stars)
 	confirm_button.visible = false
-	_locked_after_submit = true
+	confirm_button.disabled = true
 	try_again_button.visible = true
 
-	var current_key: String = Settings.level_key(_group_id, _mode_str)
-	var next_key: String = Settings.get_next_level_key(current_key)
-	var can_go_next: bool = (next_key != "" and Settings.is_unlocked(next_key))
-	next_button.visible = can_go_next
+	if _exercise_mode == "EXERCISE_SINGLE":
+		_apply_result_colors_single()
+	else:
+		_apply_result_colors_mix()
+
+	_lock_all_choices()
+	_locked_after_submit = true
+
+	var current_key := Settings.level_key(_group_id, _exercise_mode)
+	var next_key := Settings.get_next_level_key(current_key)
+	next_button.visible = (next_key != "" and Settings.is_unlocked(next_key))
 
 
-# ───────────────────────── BLOKADA WYBORÓW ───────────────────────
+# =================== KOLOROWANIE WYNIKÓW =========================
+
+## Po zatwierdzeniu koloruje w EX1 zaznaczone odpowiedzi na zielono (trafione) lub czerwono (pudło).
+func _apply_result_colors_single() -> void:
+	var slots: Array = _single_correct_map.keys()
+	slots.sort()
+
+	for row_idx in range(slots.size()):
+		var slot_idx: int = int(slots[row_idx])
+		var correct_ion: String = _single_correct_map[slot_idx]
+
+		for btn in _single_row_buttons[row_idx]:
+			var ion_button := btn as TextureButton
+			var ion_id: String = String(ion_button.get_meta("ion_id", ""))
+
+			if not ion_button.button_pressed:
+				ion_button.self_modulate = COLOR_NEUTRAL
+				continue
+
+			if ion_id == correct_ion:
+				ion_button.self_modulate = COLOR_CORRECT
+			else:
+				ion_button.self_modulate = COLOR_WRONG
+
+
+## Po zatwierdzeniu koloruje w EX2 wszystkie zaznaczone jony na zielono lub czerwono w zależności od poprawności.
+func _apply_result_colors_mix() -> void:
+	var correct_set: Dictionary = {}
+	for ion_id in _mix_correct_list:
+		correct_set[ion_id] = true
+
+	for btn in _mix_buttons:
+		var ion_button := btn as TextureButton
+		var ion_id: String = String(ion_button.get_meta("ion_id", ""))
+
+		if not ion_button.button_pressed:
+			ion_button.self_modulate = COLOR_NEUTRAL
+			continue
+
+		if correct_set.has(ion_id):
+			ion_button.self_modulate = COLOR_CORRECT
+		else:
+			ion_button.self_modulate = COLOR_WRONG
+
+
+# =================== BLOKOWANIE PO ZATWIERDZENIU =================
+
+## Po zatwierdzeniu wyłącza wszystkie przyciski odpowiedzi, żeby gracz nie mógł zmienić zaznaczeń.
 func _lock_all_choices() -> void:
-	if _mode_str == "EXERCISE_SINGLE":
+	if _exercise_mode == "EXERCISE_SINGLE":
 		for row_buttons in _single_row_buttons:
 			for btn in row_buttons:
-				(btn as Button).disabled = true
+				(btn as TextureButton).disabled = true
 	else:
-		for cb in _mix_checkboxes:
-			(cb as CheckBox).disabled = true
+		for btn in _mix_buttons:
+			(btn as TextureButton).disabled = true
 
 
-# ───────────────────────── HANDLERY NAWIGACJI ────────────────────
+# ============================= NAWIGACJA =========================
+
+## Wraca z ekranu wyników do ekranu wyboru poziomu.
 func _on_back_btn_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/menu/level_select.tscn")
 
 
+## Odpala ten sam poziom jeszcze raz z taką samą konfiguracją (tryb, grupa, trudność).
 func _on_try_again_btn_pressed() -> void:
-	# Restartuje TEN SAM level z TĄ SAMĄ trudnością.
-	# Wystarczy ponownie ustawić config w Settings i odpalić lab.
-	var is_exam: bool = (_group_id == 0)  # egzamin = group_id 0
-	var counts: Dictionary = Settings.compute_level_counts(_mode_str, is_exam)
+	var is_exam := (_group_id == 0)
+	var counts := Settings.compute_level_counts(_exercise_mode, is_exam)
 	var cfg: Dictionary = {
-		"mode": _mode_str,
+		"mode": _exercise_mode,
 		"group_id": _group_id,
 		"starter_count": counts.starter_count,
 		"mix_difficulty": counts.mix_difficulty
@@ -299,35 +411,35 @@ func _on_try_again_btn_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/lab.tscn")
 
 
+## Jeśli istnieje kolejny poziom, startuje go, w przeciwnym razie wraca do wyboru poziomu.
 func _on_next_btn_pressed() -> void:
-	var curr_key: String = Settings.level_key(_group_id, _mode_str)
-	var next_key: String = Settings.get_next_level_key(curr_key)
+	var curr_key := Settings.level_key(_group_id, _exercise_mode)
+	var next_key := Settings.get_next_level_key(curr_key)
 	if next_key == "":
 		get_tree().change_scene_to_file("res://scenes/menu/level_select.tscn")
 		return
 	_start_next_level_from_key(next_key)
 
 
-# ───────────────────────── START KOLEJNEGO LEVELU ────────────────
+## Zamienia klucz poziomu na konfigurację (grupa, tryb, egzamin) i przełącza scenę na lab.
 func _start_next_level_from_key(next_key: String) -> void:
-	var next_group_id: int = 0
-	var next_mode_str: String = "EXERCISE_SINGLE"
-	var is_exam: bool = false
+	var next_group_id := 0
+	var next_mode := "EXERCISE_SINGLE"
+	var is_exam := false
 
 	if next_key == "EXAM":
 		is_exam = true
-		next_mode_str = "EXERCISE_MIX"
+		next_mode = "EXERCISE_MIX"
 		next_group_id = 0
 	else:
 		var parts: Array = next_key.split("_")
-		if parts.size() >= 2 and String(parts[0]).begins_with("G"):
-			var num_str: String = String(parts[0]).substr(1) # "1"/"2"/"3"/"45"
-			next_group_id = 4 if num_str == "45" else int(num_str)
-			next_mode_str = "EXERCISE_SINGLE" if parts[1] == "EX1" else "EXERCISE_MIX"
+		var num_str: String = String(parts[0]).substr(1)
+		next_group_id = 4 if num_str == "45" else int(num_str)
+		next_mode = "EXERCISE_SINGLE" if parts[1] == "EX1" else "EXERCISE_MIX"
 
-	var counts: Dictionary = Settings.compute_level_counts(next_mode_str, is_exam)
+	var counts := Settings.compute_level_counts(next_mode, is_exam)
 	var cfg: Dictionary = {
-		"mode": next_mode_str,
+		"mode": next_mode,
 		"group_id": next_group_id,
 		"starter_count": counts.starter_count,
 		"mix_difficulty": counts.mix_difficulty
@@ -336,20 +448,24 @@ func _start_next_level_from_key(next_key: String) -> void:
 	get_tree().change_scene_to_file("res://scenes/lab.tscn")
 
 
-# ───────────────────────── POMOCNICZE (UI) ───────────────────────
+# ============================ POMOCNICZE =========================
+
+## Czyści listę wierszy odpowiedzi z kontenera items_box.
 func _clear_items() -> void:
 	for child in items_box.get_children():
 		child.queue_free()
 
 
-func _items_empty_msg(msg: String) -> void:
-	_clear_items()
-	var label: Label = Label.new()
-	label.text = msg
-	items_box.add_child(label)
+## Ustawia widoczność gwiazdek w wierszu podsumowania na podstawie przekazanej liczby.
+func _update_result_stars(stars: int) -> void:
+	stars = clamp(stars, 0, 3)
+	for i in range(result_stars_row.get_child_count()):
+		var slot := result_stars_row.get_child(i)
+		var star := slot.get_node("Star") as CanvasItem
+		star.visible = (i < stars)
 
 
-# ───────────────────────── POMOCNICZE (LITERY) ───────────────────
+## Zamienia indeks probówki (0,1,2…) na literę (A,B,C,...) używaną w opisach.
 func _slot_index_to_letter(slot_idx: int) -> String:
 	if slot_idx >= 0 and slot_idx < START_TUBE_LABELS.size():
 		return START_TUBE_LABELS[slot_idx]

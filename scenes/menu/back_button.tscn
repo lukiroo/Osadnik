@@ -1,0 +1,15 @@
+[gd_scene load_steps=4 format=3 uid="uid://dvj8vvv0hh078"]
+
+[ext_resource type="Texture2D" uid="uid://dewr5synvmfk4" path="res://assets/menu/backbutton1.png" id="1_gbpt4"]
+[ext_resource type="Texture2D" uid="uid://dnl5imwpr44fr" path="res://assets/menu/backbutton3.png" id="2_pdrse"]
+[ext_resource type="Texture2D" uid="uid://daa2vts4ad7o1" path="res://assets/menu/backbutton2.png" id="3_sgxcf"]
+
+[node name="BackButton" type="TextureButton"]
+offset_right = 40.0
+offset_bottom = 40.0
+size_flags_horizontal = 4
+size_flags_vertical = 4
+texture_normal = ExtResource("1_gbpt4")
+texture_pressed = ExtResource("2_pdrse")
+texture_hover = ExtResource("3_sgxcf")
+stretch_mode = 3

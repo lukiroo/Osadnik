@@ -166,7 +166,38 @@ func _setup_exercise_mix() -> void:
 		push_error("[LevelManager] Brak kationów dla grupy %d" % group_id)
 		return
 
-	var chosen_ids: Array[String] = _pick_distinct(group_cations, mix_difficulty)
+	var chosen_ids: Array[String] = []
+
+	if group_id == 0:
+		# ─────────────────────────────────────────────
+		# EXAM: losujemy po jednym kationie z każdej
+		# grupy Freseniusa (G1..G4, maksymalnie 4).
+		# ─────────────────────────────────────────────
+		var shuffled := group_cations.duplicate()
+		shuffled.shuffle()
+
+		var used_groups: Dictionary = {}
+		var max_total :Variant= min(mix_difficulty, 4)
+
+		for cid in shuffled:
+			if chosen_ids.size() >= max_total:
+				break
+			var g := _fresenius_group_for_cation(String(cid))
+			if g <= 0:
+				continue
+			if used_groups.has(g):
+				continue
+			used_groups[g] = true
+			chosen_ids.append(String(cid))
+
+		# awaryjnie – gdyby z jakiegoś powodu nic nie weszło,
+		# wracamy do zwykłego losowania, żeby nie zabić levelu
+		if chosen_ids.is_empty():
+			chosen_ids = _pick_distinct(group_cations, mix_difficulty)
+	else:
+		# zwykłe EX2: stare zachowanie
+		chosen_ids = _pick_distinct(group_cations, mix_difficulty)
+
 	_mix_answer_list = chosen_ids
 
 	var mix_solution: Mixture = _make_multi_solution(chosen_ids)
@@ -203,12 +234,15 @@ func _get_reagent_ids_for_current_level() -> Array[String]:
 		Mode.EXERCISE_SINGLE, Mode.EXERCISE_MIX:
 			match group_id:
 				1:
-					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+					ids = ["HCl", "NaOH", "KI", "KBr", "K2CrO4"]
 				2:
 					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
 				3:
 					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
 				4:
+					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+				0:
+					# egzamin – na razie ta sama lista
 					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
 				_:
 					ids = []
@@ -531,7 +565,7 @@ func _index_to_letter(index: int) -> String:
 func _get_group_cations(group: int) -> Array[String]:
 	if group == 0:
 		var all: Array[String] = []
-		all += ["Ag+", "Hg2 2+", "Pb2+"]
+		all += ["Ag+", "Hg22+", "Pb2+"]
 		all += ["Hg2+", "Pb2+", "Cu2+", "Cd2+", "Bi3+", "As3+", "As5+", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]
 		all += ["Zn2+", "Ni2+", "Co2+", "Mn2+", "Fe2+", "Fe3+", "Al3+", "Cr3+"]
 		all += ["Ca2+", "Sr2+", "Ba2+", "Mg2+", "K+", "Na+", "NH4+"]
@@ -539,7 +573,7 @@ func _get_group_cations(group: int) -> Array[String]:
 
 	match group:
 		1:
-			return ["Ag+", "Hg2 2+", "Pb2+"]
+			return ["Ag+", "Hg22+", "Pb2+"]
 		2:
 			return ["Hg2+", "Pb2+", "Cu2+", "Cd2+", "Bi3+", "As3+", "As5+", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]
 		3:
@@ -558,6 +592,20 @@ func _pick_distinct(pool: Array[String], n: int) -> Array[String]:
 	for i in count:
 		out.append(tmp[i])
 	return out
+
+
+func _fresenius_group_for_cation(cation_id: String) -> int:
+	# Mapa kation -> grupa Freseniusa (1..4).
+	# Pb2+ przypisujemy do grupy 1, żeby uniknąć podwójnej przynależności.
+	if cation_id in ["Ag+", "Hg22+", "Pb2+"]:
+		return 1
+	elif cation_id in ["Hg2+", "Cu2+", "Cd2+", "Bi3+", "As3+", "As5+", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]:
+		return 2
+	elif cation_id in ["Zn2+", "Ni2+", "Co2+", "Mn2+", "Fe2+", "Fe3+", "Al3+", "Cr3+"]:
+		return 3
+	elif cation_id in ["Ca2+", "Sr2+", "Ba2+", "Mg2+", "K+", "Na+", "NH4+"]:
+		return 4
+	return -1
 
 
 func _make_simple_solution(cation_id: String) -> Mixture:

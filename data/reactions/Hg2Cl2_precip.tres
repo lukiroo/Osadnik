@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://dbjhigyd27exo"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_y2gsb"]
+
+[resource]
+script = ExtResource("1_y2gsb")
+id = "Hg2Cl2_precip"
+reactants_ions = {
+"Cl-": 1,
+"Hg22+": 1
+}
+products_solids = {
+"Hg2Cl2_s": 1
+}
+note = "biały osad AgCl"
+intensity = 1.0
+metadata/_custom_type_script = "uid://djapafftkk5kc"

@@ -11,8 +11,8 @@ extends Node2D  ## Główny węzeł sceny stołu laboratoryjnego – centralny k
 ## =========================================================================
 
 @onready var level_manager: LevelManager = $LevelManager      ## Odpowiada za tryb ćwiczenia i odpowiedzi.
-@onready var finish_btn: Button = $FinishBtn                  ## Przycisk zakończenia ćwiczenia / przejścia do wyników.
-@onready var back_btn: Button = $BackBtn                      ## Powrót
+@onready var back_btn: TextureButton = $BackBtn
+@onready var finish_btn: TextureButton = $FinishBtn
 
 # ==============================
 # TRYBY GLOBALNE

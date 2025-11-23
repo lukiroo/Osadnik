@@ -7,6 +7,7 @@ size = Vector2(54, 190)
 
 [node name="ProbeSlot" type="Node2D" groups=["probe_dropzones"]]
 script = ExtResource("1_6iv6f")
+snap_radius = 50.0
 
 [node name="Area2D" type="Area2D" parent="."]
 

@@ -1,6 +1,11 @@
-[gd_scene load_steps=8 format=3 uid="uid://b1f2ixoyftdit"]
+[gd_scene load_steps=11 format=3 uid="uid://b1f2ixoyftdit"]
 
 [ext_resource type="Script" uid="uid://bh3itl24ywqud" path="res://scenes/menu/main_menu.gd" id="1_l6cm7"]
+[ext_resource type="Texture2D" uid="uid://b4mxc4bcxr53y" path="res://assets/menu/panel.png" id="2_247la"]
+[ext_resource type="PackedScene" uid="uid://c41c7mrv50wyp" path="res://scenes/menu/menu_button.tscn" id="2_xn6kt"]
+[ext_resource type="Texture2D" uid="uid://bcy65cgokakfn" path="res://assets/menu/check_square_checkmark.png" id="3_hj162"]
+[ext_resource type="PackedScene" uid="uid://dvj8vvv0hh078" path="res://scenes/menu/back_button.tscn" id="3_kiqgm"]
+[ext_resource type="Texture2D" uid="uid://bl4uuid2kfm35" path="res://assets/menu/check_square.png" id="4_xn6kt"]
 
 [sub_resource type="Animation" id="Animation_l6cm7"]
 length = 0.001
@@ -111,11 +116,8 @@ _data = {
 &"menu_intro": SubResource("Animation_vue75")
 }
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_vue75"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_l6cm7"]
-
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_ekxnf"]
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_hj162"]
+texture = ExtResource("2_247la")
 
 [node name="MainMenu" type="Control"]
 layout_mode = 3
@@ -138,8 +140,9 @@ autoplay = "menu_intro"
 [node name="BackgroundTextureRect" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = -1
-anchor_top = 0.025
-anchor_right = 1.0
+anchor_left = -0.009375
+anchor_top = -0.013888889
+anchor_right = 1.0070312
 anchor_bottom = 1.025
 metadata/_edit_use_anchors_ = true
 
@@ -150,7 +153,8 @@ anchor_left = 0.0859375
 anchor_top = 0.1388889
 anchor_right = 0.9140625
 anchor_bottom = 0.3555556
-offset_bottom = -3.0517578e-05
+offset_top = -19.000008
+offset_bottom = -19.00003
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -185,21 +189,74 @@ layout_mode = 2
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="StartButton" type="Button" parent="ButtonsMargin/ButtonContainer"]
+[node name="StartButton" parent="ButtonsMargin/ButtonContainer" instance=ExtResource("2_xn6kt")]
 layout_mode = 2
-theme_override_styles/focus = SubResource("StyleBoxEmpty_vue75")
-text = "Start"
 
-[node name="SettingsButton" type="Button" parent="ButtonsMargin/ButtonContainer"]
+[node name="Label" type="Label" parent="ButtonsMargin/ButtonContainer/StartButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "START"
+
+[node name="SettingsButton" parent="ButtonsMargin/ButtonContainer" instance=ExtResource("2_xn6kt")]
 layout_mode = 2
-theme_override_styles/focus = SubResource("StyleBoxEmpty_l6cm7")
-text = "Opcje"
 
-[node name="ExitButton" type="Button" parent="ButtonsMargin/ButtonContainer"]
+[node name="Label" type="Label" parent="ButtonsMargin/ButtonContainer/SettingsButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "OPCJE"
+
+[node name="ExitButton" parent="ButtonsMargin/ButtonContainer" instance=ExtResource("2_xn6kt")]
 visible = false
 layout_mode = 2
-theme_override_styles/focus = SubResource("StyleBoxEmpty_ekxnf")
-text = "Wyjście"
+
+[node name="Label" type="Label" parent="ButtonsMargin/ButtonContainer/ExitButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "WYJŚCIE"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="VersionLabel" type="Label" parent="."]
 layout_mode = 1
@@ -215,7 +272,6 @@ grow_vertical = 0
 text = "v0.1"
 
 [node name="SettingsPanel" type="Panel" parent="."]
-visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.24900001
@@ -227,6 +283,20 @@ offset_top = -0.16003418
 offset_right = -0.2800293
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxTexture_hj162")
+
+[node name="SettingsLabel" type="Label" parent="SettingsPanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 56.0
+grow_horizontal = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.7058824)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 26
+text = "OPCJE"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="VBox" type="VBoxContainer" parent="SettingsPanel"]
 layout_mode = 1
@@ -248,13 +318,17 @@ layout_mode = 2
 [node name="HLLabel" type="Label" parent="SettingsPanel/VBox/HBoxHighlights"]
 layout_mode = 2
 size_flags_horizontal = 10
-text = "Podświetlenia"
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 16
+text = "PODŚWIETLENIA"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="CheckBox" type="CheckBox" parent="SettingsPanel/VBox/HBoxHighlights"]
 layout_mode = 2
 size_flags_horizontal = 6
+theme_override_icons/checked = ExtResource("3_hj162")
+theme_override_icons/unchecked = ExtResource("4_xn6kt")
 
 [node name="HBoxTubeLabels" type="HBoxContainer" parent="SettingsPanel/VBox"]
 layout_mode = 2
@@ -262,41 +336,81 @@ layout_mode = 2
 [node name="TLLabel" type="Label" parent="SettingsPanel/VBox/HBoxTubeLabels"]
 layout_mode = 2
 size_flags_horizontal = 10
-text = "Numeracja probówek"
+theme_override_constants/outline_size = 3
+text = "NUMERACJA PROBÓWEK"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="CheckBox" type="CheckBox" parent="SettingsPanel/VBox/HBoxTubeLabels"]
 layout_mode = 2
 size_flags_horizontal = 6
+theme_override_icons/checked = ExtResource("3_hj162")
+theme_override_icons/unchecked = ExtResource("4_xn6kt")
 
-[node name="SettingsLabel" type="Label" parent="SettingsPanel"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_bottom = 56.0
-grow_horizontal = 2
-text = "Opcje"
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="BackButton" type="Button" parent="SettingsPanel"]
+[node name="BackButton" parent="SettingsPanel" instance=ExtResource("3_kiqgm")]
 layout_mode = 1
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -33.0
-offset_top = -49.0
-offset_right = 33.0
-offset_bottom = -18.0
+offset_left = -40.0
+offset_top = -40.0
+offset_right = 20.0
+offset_bottom = 0.0
 grow_horizontal = 2
 grow_vertical = 0
-theme_override_styles/focus = SubResource("StyleBoxEmpty_ekxnf")
-text = "Wstecz"
+
+[node name="Label" type="Label" parent="SettingsPanel/BackButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -31.0
+offset_top = -11.5
+offset_right = 31.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.6862745)
+theme_override_constants/outline_size = 3
+text = "WSTECZ"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HBoxReset" type="HBoxContainer" parent="SettingsPanel"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -169.0
+offset_top = 47.785004
+offset_right = 118.0
+offset_bottom = 70.785
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ResetLabel" type="Label" parent="SettingsPanel/HBoxReset"]
+layout_mode = 2
+size_flags_horizontal = 6
+theme_override_constants/outline_size = 3
+text = "RESET GRY"
+vertical_alignment = 1
+
+[node name="ResetProgressButton" type="Button" parent="SettingsPanel/HBoxReset"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_font_sizes/font_size = 8
+text = "RESET"
 
 [connection signal="pressed" from="ButtonsMargin/ButtonContainer/StartButton" to="." method="_on_start_button_pressed"]
 [connection signal="pressed" from="ButtonsMargin/ButtonContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="ButtonsMargin/ButtonContainer/ExitButton" to="." method="_on_exit_button_pressed"]
+[connection signal="toggled" from="SettingsPanel/VBox/HBoxHighlights/CheckBox" to="." method="_on_highlight_toggled"]
+[connection signal="toggled" from="SettingsPanel/VBox/HBoxTubeLabels/CheckBox" to="." method="_on_labels_toggled"]
 [connection signal="pressed" from="SettingsPanel/BackButton" to="." method="_on_back_button_pressed"]
+[connection signal="pressed" from="SettingsPanel/HBoxReset/ResetProgressButton" to="." method="_on_reset_progress_pressed"]

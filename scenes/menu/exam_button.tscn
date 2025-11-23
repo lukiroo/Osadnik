@@ -1,0 +1,118 @@
+[gd_scene load_steps=7 format=3 uid="uid://caq8fn3xkeqfj"]
+
+[ext_resource type="Texture2D" uid="uid://d0d2idv2g5ole" path="res://assets/menu/exambutton1.png" id="1_itrxc"]
+[ext_resource type="Texture2D" uid="uid://dsvjytuwtqjdt" path="res://assets/menu/exambutton3.png" id="2_31bda"]
+[ext_resource type="Texture2D" uid="uid://r32k5or0qijo" path="res://assets/menu/exambutton2.png" id="3_xlogh"]
+[ext_resource type="Texture2D" uid="uid://dmudg8ghxfwhp" path="res://assets/menu/exambutton4.png" id="4_hx8ny"]
+[ext_resource type="Texture2D" uid="uid://ehoe4v8nb33w" path="res://assets/menu/star_outline_depth.png" id="5_5y8ns"]
+[ext_resource type="Texture2D" uid="uid://ypllttlyikwr" path="res://assets/menu/star.png" id="6_ljq8n"]
+
+[node name="LevelButton" type="TextureButton"]
+offset_right = 40.0
+offset_bottom = 40.0
+texture_normal = ExtResource("1_itrxc")
+texture_pressed = ExtResource("2_31bda")
+texture_hover = ExtResource("3_xlogh")
+texture_disabled = ExtResource("4_hx8ny")
+
+[node name="VBox" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -39.0
+offset_top = -23.5
+offset_right = 39.0
+offset_bottom = 23.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="Label" type="Label" parent="VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/line_spacing = 5
+theme_override_constants/outline_size = 3
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 1
+vertical_alignment = 2
+uppercase = true
+
+[node name="HBox" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 2
+size_flags_stretch_ratio = 0.7
+alignment = 2
+
+[node name="Shadow1" type="TextureRect" parent="VBox/HBox"]
+layout_mode = 2
+texture = ExtResource("5_5y8ns")
+stretch_mode = 3
+
+[node name="Star1" type="TextureRect" parent="VBox/HBox/Shadow1"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("6_ljq8n")
+stretch_mode = 3
+
+[node name="Shadow2" type="TextureRect" parent="VBox/HBox"]
+layout_mode = 2
+texture = ExtResource("5_5y8ns")
+stretch_mode = 3
+
+[node name="Star2" type="TextureRect" parent="VBox/HBox/Shadow2"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("6_ljq8n")
+stretch_mode = 3
+
+[node name="Shadow3" type="TextureRect" parent="VBox/HBox"]
+layout_mode = 2
+texture = ExtResource("5_5y8ns")
+stretch_mode = 3
+
+[node name="Star3" type="TextureRect" parent="VBox/HBox/Shadow3"]
+visible = false
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("6_ljq8n")
+stretch_mode = 3

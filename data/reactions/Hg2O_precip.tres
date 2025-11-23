@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://gxd1c55edl5q"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_qkynf"]
+
+[resource]
+script = ExtResource("1_qkynf")
+id = "Hg2O_precip"
+priority = 1
+reactants_ions = {
+"Hg22+": 1,
+"OH-": 1
+}
+products_solids = {
+"Hg2O_s": 1
+}
+require_pH = Array[String](["basic"])
+note = "brunatny osad Ag2O"
+intensity = 1.0
+metadata/_custom_type_script = "uid://djapafftkk5kc"
