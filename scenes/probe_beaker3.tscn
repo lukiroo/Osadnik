@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://d4ng3sfiswdat"]
+
+[ext_resource type="Texture2D" uid="uid://cnhcpsccyd76f" path="res://assets/emptytubefront.png" id="1_hrq23"]
+[ext_resource type="PackedScene" uid="uid://nt5ipyk1bagx" path="res://scenes/probe_slot.tscn" id="2_ticgw"]
+
+[node name="ProbeBeaker" type="Node2D"]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(-60.499996, 74.99999)
+scale = Vector2(2.3523805, 0.69101125)
+texture = ExtResource("1_hrq23")
+
+[node name="ProbeSlot1" parent="." groups=["starter_slots"] instance=ExtResource("2_ticgw")]
+position = Vector2(-34.000004, 5.999999)
+rotation = 0.27750736

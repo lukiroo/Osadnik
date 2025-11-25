@@ -3,28 +3,30 @@ extends Node
 signal changed
 
 ## =========================================================================
-## Settings.gd – autoload z ustawieniami i progresem
+## settings.gd – autoload z ustawieniami i progresem
 ## -------------------------------------------------------------------------
 ## Odpowiada za:
 ## - przechowywanie ustawień UI (podświetlenia, etykiety, trudność),
 ## - zapisywanie/odczytywanie progresu poziomów do pliku,
 ## - wyliczanie parametrów zadań (liczba probówek, trudność mieszanin),
 ## - przekazywanie konfiguracji następnego levelu między scenami,
-## - udostępnianie ostatniego podejścia do zapisu wyników.
+## - udostępnianie ostatniego podejścia do zapisu wyników,
+## - osobne śledzenie progresu dla kationów i dla anionów.
 ## =========================================================================
 
 const PATH: String = "user://settings.cfg"
+const MAX_ERRORS_ALLOWED: int = 1  # globalny limit błędów dla zaliczenia poziomu
 
 # -------- USTAWIENIA UI --------
 var highlights_enabled: bool = true      # podświetlanie narzędzi / probówek
 var show_tube_labels: bool = true        # literki/numerki probówek
 var difficulty_mode: int = 0             # 0 = normalny, 1 = trudny
 
-# -------- KONFIGURACJA LEVELU --------
+# -------- KONFIGURACJA LEVELU (przekazywana do labu) --------
 var _pending_level_config: Dictionary = {}
 
-# -------- KOLEJNOŚĆ I PROGRES LEVELI --------
-const LEVEL_ORDER: Array[String] = [
+# -------- KOLEJNOŚĆ I PROGRES LEVELI – KATIONY --------
+const LEVEL_ORDER_CATIONS: Array[String] = [
 	"G1_EX1","G1_EX2",
 	"G2_EX1","G2_EX2",
 	"G3_EX1","G3_EX2",
@@ -32,30 +34,55 @@ const LEVEL_ORDER: Array[String] = [
 	"EXAM"
 ]
 
-# level_key -> { passed, best_mistakes, best_stars }
+# level_key (kationy) -> { passed, best_mistakes, best_stars }
 var level_progress: Dictionary = {}
 
-# Ostatni „run” – do przekazania danych do Results
+# -------- KOLEJNOŚĆ I PROGRES LEVELI – ANIONY --------
+# Kampania dla anionów: grupy 1–5 + egzamin A_EXAM.
+const LEVEL_ORDER_ANIONS: Array[String] = [
+	"A1_EX1","A1_EX2",
+	"A2_EX1","A2_EX2",
+	"A3_EX1","A3_EX2",
+	"A4_EX1","A4_EX2",
+	"A5_EX1","A5_EX2",
+	"A_EXAM"
+]
+
+# level_key_anions -> { passed, best_mistakes, best_stars }
+var level_progress_anions: Dictionary = {}
+
+# Ostatnie podejście – przekazywane do Results.
 var _last_run_ctx: Dictionary = {}
 
 
-## Przy starcie gry wczytuje zapis z pliku, uzupełnia brakujące wpisy poziomów i emituje sygnał changed.
+## Wczytuje zapis z pliku, dopełnia brakujące wpisy leveli i emituje changed.
 func _ready() -> void:
 	_load()
 
-	for key in LEVEL_ORDER:
+	# Dopełnianie brakujących wpisów dla kationów.
+	for key in LEVEL_ORDER_CATIONS:
 		if not level_progress.has(key):
 			level_progress[key] = {
 				"passed": false,
 				"best_mistakes": 999,
 				"best_stars": 0
 			}
+
+	# Dopełnianie brakujących wpisów dla anionów.
+	for key in LEVEL_ORDER_ANIONS:
+		if not level_progress_anions.has(key):
+			level_progress_anions[key] = {
+				"passed": false,
+				"best_mistakes": 999,
+				"best_stars": 0
+			}
+
 	changed.emit()
 
 
 # ======================= SETTERY UI ===============================
 
-## Ustawia tryb trudności (0/1), zapisuje go do pliku i emituje sygnał changed.
+## Ustawia tryb trudności (0/1), zapisuje do pliku i emituje changed.
 func set_difficulty_mode(value: int) -> void:
 	value = clamp(value, 0, 1)
 	if difficulty_mode == value:
@@ -65,7 +92,7 @@ func set_difficulty_mode(value: int) -> void:
 	changed.emit()
 
 
-## Włącza lub wyłącza globalne podświetlenia i zapisuje ten stan do pliku.
+## Włącza lub wyłącza globalne podświetlenia i zapisuje ten stan.
 func set_highlight_enabled(is_enabled: bool) -> void:
 	if highlights_enabled == is_enabled:
 		return
@@ -74,7 +101,7 @@ func set_highlight_enabled(is_enabled: bool) -> void:
 	changed.emit()
 
 
-## Włącza lub wyłącza etykiety probówek i zapisuje ten stan do pliku.
+## Włącza lub wyłącza etykiety probówek i zapisuje ten stan.
 func set_show_tube_labels(is_enabled: bool) -> void:
 	if show_tube_labels == is_enabled:
 		return
@@ -90,16 +117,15 @@ func are_highlights_enabled() -> bool:
 	return highlights_enabled
 
 
-## Decyduje, czy kontener z probówkami ma pokazywać etykiety; w EX1 w ProbeBeaker zawsze wymusza true.
-func should_show_tube_labels(mode_str: String, container_name: String) -> bool:
-	if mode_str == "EXERCISE_SINGLE" and container_name == "ProbeBeaker":
-		return true
+## Określa, czy dane „miejsce na probówki” ma pokazywać etykiety.
+## Obecnie używa globalnej flagi show_tube_labels; miejsce na ewentualne wyjątki.
+func should_show_tube_labels(_mode_str: String, _container_name: String) -> bool:
 	return show_tube_labels
 
 
 # ==================== KONFIGURACJA NAST. LEVELU ==================
 
-## Zapisuje w pamięci konfigurację następnego poziomu (tryb, grupa, liczby probówek).
+## Zapisuje konfigurację następnego poziomu (tryb, grupa, ilości).
 func set_next_level_config(cfg: Dictionary) -> void:
 	_pending_level_config = cfg.duplicate(true)
 
@@ -113,7 +139,8 @@ func get_and_clear_next_level_config() -> Dictionary:
 
 # =================== PARAMETRY ZADAŃ (rozmiary) ==================
 
-# Wlicza ile probówek startowych i ile jonów ma mieć mieszanka, na podstawie trudności i tego, czy to egzamin.
+## Wylicza liczby probówek i trudność mieszaniny
+## na podstawie obecnej trudności i tego, czy to egzamin.
 func compute_level_counts(_mode_str: String, exam: bool = false) -> Dictionary:
 	var starter_count := 3
 	var mix_difficulty := 2
@@ -123,8 +150,9 @@ func compute_level_counts(_mode_str: String, exam: bool = false) -> Dictionary:
 		mix_difficulty = 3
 
 	if exam:
-		# egzamin: większe mieszanki
-		mix_difficulty = (3 if difficulty_mode == 0 else 5)
+		# Egzamin: większe mieszanki.
+		# normal: 3 jony, hard: 4 jony.
+		mix_difficulty = (3 if difficulty_mode == 0 else 4)
 
 	return {
 		"starter_count": starter_count,
@@ -132,10 +160,10 @@ func compute_level_counts(_mode_str: String, exam: bool = false) -> Dictionary:
 	}
 
 
-# ====================== KLUCZE LEVELI ============================
+# ====================== KLUCZE LEVELI – KATIONY ==================
 
-## Buduje klucz poziomu na podstawie grupy i trybu, np. G1_EX1, G45_EX2, EXAM.
-func level_key(group_id: int, mode_str: String) -> String:
+## Buduje klucz poziomu kationowego, np. G1_EX1, G45_EX2, EXAM.
+func level_key_cations(group_id: int, mode_str: String) -> String:
 	var suffix := ("EX1" if mode_str == "EXERCISE_SINGLE" else "EX2")
 	if group_id == 0:
 		return "EXAM"
@@ -145,30 +173,64 @@ func level_key(group_id: int, mode_str: String) -> String:
 		return "G%d_%s" % [group_id, suffix]
 
 
-## Sprawdza, czy dany poziom jest odblokowany na podstawie kolejności LEVEL_ORDER i flagi „passed” poprzedniego levelu.
-func is_unlocked(level_key_str: String) -> bool:
-	var idx := LEVEL_ORDER.find(level_key_str)
+## Sprawdza, czy dany poziom kationowy jest odblokowany na podstawie
+## kolejności LEVEL_ORDER_CATIONS i flagi „passed” poprzedniego levelu.
+func is_unlocked_cations(level_key_str: String) -> bool:
+	var idx := LEVEL_ORDER_CATIONS.find(level_key_str)
 	if idx == -1:
 		return false
 	if idx == 0:
 		return true   # pierwszy level zawsze dostępny
 
-	var previous_key: String = LEVEL_ORDER[idx - 1]
+	var previous_key: String = LEVEL_ORDER_CATIONS[idx - 1]
 	var prev_rec: Dictionary = level_progress.get(previous_key, {"passed": false})
 	return bool(prev_rec.get("passed", false))
 
 
-## Zwraca klucz następnego poziomu albo pusty string, jeśli to był ostatni.
-func get_next_level_key(current_key: String) -> String:
-	var idx := LEVEL_ORDER.find(current_key)
-	if idx == -1 or idx == LEVEL_ORDER.size() - 1:
+## Zwraca klucz następnego poziomu kationowego albo pusty string.
+func get_next_level_key_cations(current_key: String) -> String:
+	var idx := LEVEL_ORDER_CATIONS.find(current_key)
+	if idx == -1 or idx == LEVEL_ORDER_CATIONS.size() - 1:
 		return ""
-	return LEVEL_ORDER[idx + 1]
+	return LEVEL_ORDER_CATIONS[idx + 1]
+
+
+# ====================== KLUCZE LEVELI – ANIONY ===================
+
+## Buduje klucz poziomu anionowego, np. A1_EX1, A5_EX2, A_EXAM.
+func level_key_anions(group_id: int, mode_str: String) -> String:
+	var suffix := ("EX1" if mode_str == "EXERCISE_SINGLE" else "EX2")
+	if group_id == 0:
+		return "A_EXAM"
+	else:
+		return "A%d_%s" % [group_id, suffix]
+
+
+## Sprawdza, czy dany poziom anionowy jest odblokowany na podstawie LEVEL_ORDER_ANIONS.
+func is_unlocked_anions(level_key_str: String) -> bool:
+	var idx := LEVEL_ORDER_ANIONS.find(level_key_str)
+	if idx == -1:
+		return false
+	if idx == 0:
+		return true   # pierwszy poziom anionowy zawsze dostępny
+
+	var previous_key: String = LEVEL_ORDER_ANIONS[idx - 1]
+	var prev_rec: Dictionary = level_progress_anions.get(previous_key, {"passed": false})
+	return bool(prev_rec.get("passed", false))
+
+
+## Zwraca klucz następnego poziomu anionowego albo pusty string.
+func get_next_level_key_anions(current_key: String) -> String:
+	var idx := LEVEL_ORDER_ANIONS.find(current_key)
+	if idx == -1 or idx == LEVEL_ORDER_ANIONS.size() - 1:
+		return ""
+	return LEVEL_ORDER_ANIONS[idx + 1]
 
 
 # ====================== LICZENIE BŁĘDÓW ==========================
 
-## Liczy błędy w ćwiczeniu 1: brak odpowiedzi lub zły jon w probówce liczy się jako błąd.
+## Liczy błędy w ćwiczeniu 1:
+## brak odpowiedzi lub zły jon w probówce liczy się jako błąd.
 func count_mistakes_single(correct_map: Dictionary, user_map: Dictionary) -> int:
 	var mistakes := 0
 	for key in correct_map.keys():
@@ -179,7 +241,8 @@ func count_mistakes_single(correct_map: Dictionary, user_map: Dictionary) -> int
 	return mistakes
 
 
-## Liczy błędy w mieszaninie: zwraca max(brakujących jonów, nadmiarowych jonów).
+## Liczy błędy w mieszaninie:
+## zwraca max(liczby brakujących jonów, liczby nadmiarowych jonów).
 func count_mistakes_mix(correct_list: Array, user_list: Array) -> int:
 	var correct_set: Dictionary = {}
 	for ion in correct_list:
@@ -204,64 +267,59 @@ func count_mistakes_mix(correct_list: Array, user_list: Array) -> int:
 
 # ====================== GWIAZDKI / PROGRES =======================
 
-## Określa maksymalną liczbę błędów, po której poziom jest jeszcze zaliczony.
-func max_errors_allowed_for(group_id: int, exercise_id: String, difficulty_now: int) -> int:
-	if group_id == 1:
-		return 1
-
-	if difficulty_now == 0:
-		return 1
-	else:
-		if exercise_id == "EX1":
-			return 2
-		else:
-			return 1
+## Globalny limit błędów dla zaliczenia poziomu.
+func max_errors_allowed_for(_group_id: int, _exercise_id: String, _difficulty_now: int) -> int:
+	return MAX_ERRORS_ALLOWED
 
 
 ## Wylicza liczbę gwiazdek na podstawie liczby błędów, grupy, ćwiczenia i trybu trudności.
 func compute_stars(mistakes: int, difficulty_now: int, group_id: int, exercise_id: String) -> int:
-	if group_id == 1:
-		if mistakes == 0:
-			return 3
-		elif mistakes == 1:
-			return 1
-		else:
-			return 0
+	var stars := 0
 
-	if difficulty_now == 0:
-		if mistakes == 0:
-			return 2
-		elif mistakes == 1:
-			return 1
-		else:
-			return 0
+	if exercise_id == "EX1":
+		# Ćwiczenie 1 – zawsze 3 sloty na gwiazdki.
+		stars = max(0, 3 - mistakes)
 	else:
-		if exercise_id == "EX1":
-			if mistakes == 0:
-				return 3
-			elif mistakes == 1:
-				return 2
-			elif mistakes == 2:
-				return 1
-			else:
-				return 0
+		# Ćwiczenie 2 – mieszanina jonów.
+		var total_ions := 2
+
+		if group_id == 0:
+			# Egzamin:
+			# normal: 3 jony, hard: 4 jony.
+			total_ions = (3 if difficulty_now == 0 else 4)
 		else:
-			if mistakes == 0:
-				return 3
+			# Zwykłe EX2:
+			# normal: 2 jony, hard: 3 jony.
+			total_ions = (2 if difficulty_now == 0 else 3)
+
+		if total_ions == 2:
+			# 0 błędów → 3★, 1 błąd → 2★, 2+ błędów → 0★.
+			if mistakes <= 0:
+				stars = 3
 			elif mistakes == 1:
-				return 2
+				stars = 2
 			else:
-				return 0
+				stars = 0
+		else:
+			stars = max(0, 3 - mistakes)
+
+	return stars
 
 
-## Zwraca najlepszą liczbę gwiazdek zdobytą dotychczas na danym poziomie.
-func get_best_stars(level_key_str: String) -> int:
+## Zwraca najlepszą liczbę gwiazdek na poziomie kationowym.
+func get_best_stars_cations(level_key_str: String) -> int:
 	var rec: Dictionary = level_progress.get(level_key_str, {"best_stars": 0})
 	return int(rec.get("best_stars", 0))
 
 
-## Aktualizuje progres dla poziomu po podejściu, liczy gwiazdki, zapisuje do pliku i zwraca prosty podsumowujący słownik.
-func submit_result(level_key_str: String, mistakes: int) -> Dictionary:
+## Zwraca najlepszą liczbę gwiazdek na poziomie anionowym.
+func get_best_stars_anions(level_key_str: String) -> int:
+	var rec: Dictionary = level_progress_anions.get(level_key_str, {"best_stars": 0})
+	return int(rec.get("best_stars", 0))
+
+
+## Aktualizuje progres dla poziomu kationowego po podejściu.
+func submit_result_cations(level_key_str: String, mistakes: int) -> Dictionary:
 	var group_id := 0
 	var exercise_id := "EX1"
 
@@ -287,7 +345,7 @@ func submit_result(level_key_str: String, mistakes: int) -> Dictionary:
 	if stars_now > int(rec.get("best_stars", 0)):
 		rec["best_stars"] = stars_now
 
-	var passed_now := (stars_now > 0)
+	var passed_now := (stars_now >= 2)
 	if passed_now:
 		rec["passed"] = true
 
@@ -297,7 +355,53 @@ func submit_result(level_key_str: String, mistakes: int) -> Dictionary:
 
 	var next_key := ""
 	if passed_now:
-		next_key = get_next_level_key(level_key_str)
+		next_key = get_next_level_key_cations(level_key_str)
+
+	return {
+		"passed": passed_now,
+		"mistakes": mistakes,
+		"next_unlocked": next_key
+	}
+
+
+## Aktualizuje progres dla poziomu anionowego po podejściu.
+func submit_result_anions(level_key_str: String, mistakes: int) -> Dictionary:
+	var group_id := 0
+	var exercise_id := "EX1"
+
+	if level_key_str == "A_EXAM":
+		group_id = 0
+		exercise_id = "EX2"
+	else:
+		var parts: Array = level_key_str.split("_")  # "A1_EX1"
+		var num_str: String = String(parts[0]).substr(1)  # "1", "2", "5"
+		group_id = int(num_str)
+		exercise_id = String(parts[1])
+
+	var rec: Dictionary = level_progress_anions.get(level_key_str, {
+		"passed": false,
+		"best_mistakes": 999,
+		"best_stars": 0
+	})
+
+	if mistakes < int(rec.get("best_mistakes", 999)):
+		rec["best_mistakes"] = mistakes
+
+	var stars_now := compute_stars(mistakes, difficulty_mode, group_id, exercise_id)
+	if stars_now > int(rec.get("best_stars", 0)):
+		rec["best_stars"] = stars_now
+
+	var passed_now := (stars_now >= 2)
+	if passed_now:
+		rec["passed"] = true
+
+	level_progress_anions[level_key_str] = rec
+	_save()
+	changed.emit()
+
+	var next_key := ""
+	if passed_now:
+		next_key = get_next_level_key_anions(level_key_str)
 
 	return {
 		"passed": passed_now,
@@ -314,27 +418,41 @@ func _save() -> void:
 	cfg.set_value("ui", "highlights_enabled", highlights_enabled)
 	cfg.set_value("ui", "show_tube_labels", show_tube_labels)
 	cfg.set_value("ui", "difficulty_mode", difficulty_mode)
-	cfg.set_value("progress", "map", level_progress)
+
+	cfg.set_value("progress_cations", "map", level_progress)
+	cfg.set_value("progress_anions", "map", level_progress_anions)
+
 	cfg.save(PATH)
 
 
-## Wczytuje ustawienia i progres z pliku, a gdy plik nie istnieje, tworzy domyślny zapis.
+## Wczytuje ustawienia i progres z pliku; brak pliku = czyste słowniki.
 func _load() -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(PATH) != OK:
 		level_progress = {}
-		_save()
+		level_progress_anions = {}
 		return
 
 	highlights_enabled = bool(cfg.get_value("ui", "highlights_enabled", highlights_enabled))
 	show_tube_labels   = bool(cfg.get_value("ui", "show_tube_labels", show_tube_labels))
 	difficulty_mode    = int(cfg.get_value("ui", "difficulty_mode", difficulty_mode))
-	level_progress     = cfg.get_value("progress", "map", {}) as Dictionary
+
+	level_progress = cfg.get_value(
+		"progress_cations",
+		"map",
+		{}
+	) as Dictionary
+
+	level_progress_anions = cfg.get_value(
+		"progress_anions",
+		"map",
+		{}
+	) as Dictionary
 
 
 # ================== KONTEKST LAB → RESULTS =======================
 
-## Zapisuje kontekst ostatniego podejścia z labu (tryb, grupa, poprawne odpowiedzi itp.).
+## Zapisuje kontekst ostatniego podejścia z labu (tryb, grupa, poprawne odpowiedzi).
 func set_last_run_context(ctx: Dictionary) -> void:
 	_last_run_ctx = ctx.duplicate(true)
 	changed.emit()
@@ -347,14 +465,23 @@ func get_last_run_context() -> Dictionary:
 
 # ==================== NARZĘDZIE DO RESETU ========================
 
-## Czyści progres wszystkich poziomów i ustawia im domyślne wartości.
+## Czyści progres wszystkich poziomów (kationowych i anionowych) i ustawia domyślne wartości.
 func reset_progress() -> void:
 	level_progress.clear()
-	for key in LEVEL_ORDER:
+	for key in LEVEL_ORDER_CATIONS:
 		level_progress[key] = {
 			"passed": false,
 			"best_mistakes": 999,
 			"best_stars": 0
 		}
+
+	level_progress_anions.clear()
+	for key in LEVEL_ORDER_ANIONS:
+		level_progress_anions[key] = {
+			"passed": false,
+			"best_mistakes": 999,
+			"best_stars": 0
+		}
+
 	_save()
 	changed.emit()

@@ -1,11 +1,14 @@
 extends Node2D
 class_name IndicatorPaper
 
-## Papierek wskaźnikowy (litmus).
-## - Tworzony dynamicznie z PackedScene przez Lab.
+## =========================================================================
+## indicator_paper.gd - apierek wskaźnikowy (litmus).
+## -------------------------------------------------------------------------
+## - Tworzony dynamicznie z przez Lab.
 ## - Może podążać za kursorem (follow_mouse).
 ## - Po użyciu na probówce zmienia kolor końcówki na podstawie „oceny pH” (grade -3..+3).
-## - Emityje sygnał used_on_probe, dzięki czemu Lab wie, że ten egzemplarz został zużyty.
+## - Jednorazory (emityje sygnał used_on_probe), dzięki czemu Lab wie, że ten egzemplarz został zużyty.
+## =========================================================================
 
 signal used_on_probe(probe: Node, grade: int)
 
@@ -79,9 +82,9 @@ func _process(_delta: float) -> void:
 # =================================================================
 func use_on_probe(probe: Node, grade: int) -> void:
 	## Główne wywołanie z Lab:
-	## - wyliczamy kolor na podstawie grade,
-	## - oznaczamy papierek jako zużyty,
-	## - emitujemy sygnał, żeby Lab mógł zareagować (np. zapisać wynik).
+	## - wylicza kolor na podstawie grade,
+	## - oznacza papierek jako zużyty,
+	## - emituje sygnał, żeby Lab mógł zareagować (np. zapisać wynik).
 	if is_spent:
 		return
 
@@ -125,8 +128,8 @@ func _grade_to_color(grade: int) -> Color:
 
 func _apply_tip_color(color: Color) -> void:
 	## Ustawienie koloru:
-	## 1) próbujemy przez uniform `tip_color` w shaderze (jeśli istnieje),
-	## 2) dodatkowo ustawiamy modulate na sprite końcówki.
+	## 1) próbuje przez uniform `tip_color` w shaderze (jeśli istnieje),
+	## 2) dodatkowo ustawia modulate na sprite końcówki.
 	if _has_tip_uniform and paper_sprite and paper_sprite.material is ShaderMaterial:
 		var sm := paper_sprite.material as ShaderMaterial
 		sm.set_shader_parameter("tip_color", color)

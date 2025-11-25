@@ -2,85 +2,117 @@ extends Node
 class_name LevelManager
 
 ## =========================================================================
-## LevelManager – losowanie kationów, spawn probówek, numerowanie, reagenty
+## level_manager.gd – losowanie próbek, spawn probówek, numerowanie, reagenty
 ## -------------------------------------------------------------------------
-## - czyta konfigurację levelu (mode, group_id, itp.),
-## - spawnuje probówki startowe / robocze,
-## - przechowuje poprawne odpowiedzi (EX1, EX2),
-## - nadaje etykiety probówkom,
-## - ustawia reagenty w butelkach na półce.
+## Odpowiada za:
+## - odczyt konfiguracji poziomu (mode, group_id, branch: kationy/aniony/sandbox),
+## - przygotowanie probówek startowych do analizy (EX1 / EX2 / egzamin – sprawdzian z analizy wszystkich grup),
+## - losowanie składu mieszanin i zapamiętanie poprawnych odpowiedzi,
+## - spawn probówek startowych w zlewce i roboczych do pracy na stojakach,
+## - nadawanie etykiet probówkom (literki/numerki),
+## - ustawianie reagentów w butelkach na półce.
 ## =========================================================================
 
-# ───────────────────────── TRYB PRACY I PARAMETRY ─────────────────
+# -------------------------- TRYB PRACY / PARAMETRY ------------------------
 enum Mode { SANDBOX, EXERCISE_SINGLE, EXERCISE_MIX }
+enum Branch { CATIONS, ANIONS, SANDBOX }
 
 var mode: Mode = Mode.EXERCISE_SINGLE
+var branch: Branch = Branch.CATIONS
+
 var group_id: int = 1
 var starter_count: int = 3
 var mix_difficulty: int = 2
 
-# ───────────────────────── REFERENCJE SCENY ───────────────────────────────
-@onready var probe_beaker:  Node2D = $"../ProbeBeaker1"   ## Zlewka dla ćw. 1
-@onready var probe_beaker2: Node2D = $"../ProbeBeaker2"   ## Zlewka dla ćw. 2 + egzamin
+# -------------------------- REFERENCJE SCENY ------------------------------
+@onready var probe_beaker1: Node2D = $"../ProbeBeaker1"   ## Zlewka EX1 Normal (3 probówki)
+@onready var probe_beaker2: Node2D = $"../ProbeBeaker2"   ## Zlewka EX1 Hard (5 probówek)
+@onready var probe_beaker3: Node2D = $"../ProbeBeaker3"   ## Zlewka EX2 + egzamin (1 probówka)
 @onready var reagent_shelf: Node2D = $"../ReagentShelf"   ## Półka z butelkami reagentów
 
 const STARTER_PROBE_SCENE: PackedScene     = preload("res://scenes/starter_probe.tscn")
 const BIG_STARTER_PROBE_SCENE: PackedScene = preload("res://scenes/starter_probe_big.tscn")
 const WORK_PROBE_SCENE: PackedScene        = preload("res://scenes/work_probe.tscn")
 
-# ───────────────────────── REAGENTY ─────────────────────────────
+# -------------------------- ŚCIEŻKI ZASOBÓW REAGENTÓW ---------------------
 const REAGENT_PATH_PREFIX := "res://data/reagents/"
 const REAGENT_PATH_SUFFIX := ".tres"
 
-# ───────────────────────── CZCIONKA ─────────────────────────────────
+# -------------------------- CZCIONKI ETYKIET ------------------------------
 const WORK_LABEL_FONT_SIZE: int = 20
 const STARTER_LABEL_FONT_SIZE: int = 13
 
-# ───────────────────────── PARAMETRY CHEMICZNE ────────────────────────────
-## Ile „sztuk” kationu w pojedynczej probówki startowej w EX1.
+# -------------------------- PARAMETRY „ILOŚCIOWE” -------------------------
+## EX1 – ilość jonów w pojedynczej probówce startowej.
 const STARTER_CATION_AMOUNT: int = 100
-## Ile „sztuk” kationu na KAŻDY kation w mieszance (EX2 / egzamin).
+## EX2 / egzamin – ilość jonów na każdy składnik mieszaniny.
 const MIX_CATION_AMOUNT: int = 500
 
-# ───────────────────────── STAN ODPOWIEDZI I PROBÓWEK ─────────────────────
-## EX1: mapa „slot indeks → kation”.
+# -------------------------- STAN POPRAWNYCH ODPOWIEDZI -------------------
+## EX1: mapa „indeks probówki → jon” (kation/anion; indeks odpowiada literkom A/B/C...).
 var _single_answer_map: Dictionary = {}
-## EX2: lista kationów w mieszance.
+## EX2: lista jonów w mieszaninie (kolejność nie ma znaczenia).
 var _mix_answer_list: Array[String] = []
 
-## Referencje do spawnowanych probówek
-var _starter_probes: Array[Node2D] = []
-var _work_probes: Array[Node2D] = []
-
 
 # =================================================================
-# INIT – konfiguracja startowa levelu
+# INICJALIZACJA – odczyt konfiguracji poziomu z Settings i start budowania levelu
 # =================================================================
 func _ready() -> void:
+	# Odczyt konfiguracji poziomu z węzła Settings (jeśli istnieje).
+	var settings_node := get_tree().get_root().get_node_or_null("Settings")
+	var cfg: Dictionary = {}
+	if settings_node and settings_node.has_method("get_and_clear_next_level_config"):
+		cfg = settings_node.get_and_clear_next_level_config()
+
+	if not cfg.is_empty():
+		# Odczyt trybu poziomu (SANDBOX / EXERCISE_SINGLE / EXERCISE_MIX).
+		if cfg.has("mode"):
+			var mode_str := String(cfg["mode"])
+			if mode_str == "SANDBOX":
+				mode = Mode.SANDBOX
+			elif mode_str == "EXERCISE_MIX":
+				mode = Mode.EXERCISE_MIX
+			else:
+				mode = Mode.EXERCISE_SINGLE
+
+		# Odczyt parametrów poziomu (grupa, liczba probówek, trudność mieszaniny).
+		if cfg.has("group_id"):
+			group_id = int(cfg["group_id"])
+		if cfg.has("starter_count"):
+			starter_count = int(cfg["starter_count"])
+		if cfg.has("mix_difficulty"):
+			mix_difficulty = int(cfg["mix_difficulty"])
+
+		# Odczyt gałęzi (kationy / aniony / sandbox).
+		if cfg.has("branch"):
+			var branch_str := String(cfg["branch"])
+			if branch_str == "ANIONS":
+				branch = Branch.ANIONS
+			elif branch_str == "SANDBOX":
+				branch = Branch.SANDBOX
+			else:
+				branch = Branch.CATIONS
+		else:
+			# Gdy nie podano branch – sandbox → SANDBOX, reszta → CATIONS.
+			branch = Branch.SANDBOX if mode == Mode.SANDBOX else Branch.CATIONS
+	else:
+		# Brak konfiguracji – ustawienie sensownej domyślnej gałęzi.
+		branch = Branch.SANDBOX if mode == Mode.SANDBOX else Branch.CATIONS
+
+	# Ograniczenie parametrów do sensownych zakresów (zabezpieczenie przed dziwnym cfg).
 	starter_count = clamp(starter_count, 1, 12)
 	mix_difficulty = clamp(mix_difficulty, 1, 5)
 
-	# Konfiguracja levelu przekazana z LevelSelect (Settings)
-	var settings_node := get_tree().get_root().get_node_or_null("Settings")
-	if settings_node and settings_node.has_method("get_and_clear_next_level_config"):
-		var cfg: Dictionary = settings_node.get_and_clear_next_level_config()
-		if not cfg.is_empty():
-			if cfg.has("mode"):
-				var mode_str := String(cfg["mode"])
-				mode = Mode.EXERCISE_SINGLE if mode_str == "EXERCISE_SINGLE" else Mode.EXERCISE_MIX
-			if cfg.has("group_id"):
-				group_id = int(cfg["group_id"])
-			if cfg.has("starter_count"):
-				starter_count = int(cfg["starter_count"])
-			if cfg.has("mix_difficulty"):
-				mix_difficulty = int(cfg["mix_difficulty"])
-
+	# Uruchomienie budowania poziomu po zakończeniu inicjalizacji sceny.
 	call_deferred("respawn_level")
 
 
 # =================================================================
-# METODY WYWOŁYWANE Z ZEWNĄTRZ
+# METODY WYWOŁYWANE Z ZEWNĄTRZ (Lab / inne sceny)
 # =================================================================
+
+## Czyści i ponownie buduje cały level (probówki, mieszaniny, reagenty).
 func respawn_level() -> void:
 	_clear_all_slots("starter_slots")
 	_clear_all_slots("work_slots")
@@ -88,8 +120,6 @@ func respawn_level() -> void:
 
 	_single_answer_map.clear()
 	_mix_answer_list.clear()
-	_starter_probes.clear()
-	_work_probes.clear()
 
 	match mode:
 		Mode.SANDBOX:
@@ -106,106 +136,141 @@ func respawn_level() -> void:
 		lab_root._refresh_probe_highlights()
 
 
+## Zwraca kopię mapy poprawnych odpowiedzi dla EX1 (do Results).
 func get_single_answer_map() -> Dictionary:
 	return _single_answer_map.duplicate(true)
 
 
+## Zwraca listę prawidłowych jonów mieszaniny dla EX2 / egzaminu.
 func get_mix_answer_list() -> Array[String]:
 	return _mix_answer_list.duplicate()
 
 
+## Przelicza etykiety probówek (np. po ręcznym przeniesieniu między slotami).
 func relabel_now() -> void:
 	_relabel_group("work_slots")
 	_relabel_group("starter_slots")
 
 
+## Helpery dla lab.gd – sprawdzanie gałęzi ścieżki.
+func is_cations_branch() -> bool:
+	return branch == Branch.CATIONS
+
+func is_anions_branch() -> bool:
+	return branch == Branch.ANIONS
+
+func is_sandbox_branch() -> bool:
+	return branch == Branch.SANDBOX
+
+
 # =================================================================
-# KONFIGURACJA LEVELU – TRYBY SANDBOX / EX1 / EX2
+# KONFIGURACJA LEVELU – SANDBOX / EX1 / EX2
 # =================================================================
+
+## Ustawia tryb sandbox: beakery są wyłączone, tylko puste probówki robocze na stojakach.
 func _setup_sandbox() -> void:
-	_spawn_work_tubes()
-
-
-func _setup_exercise_single() -> void:
-	# Ćwiczenie 1 – klasyczna zlewka i normalne probówki startowe.
-	if probe_beaker:
-		probe_beaker.visible = true
+	if probe_beaker1:
+		probe_beaker1.visible = false
 	if probe_beaker2:
 		probe_beaker2.visible = false
-
-	var group_cations: Array[String] = _get_group_cations(group_id)
-	if group_cations.is_empty():
-		push_error("[LevelManager] Brak kationów dla grupy %d" % group_id)
-		return
-
-	var chosen_ids: Array[String] = _pick_distinct(group_cations, starter_count)
-	var starter_slots: Array = _get_slots("starter_slots")
-	var count: int = min(starter_slots.size(), chosen_ids.size())
-
-	for i in count:
-		var cation_id: String = String(chosen_ids[i])
-		var solution: Mixture = _make_simple_solution(cation_id)
-		var tube: Node2D = _instantiate_probe_as_starter(solution, false) # normalna startowa
-		if tube:
-			_snap_to_slot(tube, starter_slots[i])
-			_starter_probes.append(tube)
-			_single_answer_map[i] = cation_id
+	if probe_beaker3:
+		probe_beaker3.visible = false
 
 	_spawn_work_tubes()
 
 
-func _setup_exercise_mix() -> void:
-	# Ćwiczenie 2 + egzamin – nowa zlewka i duża probówka startowa.
-	if probe_beaker:
-		probe_beaker.visible = false
-	if probe_beaker2:
-		probe_beaker2.visible = true
+## Przygotowuje EX1 – probówki startowe z pojedynczym jonem (kation lub anion) w beakerze.
+## - starter_count <= 3   → ProbeBeaker1 (3 sloty, Normal)
+## - starter_count >  3   → ProbeBeaker2 (5 slotów, Hard)
+func _setup_exercise_single() -> void:
+	# EX1 nie używa ProbeBeaker3.
+	if probe_beaker3:
+		probe_beaker3.visible = false
 
-	var group_cations: Array[String] = _get_group_cations(group_id)
-	if group_cations.is_empty():
-		push_error("[LevelManager] Brak kationów dla grupy %d" % group_id)
+	var use_big_beaker: bool = starter_count > 3
+	var active_beaker_name := ""
+
+	# Ustawia widoczność zlewek startowych i wybiera aktywną.
+	if use_big_beaker:
+		if probe_beaker1:
+			probe_beaker1.visible = false
+		if probe_beaker2:
+			probe_beaker2.visible = true
+		active_beaker_name = "ProbeBeaker2"
+	else:
+		if probe_beaker1:
+			probe_beaker1.visible = true
+		if probe_beaker2:
+			probe_beaker2.visible = false
+		active_beaker_name = "ProbeBeaker1"
+
+	# Wybiera tylko sloty starter_slots należące do aktywnej zlewki.
+	var starter_slots: Array = _get_slots("starter_slots")
+	if starter_slots.is_empty():
 		return
 
-	var chosen_ids: Array[String] = []
+	var filtered_slots: Array = []
+	for slot in starter_slots:
+		var parent_node: Variant = slot.get_parent()
+		if parent_node and String(parent_node.name) == active_beaker_name:
+			filtered_slots.append(slot)
 
-	if group_id == 0:
-		# ─────────────────────────────────────────────
-		# EXAM: losujemy po jednym kationie z każdej
-		# grupy Freseniusa (G1..G4, maksymalnie 4).
-		# ─────────────────────────────────────────────
-		var shuffled := group_cations.duplicate()
-		shuffled.shuffle()
+	starter_slots = filtered_slots
+	if starter_slots.is_empty():
+		return
 
-		var used_groups: Dictionary = {}
-		var max_total :Variant= min(mix_difficulty, 4)
+	if branch == Branch.ANIONS:
+		# Ścieżka anionowa – probówki z pojedynczym anionem.
+		var group_anions: Array[String] = _get_group_anions(group_id)
+		if group_anions.is_empty():
+			push_error("[LevelManager] Brak anionów dla grupy %d" % group_id)
+			return
 
-		for cid in shuffled:
-			if chosen_ids.size() >= max_total:
-				break
-			var g := _fresenius_group_for_cation(String(cid))
-			if g <= 0:
-				continue
-			if used_groups.has(g):
-				continue
-			used_groups[g] = true
-			chosen_ids.append(String(cid))
+		var selected_anions: Array[String] = _pick_distinct(group_anions, starter_count)
+		var tube_count: int = min(starter_slots.size(), selected_anions.size())
 
-		# awaryjnie – gdyby z jakiegoś powodu nic nie weszło,
-		# wracamy do zwykłego losowania, żeby nie zabić levelu
-		if chosen_ids.is_empty():
-			chosen_ids = _pick_distinct(group_cations, mix_difficulty)
+		for i in tube_count:
+			var anion_id: String = String(selected_anions[i])
+			var solution: Mixture = _make_simple_anion_solution(anion_id)
+			var tube: Node2D = _instantiate_probe_as_starter(solution, false)
+			if tube:
+				_snap_to_slot(tube, starter_slots[i])
+				_single_answer_map[i] = anion_id
 	else:
-		# zwykłe EX2: stare zachowanie
-		chosen_ids = _pick_distinct(group_cations, mix_difficulty)
+		# Ścieżka kationowa – probówki z pojedynczym kationem.
+		var group_cations: Array[String] = _get_group_cations(group_id)
+		if group_cations.is_empty():
+			push_error("[LevelManager] Brak kationów dla grupy %d" % group_id)
+			return
 
-	_mix_answer_list = chosen_ids
+		var selected_cations: Array[String] = _pick_distinct(group_cations, starter_count)
+		var tube_count_cations: int = min(starter_slots.size(), selected_cations.size())
 
-	var mix_solution: Mixture = _make_multi_solution(chosen_ids)
+		for i in tube_count_cations:
+			var cation_id: String = String(selected_cations[i])
+			var solution_cation: Mixture = _make_simple_cation_solution(cation_id)
+			var tube_cation: Node2D = _instantiate_probe_as_starter(solution_cation, false)
+			if tube_cation:
+				_snap_to_slot(tube_cation, starter_slots[i])
+				_single_answer_map[i] = cation_id
 
-	# Wybierz odpowiednią zlewkę: preferuj ProbeBeaker2, fallback na ProbeBeaker1.
-	var beaker_node: Node2D = probe_beaker2 if probe_beaker2 != null else probe_beaker
+	# Po ustawieniu probówek startowych uruchamia probówki robocze na stojakach.
+	_spawn_work_tubes()
+
+
+## Przygotowuje EX2 / egzamin – jedną większą probówkę startową z mieszaniną jonów w ProbeBeaker3.
+func _setup_exercise_mix() -> void:
+	# W EX2/egzaminie używany jest tylko ProbeBeaker3.
+	if probe_beaker1:
+		probe_beaker1.visible = false
+	if probe_beaker2:
+		probe_beaker2.visible = false
+	if probe_beaker3:
+		probe_beaker3.visible = true
+
+	var beaker_node: Node2D = probe_beaker3
 	if beaker_node == null:
-		push_error("[LevelManager] Brak węzła ProbeBeaker2 ani ProbeBeaker1.")
+		push_error("[LevelManager] Brak węzła ProbeBeaker3 (zlewka EX2/egzamin).")
 		return
 
 	var first_slot := beaker_node.get_node_or_null("ProbeSlot1")
@@ -213,44 +278,164 @@ func _setup_exercise_mix() -> void:
 		push_error("[LevelManager] Brak węzła '%s/ProbeSlot1'." % beaker_node.name)
 		return
 
-	var starter_tube: Node2D = _instantiate_probe_as_starter(mix_solution, true) # duża startowa
+	var chosen_ids: Array[String] = []
+	var mix_solution: Mixture = null
+
+	if branch == Branch.ANIONS:
+		# Ścieżka anionowa – mieszanina kilku anionów.
+		var group_anions: Array[String] = _get_group_anions(group_id)
+		if group_anions.is_empty():
+			push_error("[LevelManager] Brak anionów dla grupy %d" % group_id)
+			return
+
+		if group_id == 0:
+			# Egzamin anionowy: dobiera aniony z różnych grup (1..5), bez powtórzeń grup.
+			var shuffled_anions := group_anions.duplicate()
+			shuffled_anions.shuffle()
+
+			var used_anion_groups: Dictionary = {}
+			var max_anion_count: Variant = min(mix_difficulty, 5)
+
+			for anion_candidate_id in shuffled_anions:
+				if chosen_ids.size() >= max_anion_count:
+					break
+				var group_index := _group_for_anion(String(anion_candidate_id))
+				if group_index <= 0:
+					continue
+				if used_anion_groups.has(group_index):
+					continue
+				used_anion_groups[group_index] = true
+				chosen_ids.append(String(anion_candidate_id))
+
+			# Awaryjnie: gdyby zła konfiguracja, losuje zwykłą listę z puli.
+			if chosen_ids.is_empty():
+				chosen_ids = _pick_distinct(group_anions, mix_difficulty)
+		else:
+			# Zwykłe EX2 – kilka anionów z jednej zadanej grupy.
+			chosen_ids = _pick_distinct(group_anions, mix_difficulty)
+
+		_mix_answer_list = chosen_ids
+		mix_solution = _make_multi_anion_solution(chosen_ids)
+	else:
+		# Ścieżka kationowa – mieszanina kationów.
+		var group_cations: Array[String] = _get_group_cations(group_id)
+		if group_cations.is_empty():
+			push_error("[LevelManager] Brak kationów dla grupy %d" % group_id)
+			return
+
+		if group_id == 0:
+			# Egzamin: po jednym kationie z każdej grupy (G1..G4), bez powtórzeń grup.
+			var shuffled_cations := group_cations.duplicate()
+			shuffled_cations.shuffle()
+
+			var used_cation_groups: Dictionary = {}
+			var max_cation_count: Variant = min(mix_difficulty, 4)
+
+			for cation_candidate_id in shuffled_cations:
+				if chosen_ids.size() >= max_cation_count:
+					break
+				var group_index_cation := _group_for_cation(String(cation_candidate_id))
+				if group_index_cation <= 0:
+					continue
+				if used_cation_groups.has(group_index_cation):
+					continue
+				used_cation_groups[group_index_cation] = true
+				chosen_ids.append(String(cation_candidate_id))
+
+			# Awaryjnie: gdyby nic nie weszło, losuje zwykłą listę z puli.
+			if chosen_ids.is_empty():
+				chosen_ids = _pick_distinct(group_cations, mix_difficulty)
+		else:
+			# Zwykłe EX2 – kilka kationów z jednej zadanej grupy.
+			chosen_ids = _pick_distinct(group_cations, mix_difficulty)
+
+		_mix_answer_list = chosen_ids
+		mix_solution = _make_multi_cation_solution(chosen_ids)
+
+	if mix_solution == null:
+		return
+
+	# Tworzy jedną dużą probówkę startową z mieszaniną i przypina do first_slot.
+	var starter_tube: Node2D = _instantiate_probe_as_starter(mix_solution, true)
 	if starter_tube:
 		_snap_to_slot(starter_tube, first_slot)
-		_starter_probes.append(starter_tube)
 
+	# Tworzy probówki robocze na stojakach.
 	_spawn_work_tubes()
 
 
 # =================================================================
-# REAGENTY – LISTY PER LEVEL I KONFIG BUTELEK
+# REAGENTY – listy na półkę (sandbox / kationy / aniony)
 # =================================================================
+
+## Zwraca listę identyfikatorów reagentów dla aktualnego poziomu.
 func _get_reagent_ids_for_current_level() -> Array[String]:
+	if branch == Branch.SANDBOX:
+		return _get_reagent_ids_for_sandbox()
+	elif branch == Branch.CATIONS:
+		return _get_reagent_ids_for_cations()
+	elif branch == Branch.ANIONS:
+		return _get_reagent_ids_for_anions()
+	return []
+
+
+## Zwraca listę odczynników do sandboxa.
+func _get_reagent_ids_for_sandbox() -> Array[String]:
+	return ["HCl", "NaOH"]
+
+
+## Zwraca listę odczynników dla ścieżki kationowej dla danej grupy.
+func _get_reagent_ids_for_cations() -> Array[String]:
 	var ids: Array[String] = []
 
-	match mode:
-		Mode.SANDBOX:
-			ids = ["HCl", "NaOH"]
-
-		Mode.EXERCISE_SINGLE, Mode.EXERCISE_MIX:
-			match group_id:
-				1:
-					ids = ["HCl", "NaOH", "KI", "KBr", "K2CrO4"]
-				2:
-					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
-				3:
-					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
-				4:
-					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
-				0:
-					# egzamin – na razie ta sama lista
-					ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
-				_:
-					ids = []
+	match group_id:
+		1:
+			ids = ["HCl", "NaOH", "KI", "KBr", "K2CrO4"]
+		2:
+			ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+		3:
+			ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+		4:
+			ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+		0:
+			# Egzamin kationowy – na razie ten sam zestaw.
+			ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+		_:
+			ids = []
 
 	return ids
 
 
-## Zwraca listę butelek z półki, posortowanych po numerze z nazwy (Bottle1, Bottle2, ...).
+## Zwraca listę odczynników dla ścieżki anionowej dla danej grupy.
+func _get_reagent_ids_for_anions() -> Array[String]:
+	var ids: Array[String] = []
+
+	match group_id:
+		1:
+			# Grupa I: Cl-, Br-, I-, CN-, SCN-
+			ids = ["HCl", "NaOH"]
+		2:
+			# Grupa II: S2-, CH3COO-, NO2-
+			ids = ["HCl", "NaOH"]
+		3:
+			# Grupa III: SO32-, CO32-, BO2-
+			ids = ["HCl", "NaOH"]
+		4:
+			# Grupa IV: CrO42-, AsO33-, AsO43-, PO43-
+			ids = ["HCl", "NaOH"]
+		5:
+			# Grupa V+VI: NO3-, ClO3-, ClO4-, MnO4-, SO42-, F-
+			ids = ["HCl", "NaOH"]
+		0:
+			# Egzamin anionowy – miks odczynników z kilku grup.
+			ids = ["HCl", "NaOH"]
+		_:
+			ids = []
+
+	return ids
+
+
+## Zwraca listę butelek z półki, posortowaną wg numeru w nazwie (Bottle1, Bottle2...).
 func _get_reagent_bottles() -> Array[ReagentBottle]:
 	var out: Array[ReagentBottle] = []
 	if reagent_shelf == null:
@@ -267,13 +452,14 @@ func _get_reagent_bottles() -> Array[ReagentBottle]:
 	return out
 
 
-## Czyści butelki: chowa je i wyzerowuje reagent.
+## Czyści wszystkie butelki: ukrywa je i usuwa przypisane reagenty.
 func _clear_reagent_bottles() -> void:
 	for bottle in _get_reagent_bottles():
 		bottle.reagent = null
 		bottle.visible = false
 
 
+## Ładuje zasób Reagent na podstawie jego identyfikatora (np. "HCl").
 func _load_reagent_by_id(id: String) -> Reagent:
 	var safe_id := id.strip_edges()
 	if safe_id == "":
@@ -282,13 +468,12 @@ func _load_reagent_by_id(id: String) -> Reagent:
 	var path := REAGENT_PATH_PREFIX + safe_id + REAGENT_PATH_SUFFIX
 	var res := ResourceLoader.load(path)
 	if res == null:
-		# Po prostu nie ustawiamy reagentu, bez ostrzeżeń.
 		return null
 
 	return res as Reagent
 
 
-## Ustawia reagenty w gotowych butelkach na półce.
+## Ustawia reagenty w butelkach na półce zgodnie z aktualną listą.
 func _spawn_reagents_for_current_level() -> void:
 	var bottles: Array[ReagentBottle] = _get_reagent_bottles()
 	if bottles.is_empty():
@@ -318,6 +503,8 @@ func _spawn_reagents_for_current_level() -> void:
 # =================================================================
 # SPAWN PROBÓWEK ROBOCZYCH
 # =================================================================
+
+## Tworzy puste probówki robocze we wszystkich wolnych slotach stojaków.
 func _spawn_work_tubes() -> void:
 	var work_slots: Array = []
 	for slot in get_tree().get_nodes_in_group("work_slots"):
@@ -327,6 +514,7 @@ func _spawn_work_tubes() -> void:
 	if work_slots.is_empty():
 		return
 
+	# Porządkuje sloty po X – ułatwia numerację probówek.
 	work_slots.sort_custom(
 		func(a, b) -> bool:
 			return a.global_position.x < b.global_position.x
@@ -355,12 +543,13 @@ func _spawn_work_tubes() -> void:
 			tube.global_position = target_pos
 
 		_label_probe_for_slot(tube, slot)
-		_work_probes.append(tube)
 
 
 # =================================================================
-# SPAWN PROBÓWEK
+# SPAWN PROBÓWEK STARTOWYCH
 # =================================================================
+
+## Tworzy probówkę startową (małą lub dużą) z podaną mieszaniną.
 func _instantiate_probe_as_starter(mix: Mixture, use_big: bool = false) -> Node2D:
 	var scene: PackedScene = null
 	if use_big:
@@ -380,7 +569,7 @@ func _instantiate_probe_as_starter(mix: Mixture, use_big: bool = false) -> Node2
 	tube.tube_role = Probe.TubeRole.STARTER
 	tube.mixture = mix
 	tube.fill_level = 1.0
-	tube.draggable = false        # startery w beakerze mają być nieruchome
+	tube.draggable = false   # startery w zlewce są nieruchome
 
 	if tube.has_method("_apply_liquid_fill_visual"):
 		tube._apply_liquid_fill_visual()
@@ -388,6 +577,7 @@ func _instantiate_probe_as_starter(mix: Mixture, use_big: bool = false) -> Node2
 	return tube
 
 
+## Tworzy pustą probówkę roboczą.
 func _instantiate_probe_as_work_empty() -> Node2D:
 	var scene: PackedScene = WORK_PROBE_SCENE
 	if scene == null:
@@ -412,6 +602,8 @@ func _instantiate_probe_as_work_empty() -> Node2D:
 # =================================================================
 # SLOTY / ETYKIETY / LOSOWANIE
 # =================================================================
+
+## Zwraca listę slotów z podanej grupy (starter_slots / work_slots).
 func _get_slots(group_name: String) -> Array:
 	var slot_list: Array = []
 	for node in get_tree().get_nodes_in_group(group_name):
@@ -420,10 +612,12 @@ func _get_slots(group_name: String) -> Array:
 	return slot_list
 
 
+## Przypina probówkę do slotu, ustawia jej pozycję i etykietę.
 func _snap_to_slot(probe: Node2D, slot: Node) -> void:
 	if probe == null or slot == null:
 		return
 
+	# Gdy slot jest zajęty i nie dopuszcza duplikatów – wybiera inny wolny slot z tej samej grupy.
 	if slot.has_method("is_occupied") and slot.call("is_occupied") and not bool(slot.get("allow_when_occupied")):
 		var group_name := "starter_slots" if slot.is_in_group("starter_slots") else "work_slots"
 		for candidate in _get_slots(group_name):
@@ -447,6 +641,7 @@ func _snap_to_slot(probe: Node2D, slot: Node) -> void:
 	_label_probe_for_slot(probe, slot)
 
 
+## Usuwa wszystkie probówki z danej grupy slotów.
 func _clear_all_slots(group_name: String) -> void:
 	for slot in _get_slots(group_name):
 		for child in slot.get_children():
@@ -454,6 +649,7 @@ func _clear_all_slots(group_name: String) -> void:
 				child.queue_free()
 
 
+## Nadaje probówce etykietę zależnie od stojaka i indeksu slotu.
 func _label_probe_for_slot(probe: Node2D, slot: Node) -> void:
 	if probe == null or slot == null:
 		return
@@ -473,7 +669,7 @@ func _label_probe_for_slot(probe: Node2D, slot: Node) -> void:
 			_set_probe_num_label(probe, str(slot_index), WORK_LABEL_FONT_SIZE, false)
 		"ProbeRack2":
 			_set_probe_num_label(probe, str(5 + slot_index), WORK_LABEL_FONT_SIZE, false)
-		"ProbeBeaker1", "ProbeBeaker2":
+		"ProbeBeaker1", "ProbeBeaker2", "ProbeBeaker3":
 			match mode:
 				Mode.EXERCISE_SINGLE:
 					if slot_index <= starter_count:
@@ -489,6 +685,7 @@ func _label_probe_for_slot(probe: Node2D, slot: Node) -> void:
 			_hide_probe_label(probe)
 
 
+## Wyciąga numer z nazwy slotu (np. „ProbeSlot3” → 3).
 func _parse_slot_index(slot_name: String) -> int:
 	var re := RegEx.new()
 	re.compile("(\\d+)$")
@@ -498,6 +695,7 @@ func _parse_slot_index(slot_name: String) -> int:
 	return -1
 
 
+## Przelicza etykiety dla wszystkich slotów z danej grupy.
 func _relabel_group(group_name: String) -> void:
 	for slot in _get_slots(group_name):
 		var tube := _find_probe_in_slot(slot)
@@ -505,6 +703,7 @@ func _relabel_group(group_name: String) -> void:
 			_label_probe_for_slot(tube, slot)
 
 
+## Szuka probówki w danym slocie (przez get_probe lub dzieci grupy „probes”).
 func _find_probe_in_slot(slot: Node) -> Node2D:
 	if slot.has_method("get_probe"):
 		return slot.call("get_probe") as Node2D
@@ -514,6 +713,7 @@ func _find_probe_in_slot(slot: Node) -> Node2D:
 	return null
 
 
+## Ustawia tekst etykiety probówki, rozmiar fontu i widoczność.
 func _set_probe_num_label(
 	probe: Node2D,
 	text: String,
@@ -542,6 +742,7 @@ func _set_probe_num_label(
 		lbl.add_theme_font_size_override("font_size", font_size)
 
 
+## Ukrywa etykietę probówki.
 func _hide_probe_label(probe: Node2D) -> void:
 	var lbl: Label = probe.get_node_or_null("NumLabel") as Label
 	if lbl == null:
@@ -552,6 +753,7 @@ func _hide_probe_label(probe: Node2D) -> void:
 		lbl.visible = false
 
 
+## Zamienia indeks (1,2,3,...) na literę (A,B,C,...) do oznaczania probówek w zlewce.
 func _index_to_letter(index: int) -> String:
 	var letters := ["A", "B", "C", "D", "E"]
 	if index >= 1 and index <= letters.size():
@@ -559,31 +761,40 @@ func _index_to_letter(index: int) -> String:
 	return str(index)
 
 
+
 # =================================================================
 # LISTY KATIONÓW + LOSOWANIE
 # =================================================================
+
+## Zwraca listę kationów z danej grupy Freseniusa (lub wszystkie, gdy group == 0).
 func _get_group_cations(group: int) -> Array[String]:
+	var g1: Array[String] = ["Ag+", "Hg22+", "Pb2+"]
+	var g2: Array[String] = ["Hg2+", "Pb2+", "Cu2+", "Cd2+", "Bi3+", "As3+", "As5+", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]
+	var g3: Array[String] = ["Zn2+", "Ni2+", "Co2+", "Mn2+", "Fe2+", "Fe3+", "Al3+", "Cr3+"]
+	var g4: Array[String]= ["Ca2+", "Sr2+", "Ba2+", "Mg2+", "K+", "Na+", "NH4+"]
+
 	if group == 0:
 		var all: Array[String] = []
-		all += ["Ag+", "Hg22+", "Pb2+"]
-		all += ["Hg2+", "Pb2+", "Cu2+", "Cd2+", "Bi3+", "As3+", "As5+", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]
-		all += ["Zn2+", "Ni2+", "Co2+", "Mn2+", "Fe2+", "Fe3+", "Al3+", "Cr3+"]
-		all += ["Ca2+", "Sr2+", "Ba2+", "Mg2+", "K+", "Na+", "NH4+"]
+		all.append_array(g1)
+		all.append_array(g2)
+		all.append_array(g3)
+		all.append_array(g4)
 		return all
 
 	match group:
 		1:
-			return ["Ag+", "Hg22+", "Pb2+"]
+			return g1
 		2:
-			return ["Hg2+", "Pb2+", "Cu2+", "Cd2+", "Bi3+", "As3+", "As5+", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]
+			return g2
 		3:
-			return ["Zn2+", "Ni2+", "Co2+", "Mn2+", "Fe2+", "Fe3+", "Al3+", "Cr3+"]
+			return g3
 		4:
-			return ["Ca2+", "Sr2+", "Ba2+", "Mg2+", "K+", "Na+", "NH4+"]
+			return g4
 		_:
 			return []
 
 
+## Losuje n różnych pozycji z danej listy (bez powtórzeń).
 func _pick_distinct(pool: Array[String], n: int) -> Array[String]:
 	var tmp: Array[String] = pool.duplicate()
 	tmp.shuffle()
@@ -594,9 +805,8 @@ func _pick_distinct(pool: Array[String], n: int) -> Array[String]:
 	return out
 
 
-func _fresenius_group_for_cation(cation_id: String) -> int:
-	# Mapa kation -> grupa Freseniusa (1..4).
-	# Pb2+ przypisujemy do grupy 1, żeby uniknąć podwójnej przynależności.
+## Zwraca numer grupy (1–4) dla danego kationu.
+func _group_for_cation(cation_id: String) -> int:
 	if cation_id in ["Ag+", "Hg22+", "Pb2+"]:
 		return 1
 	elif cation_id in ["Hg2+", "Cu2+", "Cd2+", "Bi3+", "As3+", "As5+", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]:
@@ -608,21 +818,94 @@ func _fresenius_group_for_cation(cation_id: String) -> int:
 	return -1
 
 
-func _make_simple_solution(cation_id: String) -> Mixture:
+## Tworzy prosty roztwór dla EX1: pojedynczy kation.
+func _make_simple_cation_solution(cation_id: String) -> Mixture:
 	var mix := Mixture.new()
-	mix.add_ions({cation_id: STARTER_CATION_AMOUNT, "NO3-": STARTER_CATION_AMOUNT})
+	mix.add_ions({
+		cation_id: STARTER_CATION_AMOUNT
+	})
 	return mix
 
 
-func _make_multi_solution(cation_ids: Array[String]) -> Mixture:
+## Tworzy mieszaninę kationów dla EX2 / egzaminu.
+func _make_multi_cation_solution(cation_ids: Array[String]) -> Mixture:
 	var mix := Mixture.new()
 	var ions_dict: Dictionary = {}
 
-	for c in cation_ids:
-		ions_dict[c] = MIX_CATION_AMOUNT
+	for cation_id in cation_ids:
+		ions_dict[cation_id] = MIX_CATION_AMOUNT
 
-	if ions_dict.size() > 0:
-		ions_dict["NO3-"] = cation_ids.size() * MIX_CATION_AMOUNT
+	mix.add_ions(ions_dict)
+	return mix
+
+
+# =================================================================
+# LISTY ANIONÓW + ROZTWORY DO ANALIZY
+# =================================================================
+
+## Zwraca listę anionów zgodnie z podziałem na grupy (1–5) używanym w ścieżce anionowej.
+func _get_group_anions(group: int) -> Array[String]:
+	var g1: Array[String] = ["Cl-","Br-","I-","CN-","SCN-"]
+	var g2: Array[String] = ["S2-","CH3COO-","NO2-"]
+	var g3: Array[String] = ["SO32-","CO32-","BO2-"]
+	var g4: Array[String] = ["CrO42-","AsO33-","AsO43-","PO43-"]
+	var g5: Array[String] = ["NO3-","ClO3-","ClO4-","MnO4-","SO42-","F-"]
+
+	if group == 0:
+		var all: Array[String] = []
+		all.append_array(g1)
+		all.append_array(g2)
+		all.append_array(g3)
+		all.append_array(g4)
+		all.append_array(g5)
+		return all
+
+	match group:
+		1:
+			return g1
+		2:
+			return g2
+		3:
+			return g3
+		4:
+			return g4
+		5:
+			return g5
+		_:
+			return []
+
+
+## Zwraca numer grupy (1–5) dla danego anionu.
+func _group_for_anion(anion_id: String) -> int:
+	if anion_id in ["Cl-","Br-","I-","CN-","SCN-"]:
+		return 1
+	elif anion_id in ["S2-","CH3COO-","NO2-"]:
+		return 2
+	elif anion_id in ["SO32-","CO32-","BO2-"]:
+		return 3
+	elif anion_id in ["CrO42-","AsO33-","AsO43-","PO43-"]:
+		return 4
+	elif anion_id in ["NO3-","ClO3-","ClO4-","MnO4-","SO42-","F-"]:
+		return 5
+	return -1
+
+
+## Tworzy prosty roztwór do analizy pojedynczego anionu (EX1).
+func _make_simple_anion_solution(anion_id: String) -> Mixture:
+	var mix := Mixture.new()
+	mix.add_ions({
+		anion_id: STARTER_CATION_AMOUNT
+	})
+	return mix
+
+
+## Tworzy mieszaninę anionów do analizy (EX2 / egzamin).
+func _make_multi_anion_solution(anion_ids: Array[String]) -> Mixture:
+	var mix := Mixture.new()
+	var ions_dict: Dictionary = {}
+
+	for anion_id in anion_ids:
+		ions_dict[anion_id] = MIX_CATION_AMOUNT
 
 	mix.add_ions(ions_dict)
 	return mix

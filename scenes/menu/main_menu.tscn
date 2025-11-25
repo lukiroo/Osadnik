@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://b1f2ixoyftdit"]
+[gd_scene load_steps=14 format=3 uid="uid://b1f2ixoyftdit"]
 
 [ext_resource type="Script" uid="uid://bh3itl24ywqud" path="res://scenes/menu/main_menu.gd" id="1_l6cm7"]
 [ext_resource type="Texture2D" uid="uid://b4mxc4bcxr53y" path="res://assets/menu/panel.png" id="2_247la"]
@@ -119,6 +119,12 @@ _data = {
 [sub_resource type="StyleBoxTexture" id="StyleBoxTexture_hj162"]
 texture = ExtResource("2_247la")
 
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_xn6kt"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_isoef"]
+
+[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_qgo02"]
+
 [node name="MainMenu" type="Control"]
 layout_mode = 3
 anchors_preset = 15
@@ -189,10 +195,10 @@ layout_mode = 2
 theme_override_constants/separation = 10
 alignment = 1
 
-[node name="StartButton" parent="ButtonsMargin/ButtonContainer" instance=ExtResource("2_xn6kt")]
+[node name="CationsButton" parent="ButtonsMargin/ButtonContainer" instance=ExtResource("2_xn6kt")]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="ButtonsMargin/ButtonContainer/StartButton"]
+[node name="Label" type="Label" parent="ButtonsMargin/ButtonContainer/CationsButton"]
 layout_mode = 1
 anchors_preset = 8
 anchor_left = 0.5
@@ -209,7 +215,51 @@ theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
 theme_override_constants/outline_size = 3
 theme_override_constants/shadow_outline_size = 2
 theme_override_font_sizes/font_size = 20
-text = "START"
+text = "ANALIZA KATIONÓW"
+
+[node name="AnionsButton" parent="ButtonsMargin/ButtonContainer" instance=ExtResource("2_xn6kt")]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ButtonsMargin/ButtonContainer/AnionsButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "ANALIZA ANIONÓW"
+
+[node name="SandboxButton" parent="ButtonsMargin/ButtonContainer" instance=ExtResource("2_xn6kt")]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="ButtonsMargin/ButtonContainer/SandboxButton"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -11.5
+offset_right = 20.0
+offset_bottom = 11.5
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
+theme_override_constants/outline_size = 3
+theme_override_constants/shadow_outline_size = 2
+theme_override_font_sizes/font_size = 20
+text = "LABORATORIUM"
 
 [node name="SettingsButton" parent="ButtonsMargin/ButtonContainer" instance=ExtResource("2_xn6kt")]
 layout_mode = 2
@@ -272,6 +322,7 @@ grow_vertical = 0
 text = "v0.1"
 
 [node name="SettingsPanel" type="Panel" parent="."]
+visible = false
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.24900001
@@ -327,6 +378,7 @@ vertical_alignment = 1
 [node name="CheckBox" type="CheckBox" parent="SettingsPanel/VBox/HBoxHighlights"]
 layout_mode = 2
 size_flags_horizontal = 6
+theme_override_styles/focus = SubResource("StyleBoxEmpty_xn6kt")
 theme_override_icons/checked = ExtResource("3_hj162")
 theme_override_icons/unchecked = ExtResource("4_xn6kt")
 
@@ -344,6 +396,7 @@ vertical_alignment = 1
 [node name="CheckBox" type="CheckBox" parent="SettingsPanel/VBox/HBoxTubeLabels"]
 layout_mode = 2
 size_flags_horizontal = 6
+theme_override_styles/focus = SubResource("StyleBoxEmpty_isoef")
 theme_override_icons/checked = ExtResource("3_hj162")
 theme_override_icons/unchecked = ExtResource("4_xn6kt")
 
@@ -405,9 +458,12 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 8
+theme_override_styles/focus = SubResource("StyleBoxEmpty_qgo02")
 text = "RESET"
 
-[connection signal="pressed" from="ButtonsMargin/ButtonContainer/StartButton" to="." method="_on_start_button_pressed"]
+[connection signal="pressed" from="ButtonsMargin/ButtonContainer/CationsButton" to="." method="_on_cations_button_pressed"]
+[connection signal="pressed" from="ButtonsMargin/ButtonContainer/AnionsButton" to="." method="_on_anions_button_pressed"]
+[connection signal="pressed" from="ButtonsMargin/ButtonContainer/SandboxButton" to="." method="_on_sandbox_button_pressed"]
 [connection signal="pressed" from="ButtonsMargin/ButtonContainer/SettingsButton" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="ButtonsMargin/ButtonContainer/ExitButton" to="." method="_on_exit_button_pressed"]
 [connection signal="toggled" from="SettingsPanel/VBox/HBoxHighlights/CheckBox" to="." method="_on_highlight_toggled"]

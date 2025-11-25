@@ -70,6 +70,9 @@ func on_probe_pickup(probe: Node2D) -> void:
 
 
 func accept_probe(probe: Node, at_global_pos: Vector2) -> bool:
+	## Sloty w niewidocznych beakerach nie łapią probówek.
+	if not _is_in_visible_beaker(): 
+		return false
 	## Główne wejście dropu – probówka próbuje się „zadokować”.
 	if not (probe is Node2D):
 		return false
@@ -136,3 +139,13 @@ func _on_child_exiting_tree(child: Node) -> void:
 	if _current_probe == child:
 		_current_probe = null
 		occupied_changed.emit(self, null)
+
+
+func _is_in_visible_beaker() -> bool:
+	var node_it: Node = self
+	while node_it:
+		if String(node_it.name).begins_with("ProbeBeaker") and node_it is CanvasItem:
+			return (node_it as CanvasItem).visible
+		node_it = node_it.get_parent()
+	# jeśli slot nie jest w beakerze, traktujemy go jako „normalny”
+	return true

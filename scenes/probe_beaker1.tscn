@@ -6,8 +6,8 @@
 [node name="ProbeBeaker" type="Node2D"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(20.50002, 47.5)
-scale = Vector2(3.895238, 0.53651685)
+position = Vector2(-40.99998, 47.5)
+scale = Vector2(2.7238095, 0.53651685)
 texture = ExtResource("1_mnu1c")
 
 [node name="ProbeSlot1" parent="." groups=["starter_slots"] instance=ExtResource("2_e3dmm")]
@@ -18,9 +18,3 @@ position = Vector2(-39, 1)
 
 [node name="ProbeSlot3" parent="." groups=["starter_slots"] instance=ExtResource("2_e3dmm")]
 position = Vector2(16, 1)
-
-[node name="ProbeSlot4" parent="." groups=["starter_slots"] instance=ExtResource("2_e3dmm")]
-position = Vector2(71, 1)
-
-[node name="ProbeSlot5" parent="." groups=["starter_slots"] instance=ExtResource("2_e3dmm")]
-position = Vector2(126, 1)
