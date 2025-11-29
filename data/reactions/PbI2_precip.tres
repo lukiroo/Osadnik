@@ -1,17 +1,17 @@
-[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://ddcyjjt8om7oe"]
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://cdo867aot2ce7"]
 
-[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_4ejtw"]
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_tq7we"]
 
 [resource]
-script = ExtResource("1_4ejtw")
+script = ExtResource("1_tq7we")
 id = "PbCl2_precip"
 priority = 5
 reactants_ions = {
-"Cl-": 1,
+"I-": 1,
 "Pb2+": 1
 }
 products_solids = {
-"PbCl2_s": 1
+"PbI2_s": 1
 }
 forbid_tags_any = Array[String](["bath_boiling", "cooling_ready", "cooled_enough"])
 note = "biały osad PbCl2"

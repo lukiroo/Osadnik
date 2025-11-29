@@ -2,30 +2,36 @@ extends Node2D
 class_name IndicatorPaper
 
 ## =========================================================================
-## indicator_paper.gd - apierek wskaźnikowy (litmus).
+## indicator_paper.gd – papierek wskaźnikowy (litmus)
 ## -------------------------------------------------------------------------
-## - Tworzony dynamicznie z przez Lab.
-## - Może podążać za kursorem (follow_mouse).
-## - Po użyciu na probówce zmienia kolor końcówki na podstawie „oceny pH” (grade -3..+3).
-## - Jednorazory (emityje sygnał used_on_probe), dzięki czemu Lab wie, że ten egzemplarz został zużyty.
+## Odpowiada za:
+## - śledzenie kursora (gdy follow_mouse == true),
+## - jednokrotne „użycie” na probówce i emisję sygnału used_on_probe,
+## - ustawienie koloru końcówki na podstawie oceny pH (grade -3..+3),
+## - obsługę shadera z uniformem `tip_color` (jeśli jest obecny).
 ## =========================================================================
 
 signal used_on_probe(probe: Node, grade: int)
 
-# --------------------- REFERENCJE DO WĘZŁÓW ---------------------
-@onready var paper_sprite: Sprite2D = $Paper  ## Główny sprite, zwykle z shaderem.
-@onready var tip_sprite: Sprite2D   = $Tip    ## Końcówka papierka, na niej widać kolor.
+# -------------------------- REFERENCJE SCENY ------------------------------
+@onready var paper_sprite: Sprite2D = $Paper  ## Główny sprite papierka (z shaderem / teksturą).
+@onready var tip_sprite: Sprite2D   = $Tip    ## Sprite końcówki, na którym widać kolor po reakcjach.
 
-# --------------------- KONFIGURACJA RUCHU -----------------------
-@onready var follow_mouse: bool = true                  ## Czy papierek ma automatycznie śledzić kursor.
-@export var cursor_offset: Vector2 = Vector2(8, -40)   ## Przesunięcie względem pozycji myszy, żeby nie zasłaniać kursora.
+# -------------------------- RUCH / ZACHOWANIE -----------------------------
+## Czy papierek ma automatycznie śledzić pozycję myszy.
+var follow_mouse: bool = true
 
-var is_spent: bool = false                             ## Flaga „zużyty” – po użyciu blokujemy kolejne oznaczenia.
+## Przesunięcie względem kursora, żeby grafika nie zasłaniała wskaźnika myszy.
+@export var cursor_offset: Vector2 = Vector2(8, -40)
 
-# --------------------- SHADER / KOLORY --------------------------
-var _has_tip_uniform: bool = false                     ## Czy shader ma uniform „tip_color”.
+## Flaga: czy papierek został już użyty (po użyciu blokujemy kolejne pomiary).
+var is_spent: bool = false
 
-# 7 poziomów pH (-3..+3) mapujemy na 7 kolorów.
+# -------------------------- SHADER / KOLORY -------------------------------
+## Czy shader papierka ma uniform „tip_color” – wtedy ustawiamy kolor także tam.
+var _has_tip_uniform: bool = false
+
+## 7 poziomów pH (-3..+3) mapowanych na 7 kolorów.
 const COLOR_VERY_STRONG_ACID := Color(0.80, 0.00, 0.00, 0.80)
 const COLOR_STRONG_ACID      := Color(0.95, 0.20, 0.00, 0.80)
 const COLOR_ACID             := Color(1.00, 0.52, 0.00, 0.80)
@@ -50,20 +56,21 @@ const GRADE_COLORS: Array[Color] = [
 # =================================================================
 func _ready() -> void:
 	## Przy starcie:
-	## - ustawiamy wysoki z_index, żeby papierek był nad stołem,
+	## - ustawiamy wysoki z_index, żeby papierek był nad resztą sceny,
 	## - ukrywamy końcówkę do czasu pierwszego „zamoczenia”,
-	## - sprawdzamy, czy shader udostępnia uniform `tip_color`,
-	## - włączamy albo wyłączamy _process w zależności od follow_mouse.
+	## - sprawdzamy, czy shader ma uniform `tip_color`,
+	## - włączamy / wyłączamy _process w zależności od follow_mouse.
 	z_index = 100
 
 	if tip_sprite:
 		tip_sprite.visible = false
 
 	if paper_sprite and paper_sprite.material is ShaderMaterial:
-		var sm := paper_sprite.material as ShaderMaterial
-		if sm.shader != null:
-			for u in sm.shader.get_shader_uniform_list():
-				if String(u.get("name", "")) == "tip_color":
+		var shader_material: ShaderMaterial = paper_sprite.material as ShaderMaterial
+		if shader_material.shader != null:
+			for uniform_info in shader_material.shader.get_shader_uniform_list():
+				var uniform_name := String(uniform_info.get("name", ""))
+				if uniform_name == "tip_color":
 					_has_tip_uniform = true
 					break
 
@@ -71,20 +78,20 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	## Jeżeli flaga follow_mouse jest włączona, papierek trzyma się pozycji kursora
-	## z zadanym offsetem, dzięki czemu jest czytelny wizualnie.
+	## Gdy follow_mouse == true, papierek „przykleja się” do pozycji kursora
+	## z zadanym offsetem, żeby był czytelny wizualnie.
 	if follow_mouse:
 		global_position = get_global_mouse_position() + cursor_offset
 
 
 # =================================================================
-# METODY WYWOŁYWANE Z LAB.GD
+# METODY WYWOŁYWANE Z ZEWNĄTRZ (Lab / inne kontrolery)
 # =================================================================
 func use_on_probe(probe: Node, grade: int) -> void:
 	## Główne wywołanie z Lab:
-	## - wylicza kolor na podstawie grade,
+	## - jeśli papierek nie był jeszcze użyty, ustawia kolor dla danego grade,
 	## - oznacza papierek jako zużyty,
-	## - emituje sygnał, żeby Lab mógł zareagować (np. zapisać wynik).
+	## - emituje sygnał used_on_probe, żeby Lab mógł zapisać wynik.
 	if is_spent:
 		return
 
@@ -94,45 +101,45 @@ func use_on_probe(probe: Node, grade: int) -> void:
 
 
 func set_grade(grade: int) -> void:
-	## Ustawia kolor końcówki papierka w zależności od grade (-3..+3)
-	var col := _grade_to_color(grade)
-	_apply_tip_color(col)
+	## Ustawia kolor końcówki papierka w zależności od grade (-3..+3).
+	var tip_color: Color = _grade_to_color(grade)
+	_apply_tip_color(tip_color)
 	_show_tip()
 
 
 func set_follow_mouse(enabled: bool) -> void:
-	## Włącza/wyłącza tryb „przyklejony do kursora”.
+	## Włącza / wyłącza tryb „przyklejony do kursora”.
 	follow_mouse = enabled
 	set_process(enabled)
 
 
 func set_cursor_offset(offset: Vector2) -> void:
-	## Pozwala z zewnątrz dostroić przesunięcie względem kursora.
+	## Pozwala z zewnątrz zmienić przesunięcie względem kursora.
 	cursor_offset = offset
 
 
 # =================================================================
-# WEWNĘTRZNE FUNKCJE POMOCNICZE (kolor, tip)
+# WEWNĘTRZNE FUNKCJE POMOCNICZE (kolor, końcówka)
 # =================================================================
 func _show_tip() -> void:
-	## Ujawnia końcówkę, jeśli wcześniej była schowana.
+	## Ujawnia końcówkę papierka, jeśli była wcześniej ukryta.
 	if tip_sprite:
 		tip_sprite.visible = true
 
 
 func _grade_to_color(grade: int) -> Color:
-	## Mapowanie zakresu [-3..+3] na indeks tablicy GRADE_COLORS.
-	var clamped: int = clampi(grade, -3, 3)
-	return GRADE_COLORS[clamped + 3]
+	## Mapuje zakres [-3..+3] na indeks tablicy GRADE_COLORS (0..6).
+	var clamped_grade: int = clampi(grade, -3, 3)
+	return GRADE_COLORS[clamped_grade + 3]
 
 
-func _apply_tip_color(color: Color) -> void:
-	## Ustawienie koloru:
-	## 1) próbuje przez uniform `tip_color` w shaderze (jeśli istnieje),
-	## 2) dodatkowo ustawia modulate na sprite końcówki.
+func _apply_tip_color(tip_color: Color) -> void:
+	## Ustawienie koloru końcówki:
+	## 1) jeżeli shader obsługuje uniform `tip_color`, ustawiamy go w ShaderMaterial,
+	## 2) dodatkowo ustawiamy modulate na sprite końcówki (tip_sprite).
 	if _has_tip_uniform and paper_sprite and paper_sprite.material is ShaderMaterial:
-		var sm := paper_sprite.material as ShaderMaterial
-		sm.set_shader_parameter("tip_color", color)
+		var shader_material: ShaderMaterial = paper_sprite.material as ShaderMaterial
+		shader_material.set_shader_parameter("tip_color", tip_color)
 
 	if tip_sprite:
-		tip_sprite.modulate = color
+		tip_sprite.modulate = tip_color

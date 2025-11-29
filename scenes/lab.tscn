@@ -61,7 +61,7 @@ scale = Vector2(0.205, 0.205)
 [node name="WaterBath" parent="." instance=ExtResource("19_tyay7")]
 position = Vector2(679, 218)
 
-[node name="WasteBeaker" parent="." instance=ExtResource("29_t554p")]
+[node name="WasteBeaker" parent="." groups=["probe_dropzones"] instance=ExtResource("29_t554p")]
 z_index = -1
 position = Vector2(709, 662)
 scale = Vector2(0.215, 0.215)

@@ -1,4 +1,4 @@
-extends Node2D  ## Główny węzeł sceny stołu laboratoryjnego – centralny kontroler logiki widoku „lab”.
+extends Node2D  ## Główny węzeł sceny stołu laboratoryjnego – centralny kontroler widoku „lab”.
 
 ## =========================================================================
 ## lab.gd – główny kontroler stołu (tryby, narzędzia, highlighty)
@@ -13,108 +13,151 @@ extends Node2D  ## Główny węzeł sceny stołu laboratoryjnego – centralny k
 ##   gałąź: kationy / aniony / sandbox),
 ## - zarządzanie highlightami probówek (co można kliknąć, co jest zablokowane,
 ##   co stoi na półce),
-## - obsługę strumieni pobierania / przelewania / dolewania wody (procesy
-##   działające podczas przytrzymania LPM),
-## - spójne odkładanie narzędzi (PPM / ESC) i blokady tak, aby narzędzia
-##   nie kolidowały ze sobą.
+## - obsługę strumieni pobierania / przelewania / dolewania wody (LPM trzymany),
+## - spójne odkładanie narzędzi (PPM / ESC) i blokady, żeby narzędzia się nie gryzły.
 ## =========================================================================
 
-@onready var level_manager: LevelManager = $LevelManager      ## Odpowiada za tryb ćwiczenia, gałąź (kationy / aniony / sandbox) i poprawne odpowiedzi.
+@onready var level_manager: LevelManager = $LevelManager
 @onready var back_btn: TextureButton = $BackBtn
 @onready var finish_btn: TextureButton = $FinishBtn
 
-const DEBUG_LOG_FINISH_CTX := false                          ## Flaga do debugowego logowania kontekstu przy „Zakończ”.
+const DEBUG_LOG_FINISH_CTX := false  ## Flaga debugowa – gdy true, wypisuje kontekst podejścia przy „Zakończ”.
 
 # ==============================
 # TRYBY GLOBALNE STOŁU
 # ==============================
+
 enum Mode { IDLE, HOLDING, TRANSFER, INDICATOR, STIR_ROD, SQUIRT }
-var mode: Mode = Mode.IDLE   ## Aktualny tryb pracy stołu – określa, co robią kliknięcia myszy.
+
+## Przechowuje aktualny tryb pracy stołu.
+var mode: Mode = Mode.IDLE
 
 @export_group("Tools Parameters")
-@export var tool_return_time: float = 0.6                    ## Czas animacji odkładania narzędzia na stół (pipeta / dropper / bagietka / butelka).
+@export var tool_return_time: float = 0.6  ## Czas animacji odkładania narzędzia (pipeta/dropper/bagietka/butelka).
 
-var _probe_drag_active: bool = false                         ## Czy jakaś probówka jest aktualnie przeciągana (drag).
-var _rmb_down_prev: bool = false                             ## Poprzedni stan prawego przycisku myszy – do wykrywania zmiany.
+## Informuje, czy jakaś probówka jest przeciągana – wtedy highlighty są wyłączone.
+var _probe_drag_active: bool = false
 
-## Globalny stan highlightów pobierany z autoloada Settings (czy w ogóle podświetla obiekty).
+## Przechowuje poprzedni stan prawego przycisku myszy (do wykrywania zmiany).
+var _rmb_down_prev: bool = false
+
+## Globalna flaga highlightów (czy w ogóle podświetlać obiekty interaktywne).
 var _highlights_enabled_global: bool = true
+
 
 # ==============================
 # PIPETA (HOLDING – butelki z reagentami)
 # ==============================
-var active_bottle: Node = null                               ## Aktualnie „aktywna” butelka (ta, z której kapie reagent).
-var active_reagent_id: StringName = &""                      ## Id reagentu z aktywnej butelki – przekazywane do QualEngine.
 
-@onready var pipette: Node2D = $PipetteCursor                ## Kursor pipety (grafika podążająca za myszą).
-const PIPETTE_OFFSET: Vector2 = Vector2(8, -50)              ## Przesunięcie pipety względem fizycznego kursora myszy.
+## Przechowuje aktualnie „aktywną” butelkę (tę, z której kapie reagent).
+var active_bottle: Node = null
 
-var _pipette_returning: bool = false                         ## Czy trwa animacja „ducha” pipety wracającego do butelki.
-var _pipette_return_target_bottle: Node = null               ## Butelka, do której wraca pipeta w animacji.
+## Przechowuje identyfikator reagentu z aktywnej butelki – przekazywany do QualEngine.
+var active_reagent_id: StringName = &""
+
+@onready var pipette: Node2D = $PipetteCursor     ## Sprite pipety przypięty do kursora.
+const PIPETTE_OFFSET: Vector2 = Vector2(8, -50)   ## Przesunięcie pipety względem kursora myszy.
+
+## Informuje, czy trwa animacja „ducha” pipety wracającego do butelki.
+var _pipette_returning: bool = false
+
+## Przechowuje butelkę, do której wraca pipeta w animacji.
+var _pipette_return_target_bottle: Node = null
 var _pipette_return_tween: Tween = null
-var _pipette_return_ghost: Node2D = null                     ## Tymczasowy duplikat pipety używany tylko do animacji powrotu.
+
+## Przechowuje tymczasowy duplikat pipety używany tylko do animacji powrotu.
+var _pipette_return_ghost: Node2D = null
+
 
 # ==============================
 # DROPPER (TRANSFER – pobieranie/przelewanie)
 # ==============================
-@onready var dropper_cursor: Node2D = $DropperCursor         ## Dropper jako narzędzie „w ręku” – przypięty do kursora.
-@onready var dropper_on_table: Node2D = $DropperOnTable      ## Dropper leżący na stole – kliknięcie go podnosi.
 
-@export var dropper_capacity_units: float = 1.00             ## Umowna pojemność droppera (w jednostkach zgodnych z Mixture.vol_u).
-@export var pickup_rate_units_per_sec: float = 0.50          ## Ile units/s dropper zasysa z probówki.
-@export var pour_rate_units_per_sec: float = 0.60            ## Ile units/s dropper wylewa do probówki.
+@onready var dropper_cursor: Node2D = $DropperCursor    ## Sprite droppera „w ręku”.
+@onready var dropper_on_table: Node2D = $DropperOnTable ## Dropper leżący na stole.
 
-var dropper_loaded: bool = false                             ## Czy dropper zawiera aktualnie ciecz.
-var dropper_mix: Mixture = null                              ## Mieszanina aktualnie w dropperze (model chemiczny).
-var dropper_units: float = 0.0                               ## Ile „units” cieczy siedzi w dropperze (spójne z vol_u).
+@export var dropper_capacity_units: float = 1.0         ## Pojemność droppera w jednostkach vol_u.
+@export var pickup_rate_units_per_sec: float = 0.5      ## Tempo zasysania do droppera [units/s].
+@export var pour_rate_units_per_sec: float = 0.6        ## Tempo wylewania z droppera [units/s].
 
-enum PressMode { NONE, PICKING, POURING }                    ## Pod-tryb droppera – pobieranie (PICKING) lub wylewanie (POURING).
+## Informuje, czy dropper zawiera aktualnie ciecz.
+var dropper_loaded: bool = false
+
+## Przechowuje mieszaninę aktualnie w dropperze.
+var dropper_mix: Mixture = null
+
+## Przechowuje ilość cieczy w dropperze (w units).
+var dropper_units: float = 0.0
+
+enum PressMode { NONE, PICKING, POURING }
+
+## Przechowuje aktualny pod-tryb droppera (PICKING/POURING/NONE).
 var _press_mode: PressMode = PressMode.NONE
-var _pick_src: Node = null                                   ## Probówka źródłowa przy pobieraniu do droppera.
-var _pour_dst: Node = null                                   ## Probówka docelowa przy wylewaniu z droppera.
 
-const DROPPER_OFFSET: Vector2 = Vector2(8, -40)              ## Offset kursorowego droppera względem myszy.
+## Przechowuje probówkę źródłową przy pobieraniu do droppera.
+var _pick_src: Node = null
+
+## Przechowuje probówkę docelową przy wylewaniu z droppera.
+var _pour_dst: Node = null
+
+const DROPPER_OFFSET: Vector2 = Vector2(8, -40)  ## Przesunięcie sprite’a droppera względem kursora.
+
 
 # ==============================
 # WSKAŹNIK (PAPIEREK)
 # ==============================
-var indicator_paper_scene: PackedScene = preload("res://scenes/indicator_paper.tscn")
-@onready var indicator_box: Node2D = $IndicatorBox           ## „Pudełko” na papierek, leżące na stole.
 
-var indicator_active: bool = false                           ## Czy papierek wskaźnikowy jest obecnie w użyciu i śledzi mysz.
-var indicator_paper: IndicatorPaper = null                   ## Aktualna instancja papierka – jednorazowa, potem usuwana.
+var indicator_paper_scene: PackedScene = preload("res://scenes/indicator_paper.tscn")
+@onready var indicator_box: Node2D = $IndicatorBox  ## Pudełko z papierkami na stole.
+
+## Informuje, czy papierek jest aktualnie w użyciu.
+var indicator_active: bool = false
+
+## Przechowuje instancję aktualnego papierka.
+var indicator_paper: IndicatorPaper = null
+
 
 # ==============================
 # BAGIETKA (STIR ROD)
 # ==============================
-@onready var stir_rod_on_table: Node2D = $StirRodOnTable     ## Bagietka leżąca na stole.
-@onready var stir_rod_cursor: Node2D = $StirRodCursor        ## Bagietka w ręku (kursor).
 
-const STIR_ROD_OFFSET: Vector2 = Vector2(6, -28)             ## Offset bagietki względem kursora myszy.
+@onready var stir_rod_on_table: Node2D = $StirRodOnTable  ## Bagietka leżąca na stole.
+@onready var stir_rod_cursor: Node2D = $StirRodCursor     ## Bagietka w ręku (kursor).
+
+const STIR_ROD_OFFSET: Vector2 = Vector2(6, -28)          ## Przesunięcie bagietki względem kursora.
+
 
 # ==============================
 # SQUIRT BOTTLE (BUTELKA Z WODĄ)
 # ==============================
+
 @onready var squirt_on_table: Node2D = $SquirtBottleOnTable  ## Butelka z wodą na stole.
-@onready var squirt_cursor: Node2D = $SquirtBottleCursor     ## Butelka „w ręku” – przypięta do kursora myszy.
+@onready var squirt_cursor: Node2D = $SquirtBottleCursor     ## Butelka z wodą „w ręku”.
 
-const SQUIRT_OFFSET: Vector2 = Vector2(8, -40)               ## Offset butelki względem myszy.
+const SQUIRT_OFFSET: Vector2 = Vector2(8, -40)               ## Przesunięcie butelki względem kursora.
 
-@export var squirt_rate_units_per_sec: float = 0.60          ## Tempo dolewania wody [units/s] – ile jednostek na sekundę dodaje.
-var _squirt_active: bool = false                             ## Czy jest w trybie SQUIRT (butelka w ręku).
-var _squirt_dst: Node = null                                 ## Probówka docelowa, do której wlewa wodę.
-var _squirt_lmb_down: bool = false                           ## Czy LPM jest trzymany podczas wlewania (ciągły strumień).
+@export var squirt_rate_units_per_sec: float = 0.6           ## Tempo dolewania wody [units/s].
+
+## Informuje, czy aktualnie jesteśmy w trybie SQUIRT (butelka w ręku).
+var _squirt_active: bool = false
+
+## Przechowuje probówkę docelową dla wody.
+var _squirt_dst: Node = null
+
+## Informuje, czy LPM jest trzymany podczas dolewania.
+var _squirt_lmb_down: bool = false
 
 
 # =============================================================================
 # INICJALIZACJA W SCENIE
 # =============================================================================
 
-## Inicjalizuje scenę stołu:
-## - dodaje węzeł do grupy "lab_root",
-## - synchronizuje flagi z autoloadem Settings,
-## - podpina sygnały narzędzi i butelek,
-## - ustawia stan startowy highlightów i hoverów.
+## Przygotowuje scenę stołu:
+## - dodaje Lab do grupy "lab_root",
+## - odczytuje ustawienia highlightów z Settings,
+## - podpina sygnały z narzędzi (pipeta, dropper, papierek, bagietka, squirt),
+## - ustawia interaktywność probówek,
+## - ustawia początkowy stan hoverów i highlightów.
 func _ready() -> void:
 	add_to_group("lab_root")
 
@@ -127,49 +170,50 @@ func _ready() -> void:
 	if not Settings.changed.is_connected(_on_settings_changed):
 		Settings.changed.connect(_on_settings_changed)
 
-	# Butelka z wodą na stole (squirt).
+	# Podłącza butelkę z wodą na stole (squirt).
 	if squirt_on_table:
 		squirt_on_table.visible = true
 		if squirt_on_table.has_signal("left_clicked"):
 			squirt_on_table.left_clicked.connect(_on_squirt_on_table_clicked)
 
-	# Podpina butelki z reagentami (grupa "bottles").
+	# Podłącza butelki z reagentami (grupa "bottles").
 	for bottle_node: Node in get_tree().get_nodes_in_group("bottles"):
 		if bottle_node and bottle_node.has_signal("left_clicked"):
 			bottle_node.left_clicked.connect(_on_bottle_left_clicked)
 
-	# Podnoszenie droppera ze stołu.
+	# Podłącza dropper leżący na stole.
 	if dropper_on_table and dropper_on_table.has_signal("left_clicked"):
 		dropper_on_table.left_clicked.connect(_on_dropper_on_table_clicked)
 
-	# Papierek wskaźnikowy.
+	# Podłącza pudełko z papierkami.
 	if indicator_box and indicator_box.has_signal("left_clicked"):
 		indicator_box.left_clicked.connect(_on_indicator_box_clicked)
 
-	# Bagietka leżąca na stole + sygnał anulowania z kursora bagietki.
+	# Podłącza bagietkę na stole oraz sygnał anulowania z kursora.
 	if stir_rod_on_table and stir_rod_on_table.has_signal("left_clicked"):
 		stir_rod_on_table.left_clicked.connect(_on_stir_rod_on_table_clicked)
 
 	if stir_rod_cursor and stir_rod_cursor.has_signal("cancel_requested"):
 		stir_rod_cursor.cancel_requested.connect(_on_stir_rod_cancel)
 
-	# Upewnia się, że probówki mają poprawnie ustawiony input pickable/monitoring.
+	# Ustawia poprawną interaktywność Area2D probówek.
 	_ensure_probes_pickable()
 
-	# Początkowe ustawienia hoverów i highlightów.
+	# Ustawia początkowe hovery i highlighty.
 	_set_all_bottles_hover(true)
 	_set_all_probes_highlight(false)
 	_refresh_table_hovers()
 	_update_dropper_ui()
 	_refresh_probe_highlights()
-	# Drugi refresh po 1 klatce – zabezpiecza przypadek, gdy racki/probówki zmienią pozycję w _ready.
+	# Drugi refresh po 1 klatce – zabezpiecza przypadek, gdy probówki lub racki zmienią pozycję.
 	call_deferred("_refresh_probe_highlights")
 
 
 ## Obsługuje logikę w każdej klatce:
-## - przesuwa narzędzia przypięte do kursora za myszą,
-## - aktualizuje strumienie (pobieranie, przelewanie, dolewanie),
-## - odświeża UI droppera i highlighty przy zmianie stanu PPM.
+## - przesuwa narzędzia przypięte do kursora,
+## - aktualizuje strumienie (dropper, squirt),
+## - odświeża stan wskaźnika napełnienia droppera,
+## - reaguje na zmianę PPM dla highlightów.
 func _process(delta: float) -> void:
 	match mode:
 		Mode.HOLDING:
@@ -201,9 +245,9 @@ func _process(delta: float) -> void:
 
 	_update_dropper_ui()
 
-	var rmb_current: bool = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
-	if rmb_current != _rmb_down_prev:
-		_rmb_down_prev = rmb_current
+	var right_mouse_down: bool = Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT)
+	if right_mouse_down != _rmb_down_prev:
+		_rmb_down_prev = right_mouse_down
 		_refresh_probe_highlights()
 
 
@@ -212,8 +256,9 @@ func _process(delta: float) -> void:
 # =============================================================================
 
 ## Reaguje na sygnał Settings.changed:
-## - aktualizuje globalną flagę highlightów,
-## - odświeża hover-y stołu i highlighty probówek.
+## - aktualizuje flagę highlightów,
+## - odświeża hover-y stołu i highlighty probówek,
+## - przywraca hover butelek.
 func _on_settings_changed() -> void:
 	_highlights_enabled_global = Settings.highlights_enabled
 	_refresh_table_hovers()
@@ -228,8 +273,9 @@ func _on_settings_changed() -> void:
 ## Obsługuje globalne zdarzenia wejścia:
 ## - puszczenie LPM kończy strumienie PICKING / POURING / SQUIRT,
 ## - PPM próbuje odłożyć aktualne narzędzie,
-## - ESC odkłada wybrane narzędzia i wraca do IDLE.
+## - ESC odkłada wybrane narzędzia i wraca do trybu IDLE.
 func _unhandled_input(event: InputEvent) -> void:
+	# Puszczenie LPM – kończy strumienie.
 	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if _press_mode == PressMode.PICKING:
 			_press_mode = PressMode.NONE
@@ -241,6 +287,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_squirt_lmb_down = false
 			_squirt_dst = null
 
+	# PPM – odkłada narzędzie jeśli to możliwe.
 	if event is InputEventMouseButton and event.pressed and (
 		event.button_index == MOUSE_BUTTON_RIGHT or event.is_action_pressed("right_click")
 	):
@@ -271,6 +318,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			_:
 				pass
 
+	# ESC – szybkie odłożenie narzędzia bez konieczności celowania.
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		match mode:
 			Mode.INDICATOR:
@@ -292,8 +340,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## Obsługuje kliknięcie „Wróć”:
 ## - w sandboxie wraca do głównego menu,
-## - w gałęzi anionowej do wyboru poziomu anionów,
-## - w pozostałych przypadkach do wyboru poziomu kationów.
+## - w gałęzi anionowej wraca do wyboru poziomu anionów,
+## - w pozostałych przypadkach do poziomu kationów.
 func _on_back_btn_pressed() -> void:
 	if level_manager.is_sandbox_branch():
 		get_tree().change_scene_to_file("res://scenes/menu/main_menu.tscn")
@@ -304,18 +352,16 @@ func _on_back_btn_pressed() -> void:
 
 
 ## Obsługuje kliknięcie „Zakończ”:
-## - buduje kontekst podejścia (tryb, grupa, poprawne odpowiedzi),
+## - buduje kontekst podejścia (tryb, grupa, odpowiedzi),
 ## - zapisuje go w Settings jako last_run_context,
-## - przełącza scenę na ekran wyników kationów lub anionów.
+## - przełącza scenę na ekran wyników dla odpowiedniej gałęzi.
 func _on_finish_btn_pressed() -> void:
 	if level_manager.is_sandbox_branch():
-		return  # w sandboxie „Zakończ” nie ma sensu – brak ocenianych wyników
+		return
 
-	# Tryb i grupa z LevelManagera.
 	var mode_str: String = _mode_to_string(level_manager.mode)
 	var group_id: int = level_manager.group_id
 
-	# Kontekst z domyślnie pustymi listami/mapami.
 	var ctx: Dictionary = {
 		"mode_str": mode_str,
 		"group_id": group_id,
@@ -334,29 +380,26 @@ func _on_finish_btn_pressed() -> void:
 			var answer_list: Array = ctx["mix_answer_list"] as Array
 			print("[Lab] mix_answer_list = ", answer_list)
 
-	# Zapisuje kontekst podejścia niezależnie od trybu.
 	Settings.set_last_run_context(ctx)
 
 	if DEBUG_LOG_FINISH_CTX:
-		print_rich(
-			"[color=yellow][Lab] ctx zapisany: mode=", ctx.get("mode_str"),
-			", group=", ctx.get("group_id"),
-			", single_keys=", ((ctx["single_answer_map"] as Dictionary).keys() if ctx.has("single_answer_map") else []),
-			", mix=", (ctx["mix_answer_list"] if ctx.has("mix_answer_list") else []),
-			"[/color]"
-		)
+		# Zakomentowane logi diagnostyczne – zostawione na wszelki wypadek.
+		# print_rich(
+		# 	"[color=yellow][Lab] ctx zapisany: mode=", ctx.get("mode_str"),
+		# 	", group=", ctx.get("group_id"),
+		# 	", single_keys=", ((ctx["single_answer_map"] as Dictionary).keys() if ctx.has("single_answer_map") else []),
+		# 	", mix=", (ctx["mix_answer_list"] if ctx.has("mix_answer_list") else []),
+		# 	"[/color]"
+		# )
+		pass
 
-	# Przechodzi na odpowiedni ekran wyników.
 	if level_manager.is_cations_branch():
 		get_tree().change_scene_to_file("res://scenes/menu/results_cations.tscn")
 	else:
 		get_tree().change_scene_to_file("res://scenes/menu/results_anions.tscn")
 
 
-## Konwertuje tryb z LevelManager.Mode na string dla kontekstu Results:
-## - 1 → EXERCISE_SINGLE,
-## - 2 → EXERCISE_MIX,
-## - pozostałe → SANDBOX.
+## Zamienia wartość Mode z LevelManagera na string dla ekranu wyników.
 func _mode_to_string(mode_value: int) -> String:
 	match mode_value:
 		1:
@@ -373,7 +416,7 @@ func _mode_to_string(mode_value: int) -> String:
 # =============================================================================
 
 ## Obsługuje kliknięcie w butelkę z reagentem:
-## - w IDLE podnosi pipetę i ustawia stan „pusta butelka” (show_empty),
+## - w IDLE podnosi pipetę i zaznacza butelkę jako aktywną (show_empty),
 ## - w HOLDING na tej samej butelce odkłada pipetę i przywraca show_full.
 func _on_bottle_left_clicked(bottle: Node) -> void:
 	if _pipette_returning and _pipette_return_target_bottle == bottle:
@@ -420,7 +463,7 @@ func _on_bottle_left_clicked(bottle: Node) -> void:
 		_refresh_table_hovers()
 
 
-## Czyści stan pipety i wraca do IDLE (bez animacji „ducha”).
+## Czyści stan pipety (bez animacji ducha) i wraca do trybu IDLE.
 func _reset_pipette_only() -> void:
 	if pipette:
 		pipette.visible = false
@@ -430,11 +473,12 @@ func _reset_pipette_only() -> void:
 	_refresh_table_hovers()
 
 
+
 # =============================================================================
 # TRANSFER (dropper) – podnoszenie/odkładanie + strumienie
 # =============================================================================
 
-## Obsługuje kliknięcie droppera na stole – podnosi go tylko w IDLE.
+## Obsługuje kliknięcie droppera na stole – podnosi go tylko w trybie IDLE.
 func _on_dropper_on_table_clicked(_stand: Node) -> void:
 	if mode != Mode.IDLE:
 		return
@@ -442,8 +486,8 @@ func _on_dropper_on_table_clicked(_stand: Node) -> void:
 
 
 ## Podnosi dropper ze stołu:
-## - przechodzi w tryb TRANSFER,
-## - resetuje stan droppera,
+## - przełącza tryb na TRANSFER,
+## - resetuje stan chemiczny droppera,
 ## - chowa wersję „na stole” i pokazuje wersję kursorową,
 ## - aktualizuje hover-y i highlighty.
 func _dropper_take_from_table() -> void:
@@ -457,17 +501,17 @@ func _dropper_take_from_table() -> void:
 
 	_set_all_bottles_hover(false)
 	_refresh_probe_highlights()
+	
 	_refresh_table_hovers()
 	_update_dropper_ui()
 
 
-## Sprawdza, czy dropper można odstawić (tylko gdy jest pusty).
+## Sprawdza, czy dropper można odstawić (dropper musi być pusty).
 func _dropper_can_put_back() -> bool:
 	return not dropper_loaded and dropper_units <= 0.000001
 
 
-## Odkłada dropper na stół (opcjonalnie z animacją powrotu).
-## Przywraca IDLE, hover-y i czyści stan droppera.
+## Odkłada dropper na stół (opcjonalnie z animacją powrotu) i wraca do IDLE.
 func _dropper_put_back(animated: bool = false) -> void:
 	mode = Mode.IDLE
 	_set_all_bottles_hover(true)
@@ -514,8 +558,8 @@ func _dropper_deny_put_back_feedback() -> void:
 	tween.tween_property(dropper_cursor, "rotation_degrees", base_rotation, 0.06)
 
 
-## Startuje strumień zasysania cieczy do droppera (LPM na probówce).
-## Wymaga trybu TRANSFER, pustego droppera i odblokowanej probówki.
+## Startuje strumień pobierania cieczy do droppera (LPM na probówce).
+## Działa tylko w trybie TRANSFER, na odblokowanej probówce z cieczą.
 func _dropper_pick(source_probe: Node) -> void:
 	if source_probe and _probe_is_in_shelved_rack(source_probe):
 		return
@@ -527,13 +571,15 @@ func _dropper_pick(source_probe: Node) -> void:
 		return
 	if _locked(source_probe):
 		return
+	if not _has_liquid(source_probe):
+		return
 
 	_press_mode = PressMode.PICKING
 	_pick_src = source_probe
 
 
 ## Startuje strumień przelewania z droppera do probówki docelowej.
-## Wymaga trybu TRANSFER, załadowanego droppera i odblokowanej probówki.
+## Wymaga trybu TRANSFER, załadowanego droppera i odblokowanej probówki docelowej.
 func _dropper_drop(target_probe: Node) -> void:
 	if target_probe and _probe_is_in_shelved_rack(target_probe):
 		return
@@ -550,10 +596,10 @@ func _dropper_drop(target_probe: Node) -> void:
 	_pour_dst = target_probe
 
 
-## Jedna klatka pobierania do droppera:
-## - oblicza ile units wciągnąć,
-## - wywołuje take_volume na probówce źródłowej,
-## - scala mieszaniny w dropperze i aktualizuje dropper_units.
+## Wykonuje jedną klatkę zasysania cieczy do droppera:
+## - oblicza ile units pobrać,
+## - woła take_volume na probówce źródłowej,
+## - scala mieszaniny w dropperze i aktualizuje liczniki.
 func _tick_pick(delta: float) -> void:
 	if _pick_src == null:
 		return
@@ -608,10 +654,10 @@ func _tick_pick(delta: float) -> void:
 		_pick_src = null
 
 
-## Jedna klatka wylewania z droppera do probówki:
-## - wycina porcję mieszaniny (scaled_fraction),
-## - przekazuje ją docelowej probówce,
-## - aktualizuje dropper_mix i dropper_units o zaakceptowaną część.
+## Wykonuje jedną klatkę przelewania z droppera do probówki:
+## - tworzy porcję mieszaniny,
+## - przekazuje ją probówce,
+## - aktualizuje stan chemiczny w dropperze.
 func _tick_pour(delta: float) -> void:
 	if _pour_dst == null or not dropper_loaded or dropper_mix == null:
 		return
@@ -653,21 +699,30 @@ func _tick_pour(delta: float) -> void:
 # ==============================
 
 ## Tworzy porcję mieszaniny do wylania z droppera:
-## - używa scaled_fraction na Mixture,
-## - czyści tags (pH liczy QualEngine na docelowej probówce).
+## - pobiera ułamek source_mix (scaled_fraction),
+## - zostawia precip_mode,
+## - czyści pola pH, bo i tak będą przeliczone na docelowej probówce.
 func _dropper_make_portion(source_mix: Mixture, fraction_value: float) -> Mixture:
 	var clamped_fraction: float = clamp(fraction_value, 0.0, 1.0)
-	var portion: Mixture = source_mix.scaled_fraction(clamped_fraction, false)
-	portion.tags = {}
+	var portion: Mixture = source_mix.scaled_fraction(clamped_fraction)
+
+	portion.ensure_tags()
+	var tags_dict: Dictionary = portion.tags as Dictionary
+	tags_dict.erase("pH")
+	tags_dict.erase("ph_grade7")
+	tags_dict.erase("acid_eq")
+	tags_dict.erase("base_eq")
+	tags_dict.erase("ph_samples")
+
 	return portion
 
 
 ## Odejmuje z mieszaniny w dropperze ułamek, który został wylany:
-## - używa subtract_fraction_in_place,
-## - usuwa ph_samples i pH z tags.
+## - wywołuje subtract_fraction_in_place,
+## - czyści pola pH, aby zaufac nowemu przeliczeniu na probówce docelowej.
 func _dropper_apply_fraction_loss(target_mix: Mixture, fraction_value: float) -> void:
 	var clamped_fraction: float = clamp(fraction_value, 0.0, 1.0)
-	target_mix.subtract_fraction_in_place(clamped_fraction, false)
+	target_mix.subtract_fraction_in_place(clamped_fraction)
 	if target_mix.tags is Dictionary:
 		(target_mix.tags as Dictionary).erase("pH")
 		(target_mix.tags as Dictionary).erase("ph_samples")
@@ -682,12 +737,13 @@ func _dropper_merge_extensive(target_mix: Mixture, source_mix: Mixture) -> void:
 		(target_mix.tags as Dictionary).erase("ph_samples")
 
 
+
 # =============================================================================
 # INDICATOR (papierek) – podnoszenie/odkładanie i użycie
 # =============================================================================
 
 ## Obsługuje kliknięcie pudełka z papierkiem:
-## - w IDLE podnosi nowy papierek (INDICATOR),
+## - w IDLE podnosi nowy papierek,
 ## - w INDICATOR odkłada aktualny papierek.
 func _on_indicator_box_clicked(_box: Node) -> void:
 	if mode not in [Mode.IDLE, Mode.INDICATOR]:
@@ -700,7 +756,8 @@ func _on_indicator_box_clicked(_box: Node) -> void:
 
 ## Podnosi nowy papierek wskaźnikowy:
 ## - tworzy instancję IndicatorPaper,
-## - włącza śledzenie myszy i łączy sygnał used_on_probe,
+## - włącza śledzenie myszy,
+## - podpina sygnał used_on_probe,
 ## - przełącza tryb na INDICATOR.
 func _indicator_pick() -> void:
 	if indicator_paper_scene == null:
@@ -725,15 +782,14 @@ func _indicator_pick() -> void:
 	_refresh_table_hovers()
 
 
-## Reaguje na użycie papierka na probówce:
-## - po zużyciu odświeża highlighty (stan próbki mógł się zmienić).
+## Reaguje na użycie papierka na probówce i odświeża highlighty.
 func _on_indicator_used(_probe: Node, _grade: int) -> void:
 	_refresh_probe_highlights()
 
 
 ## Odkłada papierek do pudełka:
-## - przełącza tryb na IDLE,
-## - animuje powrót (opcjonalnie),
+## - ustawia tryb IDLE,
+## - opcjonalnie animuje powrót,
 ## - usuwa instancję papierka.
 func _indicator_put_back(animated: bool = false) -> void:
 	mode = Mode.IDLE
@@ -768,8 +824,8 @@ func _indicator_put_back(animated: bool = false) -> void:
 
 
 ## Używa papierka na konkretnej probówce:
-## - odrzuca probówki na półce, puste i zablokowane,
-## - pobiera grade z get_indicator_grade i przekazuje do papierka.
+## - ignoruje probówki na półce, puste i zablokowane,
+## - pobiera grade z probówki i przekazuje go do papierka.
 func _indicator_use_on_probe(probe: Node) -> void:
 	if probe and _probe_is_in_shelved_rack(probe):
 		return
@@ -791,16 +847,17 @@ func _indicator_use_on_probe(probe: Node) -> void:
 	indicator_paper.use_on_probe(probe, grade)
 
 
-## Publiczny alias do _indicator_use_on_probe (np. z Probe.gd).
+## Umożliwia wywołanie użycia papierka na probówce z zewnątrz (np. z Probe.gd).
 func _indicator_use(probe: Node) -> void:
 	_indicator_use_on_probe(probe)
 
 
+
 # =============================================================================
-# BAGIETKA (stir rod) – podnoszenie/odkładanie i użycie
+# BAGIETKA (STIR ROD) – podnoszenie/odkładanie i użycie
 # =============================================================================
 
-## Obsługuje kliknięcie bagietki na stole – podnosi ją tylko w IDLE.
+## Obsługuje kliknięcie bagietki na stole – podnosi ją tylko w trybie IDLE.
 func _on_stir_rod_on_table_clicked(_node: Node) -> void:
 	if mode != Mode.IDLE:
 		return
@@ -808,9 +865,9 @@ func _on_stir_rod_on_table_clicked(_node: Node) -> void:
 
 
 ## Podnosi bagietkę ze stołu:
-## - przechodzi w tryb STIR_ROD,
-## - pokazuje kursorową wersję,
-## - chowa bagietkę na stole i aktualizuje highlighty.
+## - ustawia tryb STIR_ROD,
+## - pokazuje wersję kursorową,
+## - chowa bagietkę na stole i odświeża highlighty.
 func _stir_rod_take_from_table() -> void:
 	mode = Mode.STIR_ROD
 
@@ -825,7 +882,7 @@ func _stir_rod_take_from_table() -> void:
 	_refresh_table_hovers()
 
 
-## Odkłada bagietkę na stół i wraca do IDLE (z animacją lub bez).
+## Odkłada bagietkę na stół (z animacją lub bez) i wraca do trybu IDLE.
 func _stir_rod_put_back(animated: bool = true) -> void:
 	mode = Mode.IDLE
 	_set_all_bottles_hover(true)
@@ -886,11 +943,12 @@ func _stir_rod_use_on_probe(probe: Node) -> void:
 		get_viewport().set_input_as_handled()
 
 
+
 # =============================================================================
 # SQUIRT BOTTLE (woda) – podnoszenie, wylewanie ciągłe i odkładanie
 # =============================================================================
 
-## Obsługuje kliknięcie butelki z wodą na stole – podnosi ją tylko w IDLE.
+## Obsługuje kliknięcie butelki z wodą na stole – podnosi ją tylko w trybie IDLE.
 func _on_squirt_on_table_clicked(_node: Node) -> void:
 	if mode != Mode.IDLE:
 		return
@@ -898,10 +956,10 @@ func _on_squirt_on_table_clicked(_node: Node) -> void:
 
 
 ## Podnosi butelkę z wodą:
-## - przechodzi w tryb SQUIRT,
+## - ustawia tryb SQUIRT,
 ## - resetuje stan strumienia,
-## - pokazuje kursorową butelkę, chowa tę na stole,
-## - wyłącza hover-y na butelkach z reagentami.
+## - pokazuje butelkę „w ręku” i chowa tę na stole,
+## - wyłącza hover-y na butelkach reagentów.
 func _squirt_take_from_table() -> void:
 	mode = Mode.SQUIRT
 	_squirt_active = true
@@ -977,10 +1035,10 @@ func _squirt_end() -> void:
 	_squirt_dst = null
 
 
-## Jedna klatka strumienia wody:
-## - kończy, gdy LPM został puszczony,
+## Wykonuje jedną klatkę strumienia wody:
+## - kończy strumień, gdy LPM zostanie puszczony,
 ## - pilnuje przepełnienia probówki,
-## - tworzy czystą wodę jako Mixture i przekazuje do probówki.
+## - tworzy czystą wodę i przekazuje ją do probówki.
 func _tick_squirt(delta: float) -> void:
 	if mode != Mode.SQUIRT:
 		return
@@ -1016,7 +1074,8 @@ func _tick_squirt(delta: float) -> void:
 	if accepted_units <= 0.00001:
 		_squirt_end()
 		return
-	# Bilans pH/objętości liczy Probe/QualEngine.
+	# Bilans pH / objętości liczy Probe / QualEngine.
+
 
 
 # =============================================================================
@@ -1036,7 +1095,8 @@ func _locked(node: Node) -> bool:
 	)
 
 
-## Sprawdza, czy probówka zawiera jakąkolwiek ciecz (czy ma sens na niej pracować).
+## Sprawdza, czy probówka zawiera jakąkolwiek ciecz (supernatant / zawiesinę).
+## Korzysta z Probe.has_any_liquid, jeśli jest dostępne.
 func _has_liquid(probe: Node) -> bool:
 	if probe and probe.has_method("has_any_liquid"):
 		return bool(probe.has_any_liquid())
@@ -1052,9 +1112,9 @@ func _is_full(probe: Node) -> bool:
 	return (probe and probe.has_method("is_full") and bool(probe.is_full()))
 
 
-## Nakłada highlight na probówki wg podanego predykatu:
-## - jeśli globalne highlighty są wyłączone, wyłącza wszystkie,
-## - ignoruje probówki na półce.
+## Nadaje highlight probówkom według podanego predykatu:
+## - gdy globalne highlighty są wyłączone – gasi wszystkie,
+## - ignoruje probówki stojące na półce.
 func _set_highlights_by(predicate: Callable) -> void:
 	if not _highlights_enabled_global:
 		_set_all_probes_highlight(false)
@@ -1072,10 +1132,10 @@ func _set_highlights_by(predicate: Callable) -> void:
 			probe.set_highlight_enabled(enable_highlight)
 
 
-## Główna logika highlightów probówek:
-## - w IDLE pokazuje wszystkie dostępne probówki (bez półki / zlewek),
-## - w innych trybach podświetla tylko sensowne cele dla danego narzędzia,
-## - w trakcie dragu probówek wyłącza highlighty.
+## Odświeża highlighty probówek:
+## - w IDLE pokazuje wszystkie dostępne (bez tych w zlewkach / na półce),
+## - w innych trybach pokazuje tylko sensowne cele dla aktualnego narzędzia,
+## - podczas dragowania probówek wyłącza highlighty.
 func _refresh_probe_highlights() -> void:
 	_apply_shelf_guard_to_all_probes()
 
@@ -1125,6 +1185,7 @@ func _refresh_probe_highlights() -> void:
 					probe.set_highlight_enabled(false)
 
 
+
 # ======================================================================
 # SHELF GUARD – probówki w racku na półce są nieinteraktywne
 # ======================================================================
@@ -1148,7 +1209,7 @@ func _probe_is_in_shelved_rack(probe: Node) -> bool:
 	return rack._is_on_shelf()
 
 
-## Włącza/wyłącza input pickable + monitoring dla Area2D probówki.
+## Włącza lub wyłącza input pickable + monitoring dla Area2D probówki.
 func _set_probe_interactive(probe: Node, enabled: bool) -> void:
 	if probe and probe.has_node("ProbeArea2D"):
 		var area_node: Node = probe.get_node("ProbeArea2D")
@@ -1159,7 +1220,7 @@ func _set_probe_interactive(probe: Node, enabled: bool) -> void:
 
 
 ## Nakłada „strażnika półki” na wszystkie probówki:
-## - probówki na półce są nieinteraktywne i bez highlightu.
+## - probówki na półce są nieinteraktywne i niepodświetlane.
 func _apply_shelf_guard_to_all_probes() -> void:
 	for probe: Node in get_tree().get_nodes_in_group("probes"):
 		var on_shelf: bool = _probe_is_in_shelved_rack(probe)
@@ -1189,10 +1250,10 @@ func _probe_is_in_beaker(probe: Node) -> bool:
 # HELPERS / HOUSEKEEPING – sprzątanie stanów i narzędzia UI
 # =============================================================================
 
-## Ogólny reset stanu stołu:
+## Resetuje ogólny stan stołu:
 ## - zamyka ewentualną butelkę i chowa pipetę,
-## - odkłada aktywne narzędzia, gdy jest to możliwe,
-## - wraca do IDLE i odświeża UI.
+## - odkłada aktywne narzędzia, gdy to możliwe,
+## - ustawia tryb IDLE i odświeża UI.
 func _reset_to_idle() -> void:
 	if active_bottle and active_bottle.has_method("show_full"):
 		active_bottle.show_full(true)
@@ -1246,8 +1307,8 @@ func _set_bottles_hover_except(only_this: Node) -> void:
 			bottle_node.set_hover_enabled(allow_hover)
 
 
-## Włącza/wyłącza highlight na wszystkich probówkach (poza półką)
-## i aktualizuje im interaktywność.
+## Włącza lub wyłącza highlight na wszystkich probówkach (poza półką)
+## oraz ustawia ich interaktywność.
 func _set_all_probes_highlight(on: bool) -> void:
 	var allow_highlight: bool = _highlights_enabled_global and on
 	for probe: Node in get_tree().get_nodes_in_group("probes"):
@@ -1258,7 +1319,7 @@ func _set_all_probes_highlight(on: bool) -> void:
 
 
 ## Upewnia się, że wszystkie probówki mają włączone pickable/monitoring,
-## a następnie aplikuje reguły „shelf guard”.
+## a następnie nakłada strażnika półki.
 func _ensure_probes_pickable() -> void:
 	for probe: Node in get_tree().get_nodes_in_group("probes"):
 		if probe and probe.has_node("ProbeArea2D"):
@@ -1280,7 +1341,7 @@ func _refresh_table_hovers() -> void:
 
 
 ## Sprawdza, czy aktualnie można podnieść narzędzie ze stołu:
-## - wymagany tryb IDLE,
+## - wymagany jest tryb IDLE,
 ## - LPM nie może być trzymany.
 func _can_pick_table_tool() -> bool:
 	return mode == Mode.IDLE \
@@ -1315,15 +1376,15 @@ func _update_squirt_table_hover() -> void:
 		squirt_on_table.set_hover_enabled(can_highlight)
 
 
-## Aktualizuje mały wskaźnik wypełnienia „FillDot” na kursorowym dropperze.
+## Aktualizuje wskaźnik napełnienia „FillDot” na kursorowym dropperze.
 func _update_dropper_ui() -> void:
 	if not dropper_cursor:
 		return
-	var fill: float = clamp(dropper_units / max(0.0001, dropper_capacity_units), 0.0, 1.0)
+	var fill_ratio: float = clamp(dropper_units / max(0.0001, dropper_capacity_units), 0.0, 1.0)
 
 	var fill_dot: Node = dropper_cursor.get_node_or_null("FillDot")
 	if fill_dot and fill_dot.has_method("set_fill01"):
-		fill_dot.call("set_fill01", fill)
+		fill_dot.call("set_fill01", fill_ratio)
 
 
 # =============================================================================
@@ -1333,7 +1394,7 @@ func _update_dropper_ui() -> void:
 ## Odkłada pipetę:
 ## - resetuje stan butelki (show_full),
 ## - opcjonalnie animuje „ducha” pipety wracającego do butelki,
-## - na końcu czyści tymczasowe obiekty i odświeża highlighty.
+## - czyści tymczasowe obiekty i odświeża highlighty.
 func _pipette_put_back(animated: bool = true) -> void:
 	if not pipette:
 		return
@@ -1396,8 +1457,8 @@ func _pipette_put_back(animated: bool = true) -> void:
 # =============================================================================
 
 ## Zwraca globalną pozycję „kotwicy” dla animacji:
-## - jeśli węzeł ma dziecko "Anchor" (Node2D) – jego pozycję,
-## - inaczej global_position węzła, gdy jest Node2D,
+## - jeśli węzeł ma dziecko "Anchor" – jego global_position,
+## - inaczej global_position samego węzła, jeśli jest Node2D,
 ## - w przeciwnym razie Vector2.ZERO.
 func _get_anchor_global(node: Node) -> Vector2:
 	if node == null:
@@ -1415,15 +1476,13 @@ func _get_anchor_global(node: Node) -> Vector2:
 # PUBLICZNE API DRAG-GUARD (dla Probe.gd)
 # =============================================================================
 
-## Wywoływane przez Probe.gd przy rozpoczęciu przeciągania probówki –
-## wyłącza highlighty, aby nie migały w trakcie dragu.
+## Informuje Lab, że pobrano probówkę do przeciągania – wyłącza highlighty na czas dragu.
 func probe_drag_started() -> void:
 	_probe_drag_active = true
 	_refresh_probe_highlights()
 
 
-## Wywoływane przez Probe.gd po zakończeniu przeciągania probówki –
-## przywraca highlighty zgodnie z aktualnym trybem.
+## Informuje Lab, że przeciąganie probówki się zakończyło – przywraca highlighty.
 func probe_drag_ended() -> void:
 	_probe_drag_active = false
 	_refresh_probe_highlights()

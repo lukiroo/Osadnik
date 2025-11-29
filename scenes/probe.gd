@@ -1,10 +1,17 @@
 extends Node2D
 class_name Probe
 
-## Probówka:
-## - Drag & drop po stole, dropzony, animacja „wylewania”.
-## - Trzyma Mixture (chemia) i gada z QualEngine.
-## - Obsługuje mętność, osad, kryształki i pellet z wirówki.
+## =========================================================================
+## probe.gd – probówka robocza / startowa
+## -------------------------------------------------------------------------
+## Odpowiada za:
+## - przechowywanie mieszaniny chemicznej (Mixture),
+## - komunikację z QualEngine (reakcje, pH, bufory),
+## - obsługę drag & drop (przenoszenie probówki po stole i między slotami),
+## - pokazywanie mętności, kryształków i pelletu po wirowaniu,
+## - obsługę chłodzenia w łaźni (cooling_ready / cooled_enough),
+## - obsługę narzędzi z poziomu Lab (dropper, papierek, bagietka, butelka z wodą).
+## =========================================================================
 
 enum TubeRole { STARTER, WORK }
 
@@ -15,10 +22,13 @@ signal drag_started(probe: Node)
 signal drag_ended(probe: Node)
 signal drag_released(probe: Node, at_global_pos: Vector2)
 
+# -----------------------------
+# Referencje do pod-węzłów
+# -----------------------------
+
 @onready var area: Area2D            = $ProbeArea2D
 @onready var glass_sprite: Sprite2D  = $GlassSprite2D
 @onready var turbidity: Sprite2D     = $LiquidFill/TurbidityOverlay
-@onready var sediment: Node2D        = $Sediment
 @onready var crystal_fx: Sprite2D    = $LiquidFill/CrystalFX
 @onready var pellet: Sprite2D        = $LiquidFill/Pellet
 @onready var label: Label            = $NumLabel
@@ -26,8 +36,13 @@ signal drag_released(probe: Node, at_global_pos: Vector2)
 @onready var liquid_body: Sprite2D          = $LiquidFill/LiquidBody
 @onready var liquid_level_sprite: Sprite2D  = $LiquidFill/LiquidLevelSprite2D
 
-var glass_mat: ShaderMaterial
+var glass_mat: ShaderMaterial = null
 var hover_enabled: bool = false
+
+
+# =========================================================================
+# DRAG & DROP – parametry i stan
+# =========================================================================
 
 @export_group("Drag & Drop")
 @export var draggable: bool = true
@@ -45,6 +60,11 @@ var _drag_return_tween: Tween = null
 var _drag_origin_parent: Node = null
 var _returning: bool = false
 
+
+# =========================================================================
+# ANIMACJA WYLEWANIA (pivot)
+# =========================================================================
+
 @export_group("Animacja wylewania")
 @export_range(-200.0, 200.0, 1.0) var pivot_offset_y: float = -50.0
 @export_range(0.0, 180.0, 1.0) var dump_tilt_deg: float = 120.0
@@ -54,9 +74,13 @@ var _returning: bool = false
 var _dump_anim_pending: bool = false
 var _tilt_node: Node2D = null
 
+
+# =========================================================================
+# CHEMIA I OBJĘTOŚĆ
+# =========================================================================
+
 @export_group("Chemia i objętość")
 @export var mixture := Mixture.new()
-var sediment_level: float = 0.0
 
 @export_subgroup("Poziom cieczy")
 @export_range(0.0, 1.0, 0.01) var fill_level: float = 1.0
@@ -66,47 +90,71 @@ var sediment_level: float = 0.0
 @export_subgroup("Krople reagentów")
 @export_range(0.0, 0.5, 0.005) var reagent_level_per_drop: float = 0.10
 
-@export_group("Mętność i osad (FX)")
-@export_range(0.0, 5.0, 0.01) var settle_delay: float = 1.0
-@export_range(0.1, 60.0, 0.1) var settle_tau:   float = 20.0
-@export_range(0.0, 1.0, 0.01) var turbidity_floor: float = 0.6
-@export_range(0.1, 10.0, 0.1) var turbidity_smooth: float = 3.0
-@export_range(5.0, 120.0, 0.5) var turbidity_decay_time: float = 45.0
-@export_range(0.0, 1.0, 0.01) var initial_turbidity: float = 0.02
 
-var settle_delay_left: float = 0.0
-var suspended: float = 0.0
-var precip_total: float = 0.0
+# =========================================================================
+# MĘTNOŚĆ / KOLOR CIECZY
+# =========================================================================
 
+@export_group("Mętność / kolor cieczy")
+@export_range(0.0, 1.0, 0.01) var initial_turbidity: float = 0.0
+
+## Przechowuje aktualny kolor mętności / osadu w zawiesinie.
 var turbidity_color: Color = Color.WHITE
-var sediment_color: Color = Color.WHITE
 
+## Docelowy poziom mętności (do interpolacji).
 var turbidity_target: float = 0.0
+
+## Rzeczywisty poziom mętności pokazywany użytkownikowi.
 var display_turbidity: float = 0.0
+
+## Informuje, czy kiedykolwiek w tej probówce strącił się osad.
 var ever_precipitated: bool = false
 
+## Informuje, że przeliczenie reakcji jest zaplanowane (call_deferred).
 var _recalc_scheduled: bool = false
 
+
+# =========================================================================
+# CHŁODZENIE (ŁAŹNIA WODNA)
+# =========================================================================
+
 @export_group("Chłodzenie (łaźnia)")
-@export_range(0.0, 60.0, 0.5) var cooling_time_s: float = 5.0
+@export_range(0.0, 60.0, 0.5) var cooling_time_s: float = 30.0
 
 const TAG_BATH_BOILING   := "bath_boiling"
 const TAG_COOLING_READY  := "cooling_ready"
 const TAG_COOLING_T      := "cooling_t_s"
 const TAG_COOLED_ENOUGH  := "cooled_enough"
 
-@export_group("Pellet / Krystalizacja (FX)")
-@export_range(0.0, 2.0, 0.01) var pellet_brightness: float = 0.9
-@export_range(0.0, 1.0, 0.01) var pellet_opacity: float = 0.9
 
-var last_precip_mode: String = "floc"
+# =========================================================================
+# PELLET / KRYSTALIZACJA (FX)
+# =========================================================================
+
+@export_group("Pellet / krystalizacja (FX)")
+@export_range(0.0, 2.0, 0.01) var pellet_brightness: float = 0.9
+@export_range(0.0, 1.0, 0.01) var pellet_opacity: float = 1.0
+
+## Ostatni tryb osadu, jaki był użyty do FX ("none"/"floc"/"crystal").
+var last_precip_mode: String = "none"
+
+## Informuje, czy przed wirowaniem występował krystaliczny osad.
 var had_crystal_before_spin: bool = false
 
 const FILL_EPS := 0.001
 
 
+# =========================================================================
+# INICJALIZACJA PROBÓWKI
+# =========================================================================
+
+## Przygotowuje probówkę po dodaniu do sceny:
+## - duplikuje materiały, żeby uniformy były per-probówka,
+## - ustawia shader menisku,
+## - przygotowuje początkowe FX (mętność, crystal_fx, pellet),
+## - tworzy pivot do animacji wylewania i przenosi dzieci pod _Tilt.
 func _ready() -> void:
-	# Duplikacja materiałów, żeby uniformy były per-probówka.
+	# oddzielne materiały na każdą probówkę
 	if glass_sprite.material:
 		glass_sprite.material = glass_sprite.material.duplicate()
 	if turbidity and turbidity.material:
@@ -118,21 +166,20 @@ func _ready() -> void:
 
 	glass_mat = glass_sprite.material as ShaderMaterial
 
-	# Shader poziomu cieczy.
+	# materiał od menisku
 	if liquid_level_sprite:
 		liquid_level_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		var level_material := liquid_level_sprite.material as ShaderMaterial
 		if level_material and level_material.shader:
 			if _shader_has_uniform(level_material, "use_mask"):
 				level_material.set_shader_parameter("use_mask", true)
-				var mask_source := liquid_body
-				if mask_source and mask_source.texture:
-					level_material.set_shader_parameter("mask_tex", mask_source.texture)
-					var mask_size: Vector2i = mask_source.texture.get_size()
-					if mask_size.x > 0 and mask_size.y > 0:
+				if liquid_body and liquid_body.texture:
+					level_material.set_shader_parameter("mask_tex", liquid_body.texture)
+					var size: Vector2i = liquid_body.texture.get_size()
+					if size.x > 0 and size.y > 0:
 						level_material.set_shader_parameter(
 							"mask_texel",
-							Vector2(1.0 / float(mask_size.x), 1.0 / float(mask_size.y))
+							Vector2(1.0 / float(size.x), 1.0 / float(size.y))
 						)
 			if _shader_has_uniform(level_material, "edge_softness_px"):
 				level_material.set_shader_parameter("edge_softness_px", 0.5)
@@ -140,15 +187,11 @@ func _ready() -> void:
 	_apply_highlight(false)
 	add_to_group("probes")
 
+	# startowe FX
 	turbidity_color = Color.WHITE
-	sediment_color  = Color.WHITE
 	turbidity_target = clamp(initial_turbidity, 0.0, 1.0)
 	display_turbidity = turbidity_target
 	_set_turbidity_value(display_turbidity)
-
-	if sediment:
-		sediment.scale.y = 0.0
-		sediment.visible = false
 
 	if crystal_fx:
 		crystal_fx.visible = false
@@ -163,7 +206,7 @@ func _ready() -> void:
 
 	_apply_liquid_fill_visual()
 
-	# Pivot do wylewania.
+	# pivot do animacji wylewania
 	_tilt_node = Node2D.new()
 	_tilt_node.name = "_Tilt"
 	add_child(_tilt_node)
@@ -184,43 +227,36 @@ func _ready() -> void:
 	_tilt_node.rotation_degrees = 0.0
 
 
+## Aktualizuje probówkę w każdej klatce:
+## - przelicza chłodzenie dla łaźni wodnej,
+## - płynnie „dochodzi” do nowej mętności.
 func _physics_process(delta: float) -> void:
 	_update_cooling(delta)
 
-	# Opadanie zawiesiny do osadu na dnie.
-	if settle_delay_left > 0.0:
-		settle_delay_left = max(0.0, settle_delay_left - delta)
-	else:
-		if suspended > 0.0 and settle_tau > 0.0:
-			var settle_step: float = suspended * (delta / settle_tau)
-			suspended = max(0.0, suspended - settle_step)
-			_grow_sediment(sediment_color, settle_step)
-
-	# Prosty model mętności w czasie.
-	if ever_precipitated and not _has_pellet_ready():
-		var floor_val: float = max(turbidity_floor, initial_turbidity)
-		var decay_step: float = delta / max(0.001, turbidity_decay_time)
-		turbidity_target = move_toward(turbidity_target, floor_val, decay_step)
-	else:
-		var decay_step_clean: float = delta / max(0.001, turbidity_decay_time)
-		turbidity_target = move_toward(turbidity_target, initial_turbidity, decay_step_clean)
-
-	var lerp_step: float = turbidity_smooth * delta
-	display_turbidity = move_toward(display_turbidity, turbidity_target, lerp_step)
+	var step: float = 4.0 * delta
+	display_turbidity = move_toward(display_turbidity, turbidity_target, step)
 	_set_turbidity_value(display_turbidity)
-
-	if _has_pellet_ready():
-		_force_crystal_fx_off()
+	# Pellet jest osobnym sprite’em – mętność może współistnieć z pelletem.
 
 
+# =========================================================================
+# OBSŁUGA REAGENTÓW / ROZTWORÓW W PROBÓWCE
+# =========================================================================
+
+## Zgłasza do probówki, że ma wykonać animację „wylewania” po upuszczeniu.
 func request_dump_anim() -> void:
 	_dump_anim_pending = true
 
 
+## Sprawdza, czy probówka jest pełna (fill_level ~ 1.0).
 func is_full() -> bool:
 	return fill_level >= 1.0 - FILL_EPS
 
 
+## Odbiera porcję reagentu z butelki (HCl, NaOH itd.):
+## - sprawdza przepełnienie,
+## - woła QualEngine.add_drop_to_tube,
+## - podbija fill_level o reagent_level_per_drop.
 func receive_drop(reagent_id: String) -> void:
 	if is_full():
 		return
@@ -232,89 +268,74 @@ func receive_drop(reagent_id: String) -> void:
 		_set_fill_level(min(1.0, fill_level + level_delta))
 
 
+## Zwraca „ocenę pH” w skali -3..+3 na podstawie Mixture.tags["ph_grade7"].
 func get_indicator_grade() -> int:
 	return _get_ph_grade7()
 
 
+## Zwraca słownik {grade, ph} – na razie ph = NAN (opcjonalne rozwinięcie).
 func get_indicator_grade_and_ph() -> Dictionary:
 	return {"grade": _get_ph_grade7(), "ph": NAN}
 
 
+## Odczytuje ph_grade7 z tags i zwraca go jako int.
 func _get_ph_grade7() -> int:
 	if mixture and (mixture.tags is Dictionary):
-		var grade_value: Variant = (mixture.tags as Dictionary).get("ph_grade7", null)
-		if grade_value is int or grade_value is float:
-			return int(grade_value)
+		var grade_val: Variant = (mixture.tags as Dictionary).get("ph_grade7", null)
+		if grade_val is int or grade_val is float:
+			return int(grade_val)
 	return 0
 
 
-func play_precip(mode: String, turb_color: Color, sed_color: Color, intensity: float) -> void:
-	if _has_pellet_ready():
-		return
+# =========================================================================
+# FX: OSAD, MĘTNOŚĆ, KRYSZTAŁKI
+# =========================================================================
+
+## Wyświetla efekt strącenia osadu (floc/crystal/cloudy) w probówce:
+## - ustawia last_precip_mode i turbidity_color,
+## - dla trybu "crystal" odpala CrystalFX i lekko mąci roztwór,
+## - dla floc/cloudy ustawia mętność na docelowy poziom.
+func play_precip(mode: String, turb_color: Color, _sed_color: Color, intensity: float) -> void:
+	last_precip_mode = mode
+	ever_precipitated = true
+	turbidity_color = turb_color
 
 	var amount: float = clamp(intensity, 0.0, 1.0)
 
 	if mode == "crystal":
-		_show_crystal_fx(turb_color, amount)
-		turbidity_color = turb_color
-		ever_precipitated = true
-
-		var boost: float = max(0.1, amount * 0.4)
-		turbidity_target = clamp(turbidity_target + boost, initial_turbidity, 1.0)
-		display_turbidity = max(display_turbidity, turbidity_target)
-
-		_set_turbidity_value(display_turbidity)
-		_burst_turbidity(turbidity_color, display_turbidity)
-
-		settle_delay_left = 0.0
-		last_precip_mode = "crystal"
+		# klarowny roztwór + kryształki
+		_show_crystal_fx(turbidity_color, amount)
+		# lekka mętność jako tło
+		turbidity_target = max(initial_turbidity, 0.3 * amount)
 	else:
-		hide_pellet()
+		# zwykły mętny osad w całej objętości
 		_hide_crystal_fx()
-
-		ever_precipitated = true
-		turbidity_color = turb_color
-		set_sediment_color(sed_color)
-
-		precip_total = clamp(precip_total + amount, 0.0, 1.0)
-		suspended    = clamp(suspended    + amount, 0.0, 1.0)
-
-		var boost2: float = max(0.25, amount * 0.8)
-		var new_target: float = clamp(turbidity_target + boost2, turbidity_floor, 1.0)
-		turbidity_target = max(turbidity_target, new_target)
-		display_turbidity = max(display_turbidity, turbidity_target)
-
-		_set_turbidity_value(display_turbidity)
-		_burst_turbidity(turbidity_color, display_turbidity)
-
-		settle_delay_left = settle_delay
-		last_precip_mode = "floc"
+		turbidity_target = max(turbidity_target, max(initial_turbidity, amount))
 
 
-func set_sediment_color(color: Color) -> void:
-	sediment_color = color
-	if sediment:
-		var solid_color := color
-		solid_color.a = 1.0
-		sediment.modulate = solid_color
-		sediment.visible = true
+# =========================================================================
+# HIGHLIGHT I INPUT MYSZY NA PROBÓWCE
+# =========================================================================
 
-
+## Ustawia włączenie/wyłączenie highlightu probówki.
 func set_highlight_enabled(enabled: bool) -> void:
 	hover_enabled = enabled
 	if not enabled:
 		_apply_highlight(false)
 
 
+## Reaguje na wejście kursora w obszar probówki – włącza highlight.
 func _on_probe_area_2d_mouse_entered() -> void:
 	if hover_enabled:
 		_apply_highlight(true)
 
 
+## Reaguje na wyjście kursora z obszaru probówki – wyłącza highlight.
 func _on_probe_area_2d_mouse_exited() -> void:
 	_apply_highlight(false)
 
 
+## Ustawia parametry highlightu w shaderze szkła.
 func _apply_highlight(on: bool) -> void:
 	if glass_mat == null:
 		return
@@ -322,6 +343,10 @@ func _apply_highlight(on: bool) -> void:
 	_set_shader_param_safe(glass_mat, "highlight_strength", (1.0 if on else 0.0))
 
 
+## Reaguje na kliknięcia LPM na obszarze probówki:
+## - w zależności od trybu Lab (HOLDING/TRANSFER/INDICATOR/STIR_ROD/SQUIRT)
+##   przekazuje kontrolę do odpowiednich metod w Lab.gd,
+## - w IDLE uruchamia drag & drop probówki.
 func _on_probe_area_2d_input_event(_vp: Viewport, event: InputEvent, _shape_idx: int) -> void:
 	if _returning:
 		get_viewport().set_input_as_handled()
@@ -349,8 +374,8 @@ func _on_probe_area_2d_input_event(_vp: Viewport, event: InputEvent, _shape_idx:
 		return
 
 	if cur_mode == ModeEnum.TRANSFER:
-		var dropper_loaded: bool = bool(lab.get("dropper_loaded"))
-		if not dropper_loaded:
+		var dropper_is_loaded: bool = bool(lab.get("dropper_loaded"))
+		if not dropper_is_loaded:
 			if has_any_liquid() and lab.has_method("_dropper_pick"):
 				lab._dropper_pick(self)
 		else:
@@ -376,6 +401,7 @@ func _on_probe_area_2d_input_event(_vp: Viewport, event: InputEvent, _shape_idx:
 		get_viewport().set_input_as_handled()
 
 
+## Obsługuje ruch myszy i puszczenie LPM w trakcie dragowania probówki.
 func _input(event: InputEvent) -> void:
 	if _returning:
 		return
@@ -390,6 +416,14 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+# =========================================================================
+# DRAG & DROP – LOGIKA PRZECIĄGANIA PROBÓWKI
+# =========================================================================
+
+## Startuje drag & drop probówki:
+## - ustawia wewnętrzny stan dragowania,
+## - podnosi probówkę (z-index),
+## - zgłasza do Lab i parenta, że probówka została podniesiona.
 func _start_drag() -> void:
 	if _returning or _dragging:
 		return
@@ -417,6 +451,10 @@ func _start_drag() -> void:
 		lab.probe_drag_started()
 
 
+## Kończy drag & drop probówki:
+## - próbuje umieścić probówkę w dropzone,
+## - w razie niepowodzenia odtwarza animację powrotu,
+## - zgłasza sygnały drag_released / drag_ended.
 func _end_drag(emit_release: bool) -> void:
 	if not _dragging:
 		return
@@ -433,13 +471,13 @@ func _end_drag(emit_release: bool) -> void:
 		_returning = true
 		_dump_anim_pending = false
 
-		var rot_node: Node2D = _tilt_node if _tilt_node else self
+		var rotate_node: Node2D = _tilt_node if _tilt_node else self
 		var angle := -dump_tilt_deg
 
 		var tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		tween.tween_property(rot_node, "rotation_degrees", angle, dump_tilt_time)
+		tween.tween_property(rotate_node, "rotation_degrees", angle, dump_tilt_time)
 		tween.tween_interval(dump_tilt_hold)
-		tween.tween_property(rot_node, "rotation_degrees", 0.0, 0.16)
+		tween.tween_property(rotate_node, "rotation_degrees", 0.0, 0.16)
 		tween.finished.connect(func() -> void:
 			_start_return_tween(accepted))
 	else:
@@ -452,6 +490,7 @@ func _end_drag(emit_release: bool) -> void:
 	emit_signal("drag_ended", self)
 
 
+## Startuje tween powrotu probówki na miejsce początkowe albo tylko kończy stan „returning”.
 func _start_return_tween(accepted: bool) -> void:
 	_returning = true
 
@@ -468,10 +507,12 @@ func _start_return_tween(accepted: bool) -> void:
 		call_deferred("_unlock_returning")
 
 
+## Zamyka stan „returning” po animacji powrotu.
 func _unlock_returning() -> void:
 	_returning = false
 
 
+## Próbuje odłożyć probówkę do dropzone z grupy "probe_dropzones".
 func _try_drop_into_target() -> bool:
 	for dropzone in get_tree().get_nodes_in_group("probe_dropzones"):
 		if dropzone and dropzone.has_method("accept_probe"):
@@ -480,12 +521,26 @@ func _try_drop_into_target() -> bool:
 	return false
 
 
+# =========================================================================
+# OPERACJE NA MIESZANINIE (OD STRONY PROBÓWKI)
+# =========================================================================
+
+## Sprawdza, czy probówka zawiera jakąkolwiek ciecz (kolumnę roztworu).
+## - same solids (pellet) bez supernatantu nie liczą się jako „ciecz do pracy”.
 func has_any_liquid() -> bool:
 	if fill_level > 0.001:
 		return true
-	return mixture.ions.size() > 0 or mixture.solids.size() > 0
+
+	if mixture and (mixture.ions is Dictionary) and mixture.ions.size() > 0:
+		return true
+
+	return false
 
 
+## Pobiera z probówki określoną ilość units (vol_u) do droppera:
+## - zwraca słownik {"mix": Mixture, "units": real_units},
+## - przy pellecie: supernatant nie niesie solids, pellet zostaje w probówce,
+## - przy zwykłej zawiesinie: jony i osady dzielą się proporcjonalnie.
 func take_volume(units: float):
 	var requested_units: float = max(0.0, units)
 	var max_units: float = fill_level * capacity_units
@@ -497,16 +552,16 @@ func take_volume(units: float):
 	if not (mixture.tags is Dictionary):
 		mixture.tags = {}
 
-	var stored_total_volume: float = 0.0
-	var stored_volume_tag: Variant = mixture.tags.get("vol_u", 0.0)
-	if stored_volume_tag is float or stored_volume_tag is int:
-		stored_total_volume = float(stored_volume_tag)
+	var total_volume: float = 0.0
+	var vol_tag: Variant = mixture.tags.get("vol_u", 0.0)
+	if vol_tag is float or vol_tag is int:
+		total_volume = float(vol_tag)
 
-	if stored_total_volume <= 1e-9:
-		stored_total_volume = max_units
-		mixture.tags["vol_u"] = stored_total_volume
+	if total_volume <= 1e-9:
+		total_volume = max_units
+		mixture.tags["vol_u"] = total_volume
 
-	var fraction: float = clamp(real_units / max(1e-9, stored_total_volume), 0.0, 1.0)
+	var fraction: float = clamp(real_units / max(1e-9, total_volume), 0.0, 1.0)
 	var had_pellet: bool = _has_pellet_ready()
 
 	var taken: Mixture = mixture.scaled_fraction(fraction, false)
@@ -515,7 +570,24 @@ func take_volume(units: float):
 	(taken.tags as Dictionary).erase("pH")
 	(taken.tags as Dictionary).erase("ph_samples")
 
-	mixture.subtract_fraction_in_place(fraction, false)
+	if had_pellet:
+		# Supernatant znad pelletu:
+		# - pobieramy tylko roztwór (bez solids),
+		# - osady w probówce nie powinny się zmieniać.
+		taken.solids.clear()
+		(taken.tags as Dictionary).erase("precip_mode")
+
+		var solids_backup: Dictionary = {}
+		if mixture.solids is Dictionary:
+			solids_backup = mixture.solids.duplicate(true)
+
+		mixture.subtract_fraction_in_place(fraction)
+
+		if solids_backup.size() > 0:
+			mixture.solids = solids_backup
+	else:
+		# Zwykła zawiesina – jony i osady rozdzielają się proporcjonalnie.
+		mixture.subtract_fraction_in_place(fraction)
 
 	_set_fill_level(fill_level - real_units / max(0.0001, capacity_units))
 
@@ -526,14 +598,19 @@ func take_volume(units: float):
 	return {"mix": taken, "units": real_units}
 
 
+## Pobiera ułamek objętości probówki (np. 0.5) i zwraca Mixture (bez słownika).
 func take_fraction(frac: float) -> Mixture:
-	var clamped_frac: float = clamp(frac, 0.0, 1.0)
-	var ret: Variant = take_volume(clamped_frac * capacity_units)
-	if ret == null:
+	var f: float = clamp(frac, 0.0, 1.0)
+	var result: Variant = take_volume(f * capacity_units)
+	if result == null:
 		return null
-	return ret["mix"] as Mixture
+	return result["mix"] as Mixture
 
 
+## Odbiera mieszaninę wylewaną z droppera:
+## - obsługuje czystą wodę (pasuje do QualEngine.add_water_volume_step),
+## - dla zwykłej mieszaniny skaluje porę i scala ją z mixture,
+## - przy pellecie resetuje FX mętności, zostawiając pellet jako stan.
 func receive_mixture(mixture_in: Mixture, units: float = 0.18) -> float:
 	if mixture_in == null:
 		return 0.0
@@ -553,9 +630,9 @@ func receive_mixture(mixture_in: Mixture, units: float = 0.18) -> float:
 
 	var source_total_volume: float = 0.0
 	if mixture_in.tags is Dictionary:
-		var volume_tag_value: Variant = mixture_in.tags.get("vol_u", 0.0)
-		if volume_tag_value is float or volume_tag_value is int:
-			source_total_volume = float(volume_tag_value)
+		var tag_val: Variant = mixture_in.tags.get("vol_u", 0.0)
+		if tag_val is float or tag_val is int:
+			source_total_volume = float(tag_val)
 	if source_total_volume <= 1e-9:
 		source_total_volume = requested_units
 
@@ -579,6 +656,8 @@ func receive_mixture(mixture_in: Mixture, units: float = 0.18) -> float:
 	_set_fill_level(min(1.0, fill_level + real_units / max(0.0001, capacity_units)))
 
 	if had_pellet:
+		# Po dolaniu czegoś do probówki z pelletem zostawiamy pellet,
+		# ale resetujemy FX mętności – pellet zostaje oznaczony w tags.
 		ever_precipitated = false
 		turbidity_target = 0.0
 		display_turbidity = 0.0
@@ -594,11 +673,13 @@ func receive_mixture(mixture_in: Mixture, units: float = 0.18) -> float:
 	return real_units
 
 
+## Ustawia fill_level i odświeża wizualizację kolumny cieczy w probówce.
 func _set_fill_level(value: float) -> void:
 	fill_level = clamp(value, 0.0, 1.0)
 	_apply_liquid_fill_visual()
 
 
+## Aktualizuje skalę sprite’a cieczy, poziom mętności i maskę crystal_fx.
 func _apply_liquid_fill_visual() -> void:
 	var level01: float = clamp(fill_level, 0.0, 1.0)
 	var visual_scale: float = level01 if (pellet != null and pellet.visible) else max(min_fill_level, level01)
@@ -620,19 +701,24 @@ func _apply_liquid_fill_visual() -> void:
 		var crystal_material := crystal_fx.material as ShaderMaterial
 		if crystal_material and crystal_material.shader:
 			if _shader_has_uniform(crystal_material, "level01"):
-				_set_shader_param_safe(crystal_material, "level01", clamp(fill_level, 0.0, 1.0))
+				_set_shader_param_safe(crystal_material, "level01", level01)
 			if _shader_has_uniform(crystal_material, "use_mask"):
 				crystal_material.set_shader_parameter("use_mask", true)
 				if liquid_body and liquid_body.texture:
 					crystal_material.set_shader_parameter("mask_tex", liquid_body.texture)
-					var mask_size: Vector2i = liquid_body.texture.get_size()
-					if mask_size.x > 0 and mask_size.y > 0 and _shader_has_uniform(crystal_material, "mask_texel"):
+					var size: Vector2i = liquid_body.texture.get_size()
+					if size.x > 0 and size.y > 0 and _shader_has_uniform(crystal_material, "mask_texel"):
 						crystal_material.set_shader_parameter(
 							"mask_texel",
-							Vector2(1.0 / float(mask_size.x), 1.0 / float(mask_size.y))
+							Vector2(1.0 / float(size.x), 1.0 / float(size.y))
 						)
 
 
+# =========================================================================
+# MĘTNOŚĆ – SHADER I FALLBACK
+# =========================================================================
+
+## Ustawia poziom mętności w shaderze lub przez alpha modulate.
 func _apply_turbidity_level(level: float, color: Color) -> void:
 	if turbidity == null:
 		return
@@ -647,82 +733,43 @@ func _apply_turbidity_level(level: float, color: Color) -> void:
 		turbidity.modulate = c
 
 
+## Ustawia docelową wartość mętności (clamp) i przekazuje ją do _apply_turbidity_level.
 func _set_turbidity_value(value: float) -> void:
-	if _has_pellet_ready():
-		_apply_turbidity_level(0.0, turbidity_color)
-		ever_precipitated = false
-		return
-
-	var t: float = clamp(value, 0.0, 1.0)
-	_apply_turbidity_level(t, turbidity_color)
+	var clamped_value: float = clamp(value, 0.0, 1.0)
+	_apply_turbidity_level(clamped_value, turbidity_color)
 
 
-func _burst_turbidity(color: Color, amount: float) -> void:
-	if _has_pellet_ready() or turbidity == null:
-		return
+# =========================================================================
+# SHADER – HELPERY
+# =========================================================================
 
-	var burst_amount: float = clamp(amount, 0.0, 1.0)
-	turbidity_target = max(turbidity_target, burst_amount)
-
-	var turbidity_material := turbidity.material as ShaderMaterial
-
-	if turbidity_material and turbidity_material.shader:
-		_set_shader_param_safe(turbidity_material, "fog_color", color)
-
-		var start_turbidity: float = 0.0
-		var cur_val: Variant = turbidity_material.get_shader_parameter("turbidity")
-		if cur_val is float or cur_val is int:
-			start_turbidity = float(cur_val)
-
-		var target: float = max(start_turbidity, burst_amount)
-
-		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT) \
-			.tween_method(
-				func(new_t: float) -> void:
-					_apply_turbidity_level(new_t, color),
-				start_turbidity,
-				target,
-				0.25
-			)
-	else:
-		var start_alpha: float = turbidity.modulate.a
-		var target_alpha: float = max(start_alpha, burst_amount)
-
-		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT) \
-			.tween_property(turbidity, "modulate:a", target_alpha, 0.25)
-
-
-func _grow_sediment(color: Color, delta_amount: float) -> void:
-	if sediment == null:
-		return
-	sediment.visible = true
-	var solid_color := color
-	solid_color.a = 1.0
-	sediment.modulate = solid_color
-	sediment_level = clamp(sediment_level + delta_amount, 0.0, 1.0)
-	create_tween().tween_property(sediment, "scale:y", sediment_level, 0.6)
-
-
+## Ustawia parametr shaderowy tylko jeśli shader posiada odpowiedni uniform.
 func _set_shader_param_safe(shader_material: ShaderMaterial, param_name: String, value) -> void:
 	if shader_material == null or shader_material.shader == null:
 		return
 	for uniform in shader_material.shader.get_shader_uniform_list():
-		var uniform_dict: Dictionary = uniform
-		if String(uniform_dict.get("name", "")) == param_name:
+		var info: Dictionary = uniform
+		if String(info.get("name", "")) == param_name:
 			shader_material.set_shader_parameter(param_name, value)
 			return
 
 
+## Sprawdza, czy shader posiada uniform o danej nazwie.
 func _shader_has_uniform(shader_material: ShaderMaterial, uniform_name: String) -> bool:
 	if shader_material == null or shader_material.shader == null:
 		return false
 	for uniform in shader_material.shader.get_shader_uniform_list():
-		var uniform_dict: Dictionary = uniform
-		if String(uniform_dict.get("name", "")) == uniform_name:
+		var info: Dictionary = uniform
+		if String(info.get("name", "")) == uniform_name:
 			return true
 	return false
 
 
+# =========================================================================
+# KOMUNIKACJA Z QUALENGINE
+# =========================================================================
+
+## Planowo zgłasza do QualEngine, że mieszanina się zmieniła (on_mixture_changed).
 func _schedule_recalc() -> void:
 	if _has_pellet_ready():
 		return
@@ -732,12 +779,18 @@ func _schedule_recalc() -> void:
 	call_deferred("_run_recalc")
 
 
+## Wywoływane w kolejnej klatce – odpala QualEngine.on_mixture_changed.
 func _run_recalc() -> void:
 	_recalc_scheduled = false
 	if Qualengine and Qualengine.has_method("on_mixture_changed"):
 		Qualengine.on_mixture_changed(self)
 
 
+# =========================================================================
+# RESET ZAWARTOŚCI PROBÓWKI
+# =========================================================================
+
+## Czyści zawartość probówki (jony, osady, tagi) i resetuje FX wizualne.
 func _clear_contents_completely() -> void:
 	if mixture and mixture.has_method("clear_all"):
 		mixture.clear_all()
@@ -749,20 +802,13 @@ func _clear_contents_completely() -> void:
 
 	(mixture.tags as Dictionary).erase("pH")
 	(mixture.tags as Dictionary).erase("ph_samples")
+	(mixture.tags as Dictionary).erase("pellet_ready")
 
 	ever_precipitated = false
-	suspended = 0.0
-	precip_total = 0.0
 	turbidity_color = Color.WHITE
-	sediment_color  = Color.WHITE
 	turbidity_target = initial_turbidity
 	display_turbidity = initial_turbidity
 	_set_turbidity_value(display_turbidity)
-
-	if sediment:
-		sediment_level = 0.0
-		sediment.scale.y = 0.0
-		sediment.visible = false
 
 	if crystal_fx:
 		var crystal_material := crystal_fx.material as ShaderMaterial
@@ -774,82 +820,93 @@ func _clear_contents_completely() -> void:
 		pellet.visible = false
 		pellet.modulate = Color(1, 1, 1, 1)
 
-	if mixture and (mixture.tags is Dictionary):
-		(mixture.tags as Dictionary).erase("pellet_ready")
 
+# =========================================================================
+# CHŁODZENIE (ŁAŹNIA WODNA)
+# =========================================================================
 
+## Aktualizuje stan chłodzenia probówki po wyjęciu z łaźni:
+## - restartuje licznik gdy bath_boiling == true,
+## - po upływie cooling_time_s ustawia cooled_enough = true i zgłasza recalculację.
 func _update_cooling(delta: float) -> void:
 	if not (mixture.tags is Dictionary):
 		return
 
-	var tags: Dictionary = mixture.tags
+	var tags_dict: Dictionary = mixture.tags
 
-	if not bool(tags.get(TAG_COOLING_READY, false)):
+	if not bool(tags_dict.get(TAG_COOLING_READY, false)):
 		return
 
-	if bool(tags.get(TAG_BATH_BOILING, false)):
-		tags[TAG_COOLING_T] = 0.0
-		tags.erase(TAG_COOLED_ENOUGH)
+	# W trakcie wrzenia licznik chłodzenia stoi w miejscu.
+	if bool(tags_dict.get(TAG_BATH_BOILING, false)):
+		tags_dict[TAG_COOLING_T] = 0.0
+		tags_dict.erase(TAG_COOLED_ENOUGH)
 		return
 
-	var cooling_time: float = 0.0
-	var cooling_time_tag: Variant = tags.get(TAG_COOLING_T, 0.0)
-	if cooling_time_tag is float or cooling_time_tag is int:
-		cooling_time = float(cooling_time_tag)
+	var current_t: float = 0.0
+	var t_val: Variant = tags_dict.get(TAG_COOLING_T, 0.0)
+	if t_val is float or t_val is int:
+		current_t = float(t_val)
 
-	cooling_time += max(0.0, delta)
-	tags[TAG_COOLING_T] = cooling_time
+	current_t += max(0.0, delta)
+	tags_dict[TAG_COOLING_T] = current_t
 
-	if cooling_time >= max(0.0, cooling_time_s) and not bool(tags.get(TAG_COOLED_ENOUGH, false)):
-		tags[TAG_COOLED_ENOUGH] = true
+	if current_t >= max(0.0, cooling_time_s) and not bool(tags_dict.get(TAG_COOLED_ENOUGH, false)):
+		tags_dict[TAG_COOLED_ENOUGH] = true
 		_schedule_recalc()
 
 
+# =========================================================================
+# CZYSZCZENIE FX (DLA QUALENGINE)
+# =========================================================================
+
+## Czyści FX osadów w probówce:
+## - wygasza mętność do initial_turbidity,
+## - wygasza crystal_fx,
+## - chowa pellet i usuwa pellet_ready,
+## - resetuje flagę ever_precipitated.
 func clear_precip_fx(fade_sec: float = 0.35) -> void:
-	var start_turbidity := display_turbidity
-	var target_turbidity := initial_turbidity
-	var fade_time : Variant = max(0.0, fade_sec)
+	var start_turb: float = display_turbidity
+	var target_turb: float = initial_turbidity
+	var time: float = max(0.0, fade_sec)
 
-	var main_tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	main_tween.tween_method(func(value): _set_turbidity_value(value), start_turbidity, target_turbidity, fade_time)
+	var turb_tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	turb_tween.tween_method(
+		func(value): _set_turbidity_value(value),
+		start_turb,
+		target_turb,
+		time
+	)
 
-	if sediment:
-		var sediment_tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		sediment_tween.tween_property(sediment, "scale:y", 0.0, fade_time)
-		create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT) \
-			.tween_property(sediment, "modulate:a", 0.0, fade_time)
-		sediment_tween.finished.connect(func () -> void:
-			if sediment:
-				sediment.visible = false
-				sediment_level = 0.0)
-
+	# kryształy
 	if crystal_fx:
 		var crystal_material := crystal_fx.material as ShaderMaterial
 		if crystal_material and crystal_material.shader and _shader_has_uniform(crystal_material, "progress"):
-			var current_progress := 0.0
-			var progress_value: Variant = crystal_material.get_shader_parameter("progress")
-			if progress_value is float:
-				current_progress = float(progress_value)
+			var current_progress: float = 0.0
+			var pv: Variant = crystal_material.get_shader_parameter("progress")
+			if pv is float:
+				current_progress = float(pv)
 			create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT) \
 				.tween_method(
 					func(value): crystal_material.set_shader_parameter("progress", value),
 					current_progress,
 					0.0,
-					fade_time
+					time
 				)
 
-		var crystal_fade := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		crystal_fade.tween_property(crystal_fx, "modulate:a", 0.0, fade_time)
-		crystal_fade.finished.connect(func () -> void:
+		var fade_tween := create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		fade_tween.tween_property(crystal_fx, "modulate:a", 0.0, time)
+		fade_tween.finished.connect(func () -> void:
 			if crystal_fx:
 				crystal_fx.visible = false
 				var crystal_material2 := crystal_fx.material as ShaderMaterial
 				if crystal_material2 and crystal_material2.shader and _shader_has_uniform(crystal_material2, "progress"):
 					crystal_material2.set_shader_parameter("progress", 0.0)
-				var fx_color: Color = crystal_fx.modulate
-				fx_color.a = 1.0
-				crystal_fx.modulate = fx_color)
+				var c := crystal_fx.modulate
+				c.a = 1.0
+				crystal_fx.modulate = c)
 
+	# pellet
 	if pellet:
 		pellet.visible = false
 		pellet.modulate = Color(1, 1, 1, 1)
@@ -859,15 +916,15 @@ func clear_precip_fx(fade_sec: float = 0.35) -> void:
 
 	turbidity_target = initial_turbidity
 	display_turbidity = initial_turbidity
-
 	ever_precipitated = false
-	suspended = 0.0
-	precip_total = 0.0
 
 
+# =========================================================================
+# CRYSTAL FX – HELPERY
+# =========================================================================
+
+## Pokazuje efekt kryształków w probówce (CrystalFX).
 func _show_crystal_fx(color: Color, progress_target: float) -> void:
-	if _has_pellet_ready():
-		return
 	if not crystal_fx:
 		return
 
@@ -879,10 +936,10 @@ func _show_crystal_fx(color: Color, progress_target: float) -> void:
 		if _shader_has_uniform(crystal_material, "crystal_color"):
 			crystal_material.set_shader_parameter("crystal_color", color)
 		if _shader_has_uniform(crystal_material, "progress"):
-			var start_progress := 0.0
-			var current_progress_value: Variant = crystal_material.get_shader_parameter("progress")
-			if current_progress_value is float:
-				start_progress = float(current_progress_value)
+			var start_progress: float = 0.0
+			var pv: Variant = crystal_material.get_shader_parameter("progress")
+			if pv is float:
+				start_progress = float(pv)
 			create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT) \
 				.tween_method(
 					func(value): crystal_material.set_shader_parameter("progress", value),
@@ -892,6 +949,7 @@ func _show_crystal_fx(color: Color, progress_target: float) -> void:
 				)
 
 
+## Ukrywa efekt kryształków i resetuje progress.
 func _hide_crystal_fx() -> void:
 	if not crystal_fx:
 		return
@@ -901,6 +959,7 @@ func _hide_crystal_fx() -> void:
 	crystal_fx.visible = false
 
 
+## Sprawdza, czy efekt CrystalFX jest aktualnie aktywny.
 func _crystal_fx_active() -> bool:
 	if crystal_fx == null:
 		return false
@@ -908,12 +967,34 @@ func _crystal_fx_active() -> bool:
 		return false
 	var crystal_material := crystal_fx.material as ShaderMaterial
 	if crystal_material and crystal_material.shader and _shader_has_uniform(crystal_material, "progress"):
-		var progress_value: Variant = crystal_material.get_shader_parameter("progress")
-		if progress_value is float:
-			return float(progress_value) > 0.01
+		var pv: Variant = crystal_material.get_shader_parameter("progress")
+		if pv is float:
+			return float(pv) > 0.01
 	return crystal_fx.modulate.a > 0.01
 
 
+## Wymusza wyłączenie efektu CrystalFX.
+func _force_crystal_fx_off() -> void:
+	if not crystal_fx:
+		return
+	crystal_fx.visible = false
+	var crystal_material := crystal_fx.material as ShaderMaterial
+	if crystal_material and crystal_material.shader and _shader_has_uniform(crystal_material, "progress"):
+		crystal_material.set_shader_parameter("progress", 0.0)
+	var c := crystal_fx.modulate
+	c.a = 0.0
+	crystal_fx.modulate = c
+
+
+# =========================================================================
+# WIROWANIE / PELLET
+# =========================================================================
+
+## Reaguje na zakończenie wirowania:
+## - zapamiętuje tryb osadu sprzed wirowania,
+## - chowa CrystalFX,
+## - ustawia pellet na dnie w kolorze turbidity_color,
+## - resetuje mętność.
 func on_centrifuge_compact() -> void:
 	last_precip_mode = "floc"
 	if _crystal_fx_active():
@@ -922,24 +1003,34 @@ func on_centrifuge_compact() -> void:
 
 	_hide_crystal_fx()
 
-	var pellet_color := sediment_color
-	if pellet_color == Color.WHITE and turbidity_color != Color.WHITE:
-		pellet_color = turbidity_color
-
+	var pellet_color := turbidity_color
 	show_pellet(true, pellet_color)
 
-	suspended = 0.0
-	precip_total = 0.0
 	turbidity_target = 0.0
 	display_turbidity = 0.0
 	_set_turbidity_value(0.0)
 
 
+## Sprawdza, czy probówka ma pellet (sprite lub tag pellet_ready).
 func _has_pellet_ready() -> bool:
 	return (pellet != null and pellet.visible) \
 		or ((mixture.tags is Dictionary) and bool(mixture.tags.get("pellet_ready", false)))
 
 
+## Sprawdza, czy probówka zawiera suchy pellet (bez cieczy):
+## - przydatne do późniejszego drucika do próby płomieniowej.
+func has_dry_pellet() -> bool:
+	var pellet_ready := _has_pellet_ready()
+
+	var no_liquid := (fill_level <= 0.001) \
+		and mixture \
+		and (mixture.ions is Dictionary) \
+		and mixture.ions.size() == 0
+
+	return pellet_ready and no_liquid
+
+
+## Pokazuje pellet o zadanym kolorze w probówce i ustawia pellet_ready w tags.
 func show_pellet(on: bool, color: Color = Color.WHITE) -> void:
 	if pellet == null:
 		return
@@ -948,8 +1039,13 @@ func show_pellet(on: bool, color: Color = Color.WHITE) -> void:
 		return
 
 	var alpha: float = clamp(pellet_opacity, 0.0, 1.0)
-	var final_pellet_color := Color(color.r * pellet_brightness, color.g * pellet_brightness, color.b * pellet_brightness, alpha)
-	pellet.modulate = final_pellet_color
+	var final_color := Color(
+		color.r * pellet_brightness,
+		color.g * pellet_brightness,
+		color.b * pellet_brightness,
+		alpha
+	)
+	pellet.modulate = final_color
 	pellet.visible = true
 
 	ever_precipitated = false
@@ -961,10 +1057,7 @@ func show_pellet(on: bool, color: Color = Color.WHITE) -> void:
 		mixture.tags["pellet_ready"] = true
 
 
-func show_pellet_from_sediment() -> void:
-	show_pellet(true, sediment_color)
-
-
+## Chowa pellet i usuwa tag pellet_ready.
 func hide_pellet() -> void:
 	if pellet:
 		pellet.visible = false
@@ -973,6 +1066,15 @@ func hide_pellet() -> void:
 		(mixture.tags as Dictionary).erase("pellet_ready")
 
 
+# =========================================================================
+# MIESZANIE BAGIETKĄ
+# =========================================================================
+
+## Miesza zawartość probówki bagietką:
+## - dla pelletu: resuspenzuje go na osad floc/crystal, czyści tag centrifuged,
+## - dla kryształków: podbija progres CrystalFX,
+## - dla zwykłej mętności: lekko zwiększa mętność,
+## - na koniec zgłasza recalculację do QualEngine.
 func stir_with_rod(strength: float = 0.6) -> void:
 	var stir_strength: float = clamp(strength, 0.0, 1.0)
 
@@ -983,43 +1085,36 @@ func stir_with_rod(strength: float = 0.6) -> void:
 
 	if was_pellet:
 		hide_pellet()
+
+		# Po rozmieszaniu pelletu probówka nie jest już „centrifuged”.
+		if mixture and (mixture.tags is Dictionary):
+			var tags_dict := mixture.tags as Dictionary
+			tags_dict.erase("centrifuged")
+
 		if last_precip_mode == "crystal" or had_crystal_before_spin:
 			ever_precipitated = false
 			turbidity_target = initial_turbidity
 			display_turbidity = initial_turbidity
 			_set_turbidity_value(display_turbidity)
-			var prog: float = clamp(0.35 + 0.6 * stir_strength, 0.0, 1.0)
-			_show_crystal_fx(sediment_color, prog)
+			var crystal_progress: float = clamp(0.35 + 0.6 * stir_strength, 0.0, 1.0)
+			_show_crystal_fx(turbidity_color, crystal_progress)
 			last_precip_mode = "crystal"
 		else:
 			_hide_crystal_fx()
 			ever_precipitated = true
-			var kick: float = clamp(0.15 * stir_strength + sediment_level * 0.7, 0.0, 1.0)
-			suspended = clamp(suspended + kick, 0.0, 1.0)
-			var bump :Variant= max(suspended, initial_turbidity + 0.1 * stir_strength)
-			turbidity_target = clamp(max(turbidity_target, bump), turbidity_floor, 1.0)
+			var bump: float = clamp(0.3 + 0.5 * stir_strength, 0.0, 1.0)
+			turbidity_target = max(turbidity_target, bump)
 			display_turbidity = max(display_turbidity, bump)
-			turbidity_color = sediment_color
 			_set_turbidity_value(display_turbidity)
-			_burst_turbidity(sediment_color, display_turbidity)
-			settle_delay_left = settle_delay
 			last_precip_mode = "floc"
 
 		_schedule_recalc()
 		return
 
+	# Kryształki już są aktywne – delikatnie podbij progres.
 	if _crystal_fx_active():
-		hide_pellet()
-		ever_precipitated = false
-		suspended = 0.0
-		turbidity_target = max(turbidity_target, initial_turbidity)
-		display_turbidity = max(display_turbidity, initial_turbidity)
-		_set_turbidity_value(display_turbidity)
-		var prog_target: float = clamp(0.35 + 0.45 * stir_strength, 0.0, 1.0)
-		_show_crystal_fx(sediment_color, prog_target)
-		last_precip_mode = "crystal"
-		settle_delay_left = 0.0
-		_schedule_recalc()
+		var prog_target: float = clamp(0.4 + 0.4 * stir_strength, 0.0, 1.0)
+		_show_crystal_fx(turbidity_color, prog_target)
 		return
 
 	if not has_any_liquid():
@@ -1027,49 +1122,29 @@ func stir_with_rod(strength: float = 0.6) -> void:
 
 	if not _has_any_precipitate_or_suspension():
 		ever_precipitated = false
-		suspended = 0.0
 		turbidity_target = initial_turbidity
 		display_turbidity = initial_turbidity
 		_set_turbidity_value(display_turbidity)
 		return
 
-	hide_pellet()
 	_hide_crystal_fx()
 	ever_precipitated = true
-
-	var kick2: float = clamp(0.15 * stir_strength + sediment_level * 0.7, 0.0, 1.0)
-	suspended = clamp(suspended + kick2, 0.0, 1.0)
-	var bump2 :Variant= max(suspended, initial_turbidity + 0.1 * stir_strength)
-	turbidity_target = clamp(max(turbidity_target, bump2), turbidity_floor, 1.0)
+	var bump2: float = clamp(0.2 + 0.5 * stir_strength, 0.0, 1.0)
+	turbidity_target = max(turbidity_target, bump2)
 	display_turbidity = max(display_turbidity, bump2)
-	turbidity_color = sediment_color
 	_set_turbidity_value(display_turbidity)
-	_burst_turbidity(sediment_color, display_turbidity)
-	settle_delay_left = settle_delay
 
 	_schedule_recalc()
 
 
+## Alias do stir_with_rod – resuspenduje pellet (używane np. z innych miejsc).
 func resuspend_pellet(strength: float = 0.6) -> void:
 	stir_with_rod(strength)
 
 
-func _force_crystal_fx_off() -> void:
-	if not crystal_fx:
-		return
-	crystal_fx.visible = false
-	var crystal_material := crystal_fx.material as ShaderMaterial
-	if crystal_material and crystal_material.shader and _shader_has_uniform(crystal_material, "progress"):
-		crystal_material.set_shader_parameter("progress", 0.0)
-	var fx_color := crystal_fx.modulate
-	fx_color.a = 0.0
-	crystal_fx.modulate = fx_color
-
-
+## Sprawdza, czy w probówce jest jakakolwiek postać osadu (pellet, solids, kryształki).
 func _has_any_precipitate_or_suspension() -> bool:
 	if _has_pellet_ready():
-		return true
-	if suspended > 0.000001 or precip_total > 0.000001 or sediment_level > 0.000001:
 		return true
 	if mixture and (mixture.solids is Dictionary) and mixture.solids.size() > 0:
 		return true

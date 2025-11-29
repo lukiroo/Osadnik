@@ -8,10 +8,6 @@ id = "NaOH"
 display_name = "NaOH"
 ions = {
 "Na+": 1,
-"OH-": 1
+"OH-": 100
 }
-ph_value = nan
-eq_per_click = 0.01
-vol_per_click = 0.1
-is_base = true
 metadata/_custom_type_script = "uid://bp7lhj2v28shg"

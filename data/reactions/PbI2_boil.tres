@@ -1,16 +1,16 @@
-[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://cfmoeafqmy6qc"]
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://kxu2dnlrwjhb"]
 
-[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_2yykc"]
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_2epbs"]
 
 [resource]
-script = ExtResource("1_2yykc")
-id = "PbCl2_boil"
+script = ExtResource("1_2epbs")
+id = "PbI2_boil"
 priority = 6
 reactants_solids = {
-"PbCl2_s": 1
+"PbI2_s": 1
 }
 products_ions = {
-"Cl-": 1,
+"I-": 1,
 "Pb2+": 1
 }
 require_boiling = true

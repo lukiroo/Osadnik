@@ -5,5 +5,5 @@
 [resource]
 script = ExtResource("1_xwsr8")
 id = "PbCrO4_s"
-color = Color(0.627451, 0.6745098, 0, 1)
+color = Color(0.85711235, 0.8120687, 0, 1)
 metadata/_custom_type_script = "uid://cseysmrx52n3i"

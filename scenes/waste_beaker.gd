@@ -34,11 +34,6 @@ var _cursor_inside: bool = false                        ## Czy kursor aktualnie 
 @export var sfx_holding_pipette: AudioStream
 
 
-func _enter_tree() -> void:
-	## Rejestracja zlewki jako „dropzony” dla probówek.
-	add_to_group("probe_dropzones")
-
-
 func _ready() -> void:
 	## Przygotowanie Area2D i materiału dla outline’u.
 	if area:

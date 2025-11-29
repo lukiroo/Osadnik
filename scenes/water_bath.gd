@@ -1,242 +1,271 @@
 extends Node2D
 class_name WaterBath
 
-## Łaźnia wodna o trzech stanach pracy:
-## OFF → WARMING → BOILING.
-## W stanie BOILING każda probówka otrzymuje indywidualny czas ogrzewania (`TAG_BOIL_TIME`).
-## Po przekroczeniu `boil_delay` probówka uznawana jest za „rozgrzaną” (TAG_BOILING_NOW = true).
-## Informacje te trafiają do `Mixture.tags` i mogą być wykorzystywane w reakcjach QualEngine.
+## =========================================================================
+## water_bath.gd – łaźnia wodna
+## -------------------------------------------------------------------------
+## Odpowiada za:
+## - przełączanie stanów pracy: OFF → WARMING → BOILING,
+## - podgrzewanie probówek w slotach (przypiętych do $Slots),
+## - naliczanie czasu gotowania „bath_boil_time” osobno dla każdej probówki,
+## - ustawianie taga „bath_boiling” po przekroczeniu progu boil_delay,
+## - czyszczenie tagów termicznych po wyłączeniu łaźni lub wyjęciu probówki.
+## =========================================================================
 
-@export var warmup_seconds: float = 10.0       ## Czas przejścia z WARMING do BOILING.
-@export var boil_delay: float = 5.0            ## Minimalny czas ogrzewania probówki, aby uzyskała status „bath_boiling”.
+@export var warmup_seconds: float = 10.0  ## Czas nagrzewania łaźni od OFF do BOILING.
+@export var boil_delay: float = 5.0       ## Minimalny czas gotowania probówki, aby dostała bath_boiling = true.
 
-@onready var slots_container: Node  = $Slots
-@onready var heat_button: Area2D   = $HeatButton
-@onready var led_hot: Node2D       = $LedOn
+@onready var slots_root: Node   = $Slots
+@onready var heat_button: Area2D = $HeatButton
+@onready var led_hot: Node2D    = $LedOn
 
 enum State { OFF, WARMING, BOILING }
+
+## Aktualny stan łaźni.
 var state: State = State.OFF
 
-var _warmup_timer: Timer = null
+## Timer do odmierzania nagrzewania łaźni (OFF → BOILING).
+var warmup_timer: Timer = null
 
-## Aktualny czas ogrzewania probówek w stanie BOILING (liczony per instancja probówki).
-var _boil_time_s: Dictionary = {}   ## { probe: float_seconds }
+## Mapa: probe (Node2D) -> czas gotowania [s].
+var probe_boil_time: Dictionary = {}
 
-## Mapowanie slot → probówka, ułatwia zarządzanie tagami przy wkładaniu/wyjmowaniu.
-var _slot_probe: Dictionary = {}    ## { ProbeSlot: Probe }
+## Mapa: slot (ProbeSlot) -> aktualna probówka (do czyszczenia tagów przy wyjęciu).
+var slot_probe_map: Dictionary = {}
 
-## Nazwy tagów stosowane w `Mixture.tags` (zgodne z oczekiwaniami QualEngine).
 const TAG_BOIL_TIME   := "bath_boil_time"
 const TAG_BOILING_NOW := "bath_boiling"
 
 
+# =========================================================================
+# INICJALIZACJA
+# =========================================================================
+
+## Inicjalizuje łaźnię:
+## - podpina sygnały do slotów,
+## - tworzy timer nagrzewania,
+## - ustawia stan diody LED,
+## - resetuje tagi termiczne probówek.
 func _ready() -> void:
-	## Inicjalizacja: podłączamy się do slotów i konfigurujemy timer nagrzewania.
-	for slot: ProbeSlot in _get_slots_list():
+	for slot: ProbeSlot in _get_slots():
 		if not slot.is_connected("occupied_changed", Callable(self, "_on_slot_occupied_changed")):
 			slot.occupied_changed.connect(_on_slot_occupied_changed)
 
-		var p := slot.get_current_probe() as Node2D
-		if p:
-			_slot_probe[slot] = p
+		var probe := slot.get_current_probe() as Node2D
+		if probe:
+			slot_probe_map[slot] = probe
 
-	_warmup_timer = Timer.new()
-	_warmup_timer.one_shot = true
-	add_child(_warmup_timer)
-	_warmup_timer.timeout.connect(_on_warmup_done)
+	warmup_timer = Timer.new()
+	warmup_timer.one_shot = true
+	add_child(warmup_timer)
+	warmup_timer.timeout.connect(_on_warmup_done)
 
 	_update_led()
-	_reset_probe_heat()
+	_reset_all_probes_heat()
 
 
+## Aktualizuje stan łaźni w każdej klatce:
+## - w stanie BOILING zwiększa czas gotowania dla probówek i aktualizuje tagi,
+## - w stanach OFF/WARMING resetuje czas i tagi termiczne probówek.
 func _physics_process(delta: float) -> void:
-	## W stanie BOILING aktualizujemy licznik czasu ogrzewania dla każdej probówki.
 	if state == State.BOILING:
-		for slot: ProbeSlot in _get_slots_list():
+		for slot: ProbeSlot in _get_slots():
 			var probe := slot.get_current_probe() as Node2D
 			if probe == null:
 				continue
 
-			var previous_t := float(_boil_time_s.get(probe, 0.0))
-			var new_t := previous_t + delta
-			_boil_time_s[probe] = new_t
+			var previous_time: float = float(probe_boil_time.get(probe, 0.0))
+			var new_time: float = previous_time + delta
+			probe_boil_time[probe] = new_time
 
-			# Aktualizacja tagów (czas + ewentualne osiągnięcie progu nagrzania).
-			_set_probe_heat_tags(probe, true, new_t)
+			_set_probe_heat_tags(probe, true, new_time)
 
-			# Przy przekroczeniu pełnej sekundy można zlecić przeliczenie reakcji.
-			if int(previous_t) != int(new_t):
-				_request_recompute(probe)
-
+			# Raz na pełną sekundę prosimy probówkę o przeliczenie chemii.
+			if int(previous_time) != int(new_time):
+				_request_recalc(probe)
 	else:
-		## W stanach OFF i WARMING tagi termiczne są resetowane.
-		for slot: ProbeSlot in _get_slots_list():
+		# OFF / WARMING – licznik i tagi wracają do zera.
+		for slot: ProbeSlot in _get_slots():
 			var probe := slot.get_current_probe() as Node2D
 			if probe == null:
 				continue
 
-			if float(_boil_time_s.get(probe, 0.0)) > 0.0:
-				_boil_time_s[probe] = 0.0
+			if float(probe_boil_time.get(probe, 0.0)) > 0.0:
+				probe_boil_time[probe] = 0.0
 				_set_probe_heat_tags(probe, false, 0.0)
-				_request_recompute(probe)
+				_request_recalc(probe)
 
 
-# -------------------------------------------------------------------
-# Sterowanie łaźnią – przycisk grzania
-# -------------------------------------------------------------------
+# =========================================================================
+# PRZYCISK GRZANIA
+# =========================================================================
+
+## Obsługuje input na przycisku grzania:
+## - reaguje na klik LPM tylko gdy Lab jest w trybie IDLE,
+## - wywołuje _on_heat_button_clicked().
 func _on_heat_button_input_event(_vp: Viewport, event: InputEvent, _shape_idx: int) -> void:
-	## Reakacja na klik w przycisk grzania – tylko gdy Lab jest w trybie IDLE.
 	if not _lab_is_idle():
 		return
-
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		_on_heat_button_clicked()
 
 
+## Obsługuje kliknięcie przycisku grzania:
+## - OFF → WARMING: startuje timer nagrzewania,
+## - WARMING/BOILING → OFF: wyłącza łaźnię, resetuje tagi probówek.
 func _on_heat_button_clicked() -> void:
 	match state:
 		State.OFF:
-			## Start nagrzewania (OFF → WARMING).
 			state = State.WARMING
 			_update_led()
 
-			_warmup_timer.stop()
-			_warmup_timer.wait_time = max(0.0, warmup_seconds)
-			_warmup_timer.start()
+			warmup_timer.stop()
+			warmup_timer.wait_time = max(0.0, warmup_seconds)
+			warmup_timer.start()
 
-			_reset_probe_heat()
+			_reset_all_probes_heat()
 
 		_:
-			## Wyłączenie łaźni z dowolnego innego stanu.
 			state = State.OFF
 			_update_led()
-			_warmup_timer.stop()
+			warmup_timer.stop()
 
-			for slot: ProbeSlot in _get_slots_list():
+			for slot: ProbeSlot in _get_slots():
 				var probe := slot.get_current_probe() as Node2D
 				if probe:
-					_boil_time_s[probe] = 0.0
+					probe_boil_time[probe] = 0.0
 					_set_probe_heat_tags(probe, false, 0.0)
-					_request_recompute(probe)
+					_request_recalc(probe)
 
 
+## Reaguje na zakończenie nagrzewania łaźni:
+## - ustawia stan BOILING,
+## - resetuje licznik boil_time dla probówek,
+## - ustawia tagi termiczne i prosi probówki o przeliczenie reakcji.
 func _on_warmup_done() -> void:
-	## Łaźnia osiągnęła wrzenie – przejście do stanu BOILING.
 	state = State.BOILING
 	_update_led()
 
-	for slot: ProbeSlot in _get_slots_list():
+	for slot: ProbeSlot in _get_slots():
 		var probe := slot.get_current_probe() as Node2D
 		if probe:
-			_boil_time_s[probe] = 0.0
+			probe_boil_time[probe] = 0.0
 			_set_probe_heat_tags(probe, true, 0.0)
-			_request_recompute(probe)
+			_request_recalc(probe)
 
 
-# -------------------------------------------------------------------
-# Sloty i probówki
-# -------------------------------------------------------------------
-func _get_slots_list() -> Array[ProbeSlot]:
+# =========================================================================
+# SLOTY I PROBÓWKI
+# =========================================================================
+
+## Zwraca listę slotów łaźni (dzieci slots_root będące ProbeSlot).
+func _get_slots() -> Array[ProbeSlot]:
 	var result: Array[ProbeSlot] = []
-	if slots_container == null:
+	if slots_root == null:
 		return result
 
-	for child in slots_container.get_children():
+	for child in slots_root.get_children():
 		if child is ProbeSlot:
 			result.append(child as ProbeSlot)
-
 	return result
 
 
+## Reaguje na zmianę zajętości slotu:
+## - dla starej probówki czyści tagi i licznik oraz zgłasza recalculację,
+## - dla nowej probówki ustawia początkowy stan termiczny i schładza licznik,
+## - aktualizuje mapę slot_probe_map.
 func _on_slot_occupied_changed(slot: ProbeSlot, probe: Node) -> void:
-	## Obsługa zmiany zawartości slotu – czyszczenie starych tagów i inicjalizacja nowych.
-	var previous := _slot_probe.get(slot, null) as Node2D
+	var previous_probe := slot_probe_map.get(slot, null) as Node2D
 
-	# Probówka, która stała w slocie wcześniej, ale została usunięta lub podmieniona.
-	if previous and (probe == null or previous != probe):
-		_clear_probe_heat_tags(previous)
-		_boil_time_s.erase(previous)
-		_request_recompute(previous)
+	# Stara probówka – czyści tagi i licznik.
+	if previous_probe and (probe == null or previous_probe != probe):
+		_clear_probe_heat_tags(previous_probe)
+		probe_boil_time.erase(previous_probe)
+		_request_recalc(previous_probe)
 
 	# Nowa probówka w slocie.
 	if probe and probe is Node2D:
-		var p := probe as Node2D
-		_slot_probe[slot] = p
-		_boil_time_s[p] = 0.0
+		var probe_2d := probe as Node2D
+		slot_probe_map[slot] = probe_2d
+		probe_boil_time[probe_2d] = 0.0
 
-		var boiling_now := (state == State.BOILING)
-		_set_probe_heat_tags(p, boiling_now, 0.0)
-		_request_recompute(p)
+		var is_boiling_now := (state == State.BOILING)
+		_set_probe_heat_tags(probe_2d, is_boiling_now, 0.0)
+		_request_recalc(probe_2d)
 	else:
-		_slot_probe.erase(slot)
+		slot_probe_map.erase(slot)
 
 
-func _reset_probe_heat() -> void:
-	## Resetuje stan „termiczny” wszystkich probówek przy zmianie trybu łaźni.
-	var boiling_now := (state == State.BOILING)
+## Resetuje stan termiczny wszystkich probówek w slotach:
+## - zeruje czas gotowania,
+## - ustawia tagi w zależności od aktualnego stanu łaźni,
+## - zgłasza recalculację.
+func _reset_all_probes_heat() -> void:
+	var is_boiling_now := (state == State.BOILING)
 
-	for slot: ProbeSlot in _get_slots_list():
+	for slot: ProbeSlot in _get_slots():
 		var probe := slot.get_current_probe() as Node2D
 		if probe:
-			_slot_probe[slot] = probe
-			_boil_time_s[probe] = 0.0
-			_set_probe_heat_tags(probe, boiling_now, 0.0)
-			_request_recompute(probe)
+			slot_probe_map[slot] = probe
+			probe_boil_time[probe] = 0.0
+			_set_probe_heat_tags(probe, is_boiling_now, 0.0)
+			_request_recalc(probe)
 
 
-# -------------------------------------------------------------------
-# Tagowanie stanu ogrzewania probówek
-# -------------------------------------------------------------------
-func _set_probe_heat_tags(probe: Node2D, boiling: bool, boil_time_s: float) -> void:
-	var mix := probe.get("mixture") as Mixture
-	if mix == null:
+# =========================================================================
+# TAGI TERMICZNE W Mixture.tags
+# =========================================================================
+
+## Ustawia tagi termiczne probówki:
+## - gdy boiling == true: ustawia bath_boil_time oraz bath_boiling (po boil_delay),
+## - gdy boiling == false: czyści tagi termiczne przez _clear_probe_heat_tags.
+func _set_probe_heat_tags(probe: Node2D, boiling: bool, boil_time: float) -> void:
+	var mixture := probe.get("mixture") as Mixture
+	if mixture == null:
 		return
-
-	if not (mix.tags is Dictionary):
-		mix.tags = {}
-	var tags: Dictionary = mix.tags
+	if not (mixture.tags is Dictionary):
+		mixture.tags = {}
+	var tags_dict: Dictionary = mixture.tags
 
 	if boiling:
-		# Aktualizacja łącznego czasu ogrzewania (w sekundach).
-		tags[TAG_BOIL_TIME] = boil_time_s
-
-		# Probówka uzyskuje status „bath_boiling” dopiero po przekroczeniu progu opóźnienia.
-		if boil_time_s >= boil_delay:
-			tags[TAG_BOILING_NOW] = true
+		tags_dict[TAG_BOIL_TIME] = boil_time
+		if boil_time >= boil_delay:
+			tags_dict[TAG_BOILING_NOW] = true
 		else:
-			tags.erase(TAG_BOILING_NOW)
+			tags_dict.erase(TAG_BOILING_NOW)
 	else:
-		# Przy wyjściu ze stanu BOILING tagi termiczne są usuwane.
 		_clear_probe_heat_tags(probe)
 
 
+## Czyści tagi termiczne probówki (bath_boil_time, bath_boiling).
 func _clear_probe_heat_tags(probe: Node2D) -> void:
-	var mix := probe.get("mixture") as Mixture
-	if mix == null or not (mix.tags is Dictionary):
+	var mixture := probe.get("mixture") as Mixture
+	if mixture == null or not (mixture.tags is Dictionary):
 		return
+	var tags_dict: Dictionary = mixture.tags
+	tags_dict.erase(TAG_BOIL_TIME)
+	tags_dict.erase(TAG_BOILING_NOW)
 
-	var tags: Dictionary = mix.tags
-	tags.erase(TAG_BOIL_TIME)
-	tags.erase(TAG_BOILING_NOW)
 
-
-func _request_recompute(probe: Node2D) -> void:
-	## Delikatne zlecenie przeliczenia chemii – probówka sama wywoła QualEngine.
+## Prosi probówkę o przeliczenie chemii (wywołuje _schedule_recalc deferred).
+func _request_recalc(probe: Node2D) -> void:
 	if probe.has_method("_schedule_recalc"):
 		probe.call_deferred("_schedule_recalc")
 
 
-# -------------------------------------------------------------------
-# LED + kontrola trybu pracy laboratorium
-# -------------------------------------------------------------------
+# =========================================================================
+# LED + SPRAWDZENIE TRYBU LABORATORIUM
+# =========================================================================
+
+## Aktualizuje stan diody LED (świeci, gdy łaźnia nie jest w stanie OFF).
 func _update_led() -> void:
-	## Dioda świeci zawsze, gdy łaźnia nie jest w stanie OFF.
 	if led_hot:
 		led_hot.visible = (state != State.OFF)
 
 
+## Sprawdza, czy główny Lab jest w trybie IDLE:
+## - inne tryby mogą blokować interakcję z łaźnią.
 func _lab_is_idle() -> bool:
-	## Sprawdza, czy Lab jest w trybie IDLE – inne tryby mogą blokować przełączanie łaźni.
 	var lab := get_tree().get_first_node_in_group("lab_root")
 	if lab == null:
 		return true

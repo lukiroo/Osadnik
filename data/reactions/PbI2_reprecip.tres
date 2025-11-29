@@ -1,17 +1,17 @@
-[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://cbrt0r1d2uhyw"]
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://cjucnqg7k3gro"]
 
-[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_f07es"]
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_sv6cg"]
 
 [resource]
-script = ExtResource("1_f07es")
-id = "PbCl2_reprecip"
+script = ExtResource("1_sv6cg")
+id = "PbI2_reprecip"
 priority = 10
 reactants_ions = {
-"Cl-": 1,
+"I-": 1,
 "Pb2+": 1
 }
 products_solids = {
-"PbCl2_s": 1
+"PbI2_s": 1
 }
 require_tags_all = {
 "cooled_enough": true,

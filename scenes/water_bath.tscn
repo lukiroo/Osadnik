@@ -29,14 +29,14 @@ color = Color(0.25715026, 0.6056659, 0.2537831, 1)
 
 [node name="Slots" type="Node2D" parent="."]
 
-[node name="ProbeSlot" parent="Slots" groups=["probe_dropzones"] instance=ExtResource("3_x01e5")]
+[node name="ProbeSlot" parent="Slots" instance=ExtResource("3_x01e5")]
 position = Vector2(-88, -71)
 snap_radius = 70.0
 
-[node name="ProbeSlot2" parent="Slots" groups=["probe_dropzones"] instance=ExtResource("3_x01e5")]
+[node name="ProbeSlot2" parent="Slots" instance=ExtResource("3_x01e5")]
 position = Vector2(-20, -71)
 
-[node name="ProbeSlot3" parent="Slots" groups=["probe_dropzones"] instance=ExtResource("3_x01e5")]
+[node name="ProbeSlot3" parent="Slots" instance=ExtResource("3_x01e5")]
 position = Vector2(49, -72)
 
 [node name="HeatButton" type="Area2D" parent="."]

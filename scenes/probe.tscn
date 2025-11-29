@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://cc78m6ydl4qdf"]
+[gd_scene load_steps=18 format=3 uid="uid://cc78m6ydl4qdf"]
 
 [ext_resource type="Script" uid="uid://dwvrjdxh0exdo" path="res://scenes/probe.gd" id="1_jyxx6"]
 [ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="2_7m7ac"]
@@ -9,7 +9,6 @@
 [ext_resource type="Texture2D" uid="uid://b1847snh2iwmf" path="res://assets/liquid.png" id="5_d2v0j"]
 [ext_resource type="Texture2D" uid="uid://cfl0c1r0wuf8k" path="res://assets/turbidity.png" id="6_ca6b4"]
 [ext_resource type="Material" uid="uid://brrw7vgih8ufj" path="res://resources/fog.tres" id="6_s0m5e"]
-[ext_resource type="Texture2D" uid="uid://dek5xiqnnewwx" path="res://assets/precipitate.png" id="7_ca6b4"]
 [ext_resource type="Shader" uid="uid://dcmf3ks8y6nuu" path="res://resources/crystals.gdshader" id="8_cnpu5"]
 [ext_resource type="Texture2D" uid="uid://denfpy0x3d6ol" path="res://assets/pixel.png" id="9_tnybu"]
 [ext_resource type="Texture2D" uid="uid://cs64yr2alt0o5" path="res://assets/pellet.png" id="10_tnybu"]
@@ -18,6 +17,16 @@
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_pf5rm"]
 radius = 17.0
 height = 178.0
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_2qgy4"]
+shader = ExtResource("8_cnpu5")
+shader_parameter/progress = 0.0
+shader_parameter/crystal_color = Color(1, 1, 1, 1)
+shader_parameter/grain = 160.0
+shader_parameter/edge_soft = 0.5
+shader_parameter/use_mask = false
+shader_parameter/mask_texel = Vector2(0, 0)
+shader_parameter/level01 = 1.0
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_yr4bq"]
 resource_local_to_scene = true
@@ -31,16 +40,6 @@ shader_parameter/wall_softness_px = 1.5
 shader_parameter/meniscus_boost = 0.0
 shader_parameter/meniscus_band_px = 1.0
 
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_2qgy4"]
-shader = ExtResource("8_cnpu5")
-shader_parameter/progress = 0.0
-shader_parameter/crystal_color = Color(1, 1, 1, 1)
-shader_parameter/grain = 160.0
-shader_parameter/edge_soft = 0.5
-shader_parameter/use_mask = false
-shader_parameter/mask_texel = Vector2(0, 0)
-shader_parameter/level01 = 1.0
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_m08cl"]
 shader = ExtResource("2_7m7ac")
 shader_parameter/highlight = false
@@ -51,6 +50,7 @@ shader_parameter/alpha_threshold = 0.1
 
 [node name="Probe" type="Node2D"]
 script = ExtResource("1_jyxx6")
+pellet_brightness = 0.99
 
 [node name="ProbeArea2D" type="Area2D" parent="."]
 
@@ -80,37 +80,27 @@ position = Vector2(-1, 8.1334305)
 scale = Vector2(0.40000004, 1.0686435)
 texture = ExtResource("5_d2v0j")
 
-[node name="LiquidLevelSprite2D" type="Sprite2D" parent="LiquidFill"]
-z_index = 3
-material = SubResource("ShaderMaterial_yr4bq")
-position = Vector2(-0.99999905, 2.2668552)
-scale = Vector2(0.40000004, 1.1446942)
-texture = ExtResource("4_bv7ge")
-
 [node name="CrystalFX" type="Sprite2D" parent="LiquidFill"]
 self_modulate = Color(1, 1, 1, 0)
 z_index = 10
 material = SubResource("ShaderMaterial_2qgy4")
-position = Vector2(-0.025, 49.915)
-scale = Vector2(22.25, 54.749992)
+position = Vector2(-0.025, 13.645002)
+scale = Vector2(22.25, 127.29001)
 texture = ExtResource("9_tnybu")
 
 [node name="Pellet" type="Sprite2D" parent="LiquidFill"]
 visible = false
-z_index = 130
+z_index = 10
 position = Vector2(0, 49.77)
 scale = Vector2(1.8333334, 1.7368422)
 texture = ExtResource("10_tnybu")
 
-[node name="Sediment" type="Node2D" parent="."]
-z_index = 4
-position = Vector2(0, 74)
-
-[node name="SedimentSprite" type="Sprite2D" parent="Sediment"]
-position = Vector2(-20, -149)
-scale = Vector2(1.6666669, 4.2631583)
-texture = ExtResource("7_ca6b4")
-centered = false
+[node name="LiquidLevelSprite2D" type="Sprite2D" parent="LiquidFill"]
+z_index = 15
+material = SubResource("ShaderMaterial_yr4bq")
+position = Vector2(-0.99999905, 2.2668533)
+scale = Vector2(0.40000007, 1.1446942)
+texture = ExtResource("4_bv7ge")
 
 [node name="GlassSprite2D" type="Sprite2D" parent="."]
 z_index = 10

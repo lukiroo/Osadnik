@@ -8,9 +8,6 @@ id = "HCl"
 display_name = "HCl"
 ions = {
 "Cl-": 1,
-"H+": 1
+"H+": 100
 }
-ph_value = nan
-eq_per_click = 0.01
-vol_per_click = 0.1
 metadata/_custom_type_script = "uid://bp7lhj2v28shg"

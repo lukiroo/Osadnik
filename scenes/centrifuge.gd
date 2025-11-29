@@ -1,14 +1,17 @@
 extends Node2D
 class_name Centrifuge
 
-## Wirówka laboratoryjna.
+## =========================================================================
+## centrifuge.gd – wirówka laboratoryjna
+## -------------------------------------------------------------------------
 ## Odpowiada za:
 ## - przełączanie stanów pracy: CLOSED_IDLE / OPEN_IDLE / SPINNING,
 ## - przyjmowanie probówek do bębna (do `capacity` sztuk),
 ## - uruchomienie cyklu wirowania na zadany czas (`spin_time_s`),
 ## - oznaczenie probówek z osadem tagiem w `Mixture.tags`
-##   i wywołanie `on_centrifuge_compact()` po zakończonym spinie,
+##   i wywołanie `on_centrifuge_compact()` po zakończonym wirowaniu,
 ## - otwieranie/zamykanie pokrywy i wyjmowanie probówek w kolejności LIFO.
+## =========================================================================
 
 @export var capacity: int = 4                      ## Maksymalna liczba probówek w bębnie.
 @export var spin_time_s: float = 5.0               ## Czas pojedynczego cyklu wirowania [s].
@@ -16,7 +19,7 @@ class_name Centrifuge
 @export var set_tag_after_spin_key: String = "centrifuged"
 @export var set_tag_after_spin_value: bool = true  ## Wartość przypisywana pod kluczem `set_tag_after_spin_key`.
 
-@export var debug_log: bool = false
+@export var debug_log: bool = false                ## Flaga debugowa – przy true można odkomentować printy.
 
 # Węzły graficzne
 @onready var closed_sprite: Sprite2D   = $CentrifugeClosed
@@ -33,13 +36,17 @@ class_name Centrifuge
 @onready var start_button: Area2D      = $StartButton
 @onready var pickup_area: Area2D       = $PickupArea
 @onready var led_on: Sprite2D          = $LedOn
-@onready var stored: Node              = $Stored   ## Kontener, w którym trzymamy probówki „ukryte” w bębnie.
+@onready var stored: Node              = $Stored   ## Kontener, w którym trzymamy probówki „schowane” w bębnie.
 
 enum State { CLOSED_IDLE, OPEN_IDLE, SPINNING }
+
+## Aktualny stan wirówki (zamknięta/otwarta/spinning).
 var state: State = State.CLOSED_IDLE
 
 ## Stos probówek w bębnie (LIFO – pobieramy zawsze ostatnio włożoną).
-var _stack: Array[Node2D] = []
+var _probe_stack: Array[Node2D] = []
+
+## Timer odpowiedzialny za zakończenie wirowania.
 var _spin_timer: Timer = null
 
 signal spin_started()
@@ -49,122 +56,143 @@ signal probe_picked_for_drag(probe: Node2D)
 signal probe_returned(probe: Node2D)
 
 
+# =========================================================================
+# INICJALIZACJA
+# =========================================================================
+
+## Inicjalizuje wirówkę:
+## - tworzy timer,
+## - ustawia początkowy widok, interaktywność i LED.
 func _ready() -> void:
-	## Inicjalizacja timera odpowiedzialnego za zakończenie cyklu wirowania.
 	_spin_timer = Timer.new()
 	_spin_timer.one_shot = true
 	add_child(_spin_timer)
 	_spin_timer.timeout.connect(_on_spin_done)
 
-	## Po starcie scena powinna być w spójnym stanie wizualnym i interakcyjnym.
-	_refresh_visual()
-	_update_interactibility()
+	_refresh_view()
+	_update_interactive_areas()
 	_update_led()
 
 
-# -------------------------------------------------------------------
-# DROPZONE – przyjmowanie probówek do bębna
-# -------------------------------------------------------------------
+# =========================================================================
+# DROPZONE – PRZYJMOWANIE PROBÓWEK DO BĘBNA
+# =========================================================================
+
+## Próbuje przyjąć probówkę do bębna:
+## - sprawdza stan wirówki, typ węzła, pojemność i trafienie w pickup_area,
+## - odrzuca probówki bez mieszaniny,
+## - przenosi probówkę do węzła $Stored i wyłącza jej interakcję,
+## - do stosu probówek dodaje ją tylko raz (LIFO).
 func accept_probe(probe: Node, at_global_pos: Vector2) -> bool:
-	## Próba odłożenia probówki do bębna.
-	## Zwraca true, jeśli wirówka „przyjęła” probówkę do środka (logicznie),
-	## ale faktyczny parent jest zawsze $Stored.
 	if state != State.OPEN_IDLE:
 		return false
 	if not (probe is Node2D):
 		return false
-	if _stack.size() >= capacity:
+	if _probe_stack.size() >= capacity:
 		return false
 	if not _point_hits_area(pickup_area, at_global_pos):
 		return false
 
-	var p := probe as Node2D
+	var probe_2d := probe as Node2D
 
 	# Probówki bez mieszaniny są ignorowane – nie ma sensu ich wirować.
-	var mix := p.get("mixture") as Mixture
-	if mix == null or mix.is_empty():
+	var mixture := probe_2d.get("mixture") as Mixture
+	if mixture == null or mixture.is_empty():
 		if debug_log:
-			print("[CENTRIFUGE] reject empty probe: ", p.name)
+			# print("[CENTRIFUGE] reject empty probe: ", probe_2d.name)
+			pass
 		return false
 
 	# Ponowne odłożenie tej samej probówki (już jest w bębnie).
-	if _stack.has(p):
-		_internalize_probe(p)
-		_refresh_visual()
+	if _probe_stack.has(probe_2d):
+		_store_probe_inside(probe_2d)
+		_refresh_view()
 		return true
 
-	_internalize_probe(p)
-	_stack.append(p)
-	_refresh_visual()
-	emit_signal("probe_accepted", p)
+	_store_probe_inside(probe_2d)
+	_probe_stack.append(probe_2d)
+	_refresh_view()
+	emit_signal("probe_accepted", probe_2d)
 	return true
 
 
-func _internalize_probe(p: Node2D) -> void:
-	## Przenosi probówkę do węzła $Stored i wyłącza jej własną interakcję.
-	if p.get_parent():
-		p.get_parent().remove_child(p)
+## Przenosi probówkę do węzła $Stored i wyłącza jej własną interakcję.
+func _store_probe_inside(probe_2d: Node2D) -> void:
+	if probe_2d.get_parent():
+		probe_2d.get_parent().remove_child(probe_2d)
 
-	stored.add_child(p)
-	p.visible = false
+	stored.add_child(probe_2d)
+	probe_2d.visible = false
 
-	var area := p.get_node_or_null("ProbeArea2D") as Area2D
-	if area:
-		area.monitoring = false
-		area.input_pickable = false
+	var probe_area := probe_2d.get_node_or_null("ProbeArea2D") as Area2D
+	if probe_area:
+		probe_area.monitoring = false
+		probe_area.input_pickable = false
 
 
-# -------------------------------------------------------------------
-# Obsługa pokrywy – otwieranie i zamykanie
-# -------------------------------------------------------------------
-func _on_lid_closed_area_input(_vp: Viewport, ev: InputEvent, _idx: int) -> void:
-	## Klik w grafikę zamkniętej pokrywy – próba otwarcia.
+# =========================================================================
+# OBSŁUGA POKRYWY – OTWIERANIE I ZAMYKANIE
+# =========================================================================
+
+## Obsługuje kliknięcie w zamkniętą pokrywę:
+## - jeżeli Lab jest w trybie IDLE i stan to CLOSED_IDLE,
+##   przełącza wirówkę w tryb OPEN_IDLE.
+func _on_lid_closed_area_input(_vp: Viewport, event: InputEvent, _idx: int) -> void:
 	if not _lab_is_idle():
 		return
-	if not (ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed):
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
 		return
 
 	if state == State.CLOSED_IDLE:
 		state = State.OPEN_IDLE
-		_refresh_visual()
-		_update_interactibility()
+		_refresh_view()
+		_update_interactive_areas()
 
 
-func _on_lid_open_area_input(_vp: Viewport, ev: InputEvent, _idx: int) -> void:
-	## Klik w grafikę otwartej pokrywy – zamknięcie i blokada wkładania/pobierania.
+## Obsługuje kliknięcie w otwartą pokrywę:
+## - jeżeli Lab jest w trybie IDLE i stan to OPEN_IDLE,
+##   zamyka pokrywę i przełącza stan na CLOSED_IDLE.
+func _on_lid_open_area_input(_vp: Viewport, event: InputEvent, _idx: int) -> void:
 	if not _lab_is_idle():
 		return
-	if not (ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed):
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
 		return
 
 	if state == State.OPEN_IDLE:
 		state = State.CLOSED_IDLE
-		_refresh_visual()
-		_update_interactibility()
+		_refresh_view()
+		_update_interactive_areas()
 
 
-# -------------------------------------------------------------------
-# Start i zakończenie wirowania
-# -------------------------------------------------------------------
-func _on_start_button_input(_vp: Viewport, ev: InputEvent, _idx: int) -> void:
-	## Start cyklu wirowania po kliknięciu przycisku.
+# =========================================================================
+# START I ZAKOŃCZENIE WIROWANIA
+# =========================================================================
+
+## Obsługuje kliknięcie w przycisk startu:
+## - sprawdza tryb Lab,
+## - wywołuje wewnętrzne _start_spin().
+func _on_start_button_input(_vp: Viewport, event: InputEvent, _idx: int) -> void:
 	if not _lab_is_idle():
 		return
-	if not (ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed):
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
 		return
 
 	_start_spin()
 
 
+## Uruchamia wirówkę:
+## - wymaga stanu CLOSED_IDLE oraz niepustego stosu probówek,
+## - ustawia stan SPINNING,
+## - odpala timer cyklu wirowania,
+## - emituje sygnał spin_started.
 func _start_spin() -> void:
-	## Uruchomienie wirówki – możliwe tylko przy zamkniętej pokrywie i niepustym bębnie.
 	if state != State.CLOSED_IDLE:
 		return
-	if _stack.is_empty():
+	if _probe_stack.is_empty():
 		return
 
 	state = State.SPINNING
-	_update_interactibility()
+	_update_interactive_areas()
 	_update_led()
 	emit_signal("spin_started")
 
@@ -173,130 +201,143 @@ func _start_spin() -> void:
 	_spin_timer.start()
 
 
+## Kończy cykl wirowania:
+## - dla każdej probówki z osadami ustawia tag (set_tag_after_spin_key),
+## - wywołuje on_centrifuge_compact() na probówce, jeśli istnieje,
+## - emituje sygnał spin_finished i wraca do stanu CLOSED_IDLE.
 func _on_spin_done() -> void:
-	## Zakończenie cyklu wirowania.
-	## Przechodzimy po probówkach i wykonujemy operacje tylko dla tych z osadami.
 	var any_with_solids := false
 
-	for p in _stack:
-		if p == null:
+	for probe_2d in _probe_stack:
+		if probe_2d == null:
 			continue
 
-		var mix := p.get("mixture") as Mixture
+		var mixture := probe_2d.get("mixture") as Mixture
 		var has_solids := false
 
-		if mix != null and (mix.solids is Dictionary):
-			var solids_dict: Dictionary = mix.solids
+		if mixture != null and (mixture.solids is Dictionary):
+			var solids_dict: Dictionary = mixture.solids
 			if solids_dict.size() > 0:
 				has_solids = true
 
 		# Probówki bez osadu nie są objęte logiką „pelletu”.
 		if not has_solids:
 			if debug_log:
-				print("[CENTRIFUGE] skip pellet for clear probe: ", p.name)
+				# print("[CENTRIFUGE] skip pellet for clear probe: ", probe_2d.name)
+				pass
 			continue
 
 		any_with_solids = true
 
-		# Tagowanie probówki po spinie (np. do późniejszych reakcji w QE).
 		if set_tag_after_spin_key != "":
-			_set_probe_tag(p, set_tag_after_spin_key, set_tag_after_spin_value)
+			_set_probe_tag(probe_2d, set_tag_after_spin_key, set_tag_after_spin_value)
 
-		# Callback odpowiadający za aktualizację wyglądu osadu po wirowaniu.
-		if p.has_method("on_centrifuge_compact"):
+		if probe_2d.has_method("on_centrifuge_compact"):
 			if debug_log:
-				print("[CENTRIFUGE] on_centrifuge_compact -> ", p.name)
-			p.on_centrifuge_compact()
+				# print("[CENTRIFUGE] on_centrifuge_compact -> ", probe_2d.name)
+				pass
+			probe_2d.on_centrifuge_compact()
 		elif debug_log:
-			print("[CENTRIFUGE] WARN: missing on_centrifuge_compact on ", (str(p.name) if p else "<null>"))
+			# print("[CENTRIFUGE] WARN: missing on_centrifuge_compact on ", (str(probe_2d.name) if probe_2d else "<null>"))
+			pass
 
 	if debug_log and not any_with_solids:
-		print("[CENTRIFUGE] no solids in any probe – nothing to compact")
+		# print("[CENTRIFUGE] no solids in any probe – nothing to compact")
+		pass
 
 	emit_signal("spin_finished")
 
 	state = State.CLOSED_IDLE
-	_update_interactibility()
+	_update_interactive_areas()
 	_update_led()
-	_refresh_visual()
+	_refresh_view()
 
 
-# -------------------------------------------------------------------
-# Wyjmowanie probówek (LIFO)
-# -------------------------------------------------------------------
-func _on_pickup_area_input(_vp: Viewport, ev: InputEvent, _idx: int) -> void:
-	## Klik w obszar pobierania – wyjęcie probówki z bębna.
+# =========================================================================
+# WYJMOWANIE PROBÓWEK (LIFO)
+# =========================================================================
+
+## Obsługuje kliknięcie w obszar pickup:
+## - wyjmuje ostatnią probówkę ze stosu,
+## - przywraca jej interakcję z otoczeniem,
+## - ustawia ją pod kursorem i rozpoczyna drag,
+## - emituje sygnał probe_picked_for_drag.
+func _on_pickup_area_input(_vp: Viewport, event: InputEvent, _idx: int) -> void:
 	if not _lab_is_idle():
 		return
-	if not (ev is InputEventMouseButton and ev.button_index == MOUSE_BUTTON_LEFT and ev.pressed):
+	if not (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed):
 		return
 	if state != State.OPEN_IDLE:
 		return
-	if _stack.is_empty():
+	if _probe_stack.is_empty():
 		return
 
-	var last_index := _stack.size() - 1
-	var p := _stack[last_index]
-	_stack.remove_at(last_index)
+	var last_index: int = _probe_stack.size() - 1
+	var probe_2d: Node2D = _probe_stack[last_index]
+	_probe_stack.remove_at(last_index)
 
 	# Przywrócenie interakcji probówki z otoczeniem.
-	var area := p.get_node_or_null("ProbeArea2D") as Area2D
-	if area:
-		area.monitoring = true
-		area.input_pickable = true
+	var probe_area := probe_2d.get_node_or_null("ProbeArea2D") as Area2D
+	if probe_area:
+		probe_area.monitoring = true
+		probe_area.input_pickable = true
 
-	p.visible = true
-	p.global_position = get_global_mouse_position()
+	probe_2d.visible = true
+	probe_2d.global_position = get_global_mouse_position()
 
 	# Lab nasłuchuje „drag_ended”, więc podłączamy callback.
 	var cb := Callable(self, "_on_probe_drag_ended")
-	if p.has_signal("drag_ended"):
-		if p.is_connected("drag_ended", cb):
-			p.disconnect("drag_ended", cb)
-		p.connect("drag_ended", cb)
+	if probe_2d.has_signal("drag_ended"):
+		if probe_2d.is_connected("drag_ended", cb):
+			probe_2d.disconnect("drag_ended", cb)
+		probe_2d.connect("drag_ended", cb)
 
 	# Możliwe zlecenie logiki dragowania po stronie probówki.
-	if p.has_method("_start_drag"):
-		p.call_deferred("_start_drag")
+	if probe_2d.has_method("_start_drag"):
+		probe_2d.call_deferred("_start_drag")
 
-	emit_signal("probe_picked_for_drag", p)
-	_refresh_visual()
+	emit_signal("probe_picked_for_drag", probe_2d)
+	_refresh_view()
 
 
+## Reaguje na zakończenie dragowania probówki:
+## - jeśli probówka nadal jest dzieckiem $Stored, traktuje to jako odłożenie do bębna,
+## - w przeciwnym razie odpina się od sygnału drag_ended.
 func _on_probe_drag_ended(probe: Node) -> void:
-	## Wywoływane po zakończeniu dragowania probówki.
 	if not is_instance_valid(probe):
 		return
 	if not (probe is Node2D):
 		return
-	var p := probe as Node2D
 
-	# Jeżeli probówka nadal jest dzieckiem $Stored, traktujemy to jako odłożenie do bębna.
-	if p.get_parent() == stored:
-		if not _stack.has(p) and _stack.size() < capacity:
-			var area := p.get_node_or_null("ProbeArea2D") as Area2D
-			if area:
-				area.monitoring = false
-				area.input_pickable = false
+	var probe_2d := probe as Node2D
 
-			p.visible = false
-			_stack.append(p)
-			emit_signal("probe_returned", p)
+	if probe_2d.get_parent() == stored:
+		if not _probe_stack.has(probe_2d) and _probe_stack.size() < capacity:
+			var probe_area := probe_2d.get_node_or_null("ProbeArea2D") as Area2D
+			if probe_area:
+				probe_area.monitoring = false
+				probe_area.input_pickable = false
 
-		_refresh_visual()
+			probe_2d.visible = false
+			_probe_stack.append(probe_2d)
+			emit_signal("probe_returned", probe_2d)
+
+		_refresh_view()
 	else:
-		# Probówka trafiła gdzie indziej – odpinamy się od sygnału.
 		var cb := Callable(self, "_on_probe_drag_ended")
-		if p.is_connected("drag_ended", cb):
-			p.disconnect("drag_ended", cb)
+		if probe_2d.is_connected("drag_ended", cb):
+			probe_2d.disconnect("drag_ended", cb)
 
 
-# -------------------------------------------------------------------
-# Aktualizacja wyglądu i interakcji
-# -------------------------------------------------------------------
-func _refresh_visual() -> void:
-	## Ustawienie grafiki odpowiedniej do stanu i liczby probówek.
-	var count := clampi(_stack.size(), 0, capacity)
+# =========================================================================
+# AKTUALIZACJA WYGLĄDU I INTERAKCJI
+# =========================================================================
+
+## Aktualizuje widok wirówki:
+## - przełącza między grafiką zamkniętą i otwartą,
+## - pokazuje sprite Open0..Open4 w zależności od stanu i liczby probówek.
+func _refresh_view() -> void:
+	var count: int = clampi(_probe_stack.size(), 0, capacity)
 
 	# Przełączenie między „zamkniętą” a „otwartą” grafiką.
 	if state == State.CLOSED_IDLE or state == State.SPINNING:
@@ -310,7 +351,7 @@ func _refresh_visual() -> void:
 		if open_container:
 			open_container.visible = true
 
-	# Warianty Open0..Open4 – reprezentują liczbę probówek w bębnie przy otwartej pokrywie.
+	# Warianty Open0..Open4 – reprezentują liczbę probówek przy otwartej pokrywie.
 	if open_container:
 		var variants := [open0, open1, open2, open3, open4]
 		for i in variants.size():
@@ -318,52 +359,53 @@ func _refresh_visual() -> void:
 				variants[i].visible = (state == State.OPEN_IDLE and i == count)
 
 
-func _update_interactibility() -> void:
-	## Udostępnienie odpowiednich obszarów kliknięć w zależności od stanu wirówki.
+## Aktualizuje interaktywność obszarów (pokrywa, start, pickup) w zależności od stanu.
+func _update_interactive_areas() -> void:
 	if lid_closed_area:
 		lid_closed_area.input_pickable = (state == State.CLOSED_IDLE)
 	if lid_open_area:
-		lid_open_area.input_pickable   = (state == State.OPEN_IDLE)
+		lid_open_area.input_pickable = (state == State.OPEN_IDLE)
 	if pickup_area:
-		pickup_area.input_pickable     = (state == State.OPEN_IDLE)
+		pickup_area.input_pickable = (state == State.OPEN_IDLE)
 	if start_button:
-		start_button.input_pickable    = (state == State.CLOSED_IDLE and not _stack.is_empty())
+		start_button.input_pickable = (state == State.CLOSED_IDLE and not _probe_stack.is_empty())
 
 
+## Aktualizuje diodę LED – świeci tylko podczas wirowania.
 func _update_led() -> void:
-	## Prosta sygnalizacja diodą – aktywna tylko podczas wirowania.
 	if led_on:
 		led_on.visible = (state == State.SPINNING)
 
 
-# -------------------------------------------------------------------
-# Funkcje pomocnicze
-# -------------------------------------------------------------------
-func _set_probe_tag(p: Node2D, key: String, value: Variant) -> void:
-	## Ustawienie wpisu w `Mixture.tags` dla danej probówki.
-	if p == null:
+# =========================================================================
+# FUNKCJE POMOCNICZE
+# =========================================================================
+
+## Ustawia w `Mixture.tags` daną parę (key,value) dla probówki.
+func _set_probe_tag(probe_2d: Node2D, key: String, value: Variant) -> void:
+	if probe_2d == null:
 		return
-	var mix := p.get("mixture") as Mixture
-	if mix == null:
+	var mixture := probe_2d.get("mixture") as Mixture
+	if mixture == null:
 		return
-	if not (mix.tags is Dictionary):
-		mix.tags = {}
-	mix.tags[key] = value
+	if not (mixture.tags is Dictionary):
+		mixture.tags = {}
+	mixture.tags[key] = value
 
 
+## Sprawdza, czy podany punkt trafia w dany Area2D (używane do pickup_area).
 func _point_hits_area(area: Area2D, world_pos: Vector2) -> bool:
-	## Sprawdza, czy punkt w przestrzeni świata znajduje się w danym Area2D.
 	if area == null:
 		return false
 
-	var dss := area.get_world_2d().direct_space_state
-	var q := PhysicsPointQueryParameters2D.new()
-	q.position = world_pos
-	q.collide_with_areas = true
-	q.collide_with_bodies = false
-	q.collision_mask = area.collision_layer
+	var direct_space_state := area.get_world_2d().direct_space_state
+	var query := PhysicsPointQueryParameters2D.new()
+	query.position = world_pos
+	query.collide_with_areas = true
+	query.collide_with_bodies = false
+	query.collision_mask = area.collision_layer
 
-	var hits := dss.intersect_point(q, 16)
+	var hits := direct_space_state.intersect_point(query, 16)
 	for info in hits:
 		if info.has("collider") and info["collider"] == area:
 			return true
@@ -371,9 +413,9 @@ func _point_hits_area(area: Area2D, world_pos: Vector2) -> bool:
 	return false
 
 
+## Sprawdza, czy nadrzędna scena Lab jest w trybie IDLE:
+## - inne tryby mogą blokować interakcje z wirówką.
 func _lab_is_idle() -> bool:
-	## Sprawdza, czy nadrzędna scena Lab znajduje się w trybie IDLE
-	## (inne tryby mogą blokować interakcje z wirówką).
 	var lab := get_tree().get_first_node_in_group("lab_root")
 	if lab == null:
 		return true
