@@ -1,4 +1,4 @@
-[gd_scene load_steps=25 format=3 uid="uid://cbijtqnh0c654"]
+[gd_scene load_steps=27 format=3 uid="uid://cbijtqnh0c654"]
 
 [ext_resource type="Script" uid="uid://cpu3bsk01o2g2" path="res://scenes/lab.gd" id="1_l8eg8"]
 [ext_resource type="PackedScene" uid="uid://c75ytlngbysag" path="res://scenes/indicator_paper.tscn" id="2_hxoer"]
@@ -17,8 +17,10 @@
 [ext_resource type="PackedScene" uid="uid://b334lnqj42j3l" path="res://scenes/stir_rod_cursor.tscn" id="22_mqst2"]
 [ext_resource type="PackedScene" uid="uid://c41c7mrv50wyp" path="res://scenes/menu/menu_button.tscn" id="23_jie0k"]
 [ext_resource type="PackedScene" uid="uid://br5xqy3dxuioy" path="res://scenes/probe_beaker1.tscn" id="23_ylpa4"]
+[ext_resource type="PackedScene" uid="uid://wey4ewxabsew" path="res://scenes/platin_rod_cursor.tscn" id="24_iyn56"]
 [ext_resource type="Script" uid="uid://2fnoreiqa0en" path="res://scenes/level_manager.gd" id="24_qempp"]
 [ext_resource type="PackedScene" uid="uid://bgmcg5ih16qe7" path="res://scenes/probe_beaker2.tscn" id="25_ffhs6"]
+[ext_resource type="PackedScene" uid="uid://bb4yysak1cppq" path="res://scenes/platin_rod_on_table.tscn" id="25_iyn56"]
 [ext_resource type="Script" uid="uid://b0exgltg1dc3s" path="res://scenes/rack_place.gd" id="27_g70h3"]
 [ext_resource type="Texture2D" uid="uid://hxc3jjup6cct" path="res://assets/rackshadow.png" id="28_o3afa"]
 [ext_resource type="PackedScene" uid="uid://n383gm1hms3s" path="res://scenes/waste_beaker.tscn" id="29_t554p"]
@@ -63,7 +65,7 @@ position = Vector2(679, 218)
 
 [node name="WasteBeaker" parent="." groups=["probe_dropzones"] instance=ExtResource("29_t554p")]
 z_index = -1
-position = Vector2(709, 662)
+position = Vector2(923.99994, 675)
 scale = Vector2(0.215, 0.215)
 
 [node name="ProbeBeaker1" parent="." instance=ExtResource("23_ylpa4")]
@@ -127,7 +129,7 @@ visible = false
 z_index = 100
 
 [node name="DropperOnTable" parent="." instance=ExtResource("17_ky6ns")]
-position = Vector2(532, 630)
+position = Vector2(475, 648)
 
 [node name="Anchor" type="Node2D" parent="DropperOnTable"]
 position = Vector2(-17, 108)
@@ -158,6 +160,11 @@ scale = Vector2(0.57, 0.57)
 
 [node name="IndicatorPaper" parent="." instance=ExtResource("2_hxoer")]
 visible = false
+
+[node name="PlatinRodOnTable" parent="." instance=ExtResource("25_iyn56")]
+position = Vector2(689, 659)
+
+[node name="PlatinRodCursor" parent="." instance=ExtResource("24_iyn56")]
 
 [node name="BackBtn" parent="." instance=ExtResource("22_kxeyc")]
 offset_left = 12.0

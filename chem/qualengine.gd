@@ -319,9 +319,6 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 
 	_update_pH_bucket_from_state(mixture)
 
-	# if DEBUG_CORE:
-	# 	print("[QE DBG] BEFORE LOOP ", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture))
-
 	const MAX_ITERS := 256
 	var iteration_count: int = 0
 	var any_reaction: bool = false
@@ -354,9 +351,8 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 		push_warning("QualEngine: reached max iterations (possible reaction loop).")
 
 	var mixture_end: Mixture = tube.get("mixture") as Mixture
-	if DEBUG_CORE and mixture_end != null:
-		# print("[QE DBG] AFTER LOOP  ", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture_end))
-		pass
+	#if DEBUG_CORE and mixture_end != null:
+		#print("[QE DBG] AFTER LOOP  ", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture_end))
 
 	var solids_dict: Dictionary = {}
 	if mixture_end != null and (mixture_end.solids is Dictionary):
@@ -557,7 +553,7 @@ func _emit_fx(tube: Node, color: Color, intensity: float, source: String) -> voi
 		tube.set_meta("last_precip_fx", signature)
 
 	if DEBUG_CORE:
-		# print("[QE FX] ", source, "  mode=", mode, "  intensity=", str(intensity))
+		print("[QE FX] ", source, "  mode=", mode, "  intensity=", str(intensity))
 		pass
 
 	if not tube.has_method("play_precip"):

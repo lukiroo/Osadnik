@@ -1,33 +1,39 @@
 extends Node2D
 class_name RackPlace
 
-## Proste miejsce dokowania stojaka (półka / blat).
-## Przechowuje informację:
-## - jakiego typu jest miejsce (`place_type`: "table" lub "shelf"),
-## - czy jest aktualnie zajęte,
-## - oraz pokazuje zarys stojaka jako podpowiedź.
+## =========================================================================
+## rack_place.gd – miejsce dokowania stojaka
+## -------------------------------------------------------------------------
+## Odpowiada za:
+## - przechowywanie typu miejsca (`place_type`: "table" / "shelf"),
+## - informację, czy miejsce jest aktualnie zajęte (claim / release),
+## - pokazywanie cienia stojaka jako podpowiedzi (hint).
+## =========================================================================
 
 @export var place_type: String = "table"        ## "table" albo "shelf".
 @export var hint_node_path: NodePath = ^"Hint"  ## Węzeł z cieniem (Sprite2D / inne CanvasItem).
-@export var hint_alpha_free: float = 0.7        ## Przezroczystość, gdy miejsce jest dostępne.
-@export var hint_alpha_taken: float = 0.25      ## Przezroczystość, gdy miejsce zajęte (np. sugerujemy brak miejsca).
+@export var hint_alpha_free: float = 0.7        ## Przezroczystość cienia, gdy miejsce jest wolne.
+@export var hint_alpha_taken: float = 0.25      ## Przezroczystość cienia, gdy miejsce jest zajęte.
 
-var _occupied_by: Node = null                   ## Obiekt, który aktualnie zajmuje miejsce (zwykle ProbeRack).
+## Obiekt, który aktualnie zajmuje miejsce (zwykle ProbeRack).
+var _occupied_by: Node = null
 
 @onready var _hint_node: CanvasItem = get_node_or_null(hint_node_path) as CanvasItem
 
 
-# =================================================================
-# FUNKCJE UŻYTKOWE (API DLA ProbeRack)
-# =================================================================
+# =========================================================================
+# API DLA ProbeRack – claim / release / hint
+# =========================================================================
+
+## Sprawdza, czy miejsce jest wolne.
 func is_free() -> bool:
-	## True, jeśli nikt nie zajął miejsca.
 	return _occupied_by == null
 
 
+## Próbuje zająć miejsce przez podany obiekt:
+## - zwraca true, jeśli miejsce było wolne,
+## - w przeciwnym razie nic nie zmienia.
 func claim(by: Node) -> bool:
-	## Próba zajęcia miejsca przez podany obiekt.
-	## Zwraca true, jeśli miejsce było wolne.
 	if not is_free():
 		return false
 
@@ -35,21 +41,22 @@ func claim(by: Node) -> bool:
 	return true
 
 
+## Zwalnia miejsce:
+## - tylko, gdy wywołuje je obiekt, który wcześniej je zajął.
 func release(by: Node) -> void:
-	## Zwolnienie miejsca – tylko przez obiekt, który je wcześniej zajął.
 	if _occupied_by == by:
 		_occupied_by = null
 
 
+## Ustawia widoczność i alfa cienia (hint) pod stojakiem:
+## - shadow = czy w ogóle pokazywać cień,
+## - available = czy miejsce jest wolne (intensywniejszy cień) czy „zajęte” (słabszy cień).
 func show_hint(shadow: bool, available: bool = true) -> void:
-	## Sterowanie cieniem pod stojakiem:
-	## - `shadow` decyduje, czy w ogóle pokazywać,
-	## - `available` wybiera intensywność (miejsce wolne / zajęte).
 	if _hint_node == null:
 		return
 
 	_hint_node.visible = shadow
 
-	var color := _hint_node.modulate
-	color.a = (hint_alpha_free if available else hint_alpha_taken)
+	var color: Color = _hint_node.modulate
+	color.a = hint_alpha_free if available else hint_alpha_taken
 	_hint_node.modulate = color

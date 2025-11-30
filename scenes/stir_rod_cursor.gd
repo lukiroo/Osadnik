@@ -1,55 +1,70 @@
 extends Node2D
 class_name StirRodCursor
 
-## Wersja bagietki mieszającej przy kursorze z krótką animację po mieszaniu
+## =========================================================================
+## stir_rod_cursor.gd – bagietka przy kursorze
+## -------------------------------------------------------------------------
+## Odpowiada za:
+## - pokazywanie bagietki przy kursorze (follow_mouse),
+## - krótką animację „bujnięcia” po mieszaniu (feedback),
+## - emisję sygnału cancel_requested (RMB / ESC) do Lab.
+## =========================================================================
 
-signal cancel_requested()   # Lab nasłuchuje, żeby odłożyć bagietkę (RMB / ESC)
+signal cancel_requested()   ## Lab nasłuchuje, żeby odłożyć bagietkę (RMB / ESC).
 
 # -------------------- USTAWIENIA OGÓLNE --------------------
-@export var follow_mouse: bool = false  # Jeśli true – kursor sam śledzi myszkę.
-@export var show_z_index: int = 99      # Z-index, gdy bagietka jest aktywna.
 
-# Proste parametry animacji „bujnięcia” po mieszaniu.
+@export var follow_mouse: bool = false  ## Jeśli true – bagietka śledzi myszkę w _process.
+@export var show_z_index: int = 99      ## Z-index, gdy bagietka jest aktywna.
+
+## Proste parametry animacji „bujnięcia” po mieszaniu.
 @export var wobble_angle_deg: float = 10.0
 @export var wobble_time: float = 0.18
 @export var wobble_damping: float = 0.6
 @export var wobble_scale_boost: float = 0.04
 
 # -------------------- STAN WEWNĘTRZNY --------------------
+
 var is_active: bool = false
 var _wobble_tween: Tween = null
-var _base_pos: Vector2 = Vector2.ZERO   # Pozycja z edytora jako pozycja bazowa.
+var _base_pos: Vector2 = Vector2.ZERO   ## Pozycja z edytora traktowana jako bazowa.
 
 
-# =================================================================
+# =========================================================================
 # INICJALIZACJA I SPRZĄTANIE
-# =================================================================
+# =========================================================================
+
+## Przygotowuje bagietkę-kursor:
+## - ustawia process_mode na ALWAYS (żeby reagować na RMB/ESC),
+## - chowa sprite i resetuje flagi.
 func _ready() -> void:
-	# Startowo bagietka-kursor jest wyłączona i ukryta, ale proces działa zawsze
-	# (żeby reagować na RMB/ESC niezależnie od trybu gry).
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	visible = false
 	is_active = false
 	_base_pos = position
 
+
+## Sprząta tweena po wyjściu z drzewa, żeby nie został „sierotą”.
 func _exit_tree() -> void:
-	# Na wyjście z drzewa sprzątamy tween, żeby nie pozostał „sierotą”.
 	if is_instance_valid(_wobble_tween):
 		_wobble_tween.kill()
 	_wobble_tween = null
 
 
-# =================================================================
-# METODY UŻYWANE PRZEZ LAB – POKAZANIE / SCHOWANIE
-# =================================================================
+# =========================================================================
+# API LAB – POKAZANIE / SCHOWANIE NARZĘDZIA
+# =========================================================================
+
+## Włącza bagietkę przy kursorze:
+## - ustawia is_active, widoczność oraz z_index.
 func show_tool() -> void:
-	# Wywoływane, gdy użytkownik „bierze bagietkę do ręki”.
 	is_active = true
 	visible = true
 	z_index = show_z_index
 
+
+## Chowa bagietkę i resetuje animację oraz transformację.
 func hide_tool() -> void:
-	# Odkładamy bagietkę – wyłączamy widoczność, zatrzymujemy animację i przywracamy transform.
 	is_active = false
 	visible = false
 
@@ -59,14 +74,15 @@ func hide_tool() -> void:
 
 	rotation_degrees = 0.0
 	scale = Vector2.ONE
-	position = _base_pos   # powrót do pozycji z edytora
+	position = _base_pos
 
 
-# =================================================================
-# FEEDBACK WIZUALNY: „BUJNIĘCIE” PO MIESZANIU
-# =================================================================
+# =========================================================================
+# FEEDBACK WIZUALNY – ANIMACJA „BUJNIĘCIA” PO MIESZANIU
+# =========================================================================
+
+## Odtwarza krótką animację rotacji i skali jako feedback po mieszaniu.
 func play_mix_wobble() -> void:
-	# Krótka animacja rotacji i skali jako informacja zwrotna po mieszaniu.
 	if is_instance_valid(_wobble_tween):
 		_wobble_tween.kill()
 
@@ -77,40 +93,43 @@ func play_mix_wobble() -> void:
 	rotation_degrees = 0.0
 	scale = Vector2.ONE
 
-	var a1 := wobble_angle_deg
-	var a2 := -wobble_angle_deg * wobble_damping
-	var a3 := wobble_angle_deg * wobble_damping * wobble_damping
-	var t := wobble_time
+	var angle1: float = wobble_angle_deg
+	var angle2: float = -wobble_angle_deg * wobble_damping
+	var angle3: float = wobble_angle_deg * wobble_damping * wobble_damping
+	var t: float = wobble_time
 
 	var peak_scale := Vector2.ONE * (1.0 + wobble_scale_boost)
 
-	# 1. pierwsze wychylenie
-	_wobble_tween.tween_property(self, "rotation_degrees", a1, t * 0.9)
+	# 1) pierwsze wychylenie + powiększenie
+	_wobble_tween.tween_property(self, "rotation_degrees", angle1, t * 0.9)
 	_wobble_tween.parallel().tween_property(self, "scale", peak_scale, t * 0.9)
 
-	# 2. odbicie na drugą stronę i powrót skali
-	_wobble_tween.tween_property(self, "rotation_degrees", a2, t)
+	# 2) odbicie na drugą stronę i powrót skali
+	_wobble_tween.tween_property(self, "rotation_degrees", angle2, t)
 	_wobble_tween.parallel().tween_property(self, "scale", Vector2.ONE, t)
 
-	# 3. lekkie domknięcie do zera
-	_wobble_tween.tween_property(self, "rotation_degrees", a3, t)
+	# 3) lekkie domknięcie do zera
+	_wobble_tween.tween_property(self, "rotation_degrees", angle3, t)
 	_wobble_tween.tween_property(self, "rotation_degrees", 0.0, t * 0.85)
 
 
-# =================================================================
+# =========================================================================
 # OPCJONALNE ŚLEDZENIE MYSZY
-# =================================================================
-func _process(_dt: float) -> void:
-	# Jeżeli follow_mouse jest aktywne, pozycję kursorowej bagietki wiążemy z kursorem.
+# =========================================================================
+
+## Jeżeli follow_mouse == true i bagietka jest aktywna, trzyma ją przy kursorze.
+func _process(_delta: float) -> void:
 	if is_active and follow_mouse:
 		global_position = get_global_mouse_position()
 
 
-# =================================================================
+# =========================================================================
 # GLOBALNY INPUT – ANULOWANIE (RMB / ESC)
-# =================================================================
+# =========================================================================
+
+## Reaguje globalnie na RMB / ESC:
+## - gdy bagietka jest aktywna, emituje cancel_requested → Lab chowa bagietkę.
 func _unhandled_input(event: InputEvent) -> void:
-	# Prawy przycisk myszy lub ESC oznacza prośbę o odłożenie narzędzia.
 	if not is_active:
 		return
 

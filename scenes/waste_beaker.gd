@@ -1,41 +1,58 @@
 extends Node2D
 class_name WasteBeaker
 
-## Zlewka na odpady.
-## Umożliwia:
-## - wylanie zawartości probówki (czyszczenie mieszaniny + reset wizualny),
-## - zrzucenie porcji cieczy z droppera w trybie TRANSFER,
-## - „oddanie” kropli z pipety w trybie HOLDING (tylko efekt, bez chemii w zlewce).
+## =========================================================================
+## waste_beaker.gd – zlewka na odpady
+## -------------------------------------------------------------------------
+## Odpowiada za:
+## - „wylanie” zawartości probówki (czyszczenie mieszaniny + reset wizualny),
+## - przyjęcie porcji cieczy z droppera w trybie TRANSFER,
+## - proste podświetlanie przy hoverze i sensownej interakcji.
 ## Sama zlewka nie jest źródłem cieczy – wszystkie funkcje take_* zwracają null.
+## =========================================================================
 
-# --- węzły sceny ---
-@onready var area: Area2D              = $Area2D
-@onready var sprite: Sprite2D          = $Sprite2D
-@onready var snd: AudioStreamPlayer2D  = $AudioStreamPlayer2D
+# -----------------------------
+# Węzły sceny
+# -----------------------------
 
-# --- konfiguracja hover / interakcji ---
-@export var hover_enabled: bool = true                  ## Czy zlewka w ogóle ma reagować podświetleniem.
-@export var accepts_holding_pipette: bool = true        ## Czy klik w trybie HOLDING ma konsumować kroplę.
+@onready var area: Area2D     = $Area2D
+@onready var sprite: Sprite2D = $Sprite2D
+# @onready var snd: AudioStreamPlayer2D  = $AudioStreamPlayer2D   ## Audio chwilowo niewykorzystywane.
+
+
+# -----------------------------
+# Konfiguracja hover / interakcji
+# -----------------------------
+
+@export var hover_enabled: bool = true                  ## Czy zlewka reaguje podświetleniem.
 @export var accept_radius_px: float = 80.0              ## Promień trafienia, gdy overlap nie zadziała.
 
-# --- outline (shader) ---
-var outline_material: ShaderMaterial = null             ## Lokalna kopia materiału shadera.
+var outline_material: ShaderMaterial = null             ## Lokalna kopia materiału shadera outline’u.
 @export var hover_outline_strength: float = 1.0         ## Siła podświetlenia przy hoverze.
 
-var _cursor_inside: bool = false                        ## Czy kursor aktualnie leży w obszarze Area2D.
-
-# --- audio ---
-@export var play_sound_on_probe_dump: bool = true
-@export var play_sound_on_dropper_pour: bool = false
-@export var play_sound_on_holding_pipette: bool = false
-
-@export var sfx_probe_dump: AudioStream
-@export var sfx_dropper_pour: AudioStream
-@export var sfx_holding_pipette: AudioStream
+var _cursor_inside: bool = false                        ## Informuje, czy kursor jest nad Area2D.
 
 
+# -----------------------------
+# Audio – efekty dźwiękowe (zakomentowane)
+# -----------------------------
+
+# @export var play_sound_on_probe_dump: bool = true
+# @export var play_sound_on_dropper_pour: bool = false
+
+# @export var sfx_probe_dump: AudioStream
+# @export var sfx_dropper_pour: AudioStream
+
+
+# =========================================================================
+# INICJALIZACJA
+# =========================================================================
+
+## Przygotowuje zlewkę:
+## - ustawia Area2D jako pickable/monitoring,
+## - duplikuje materiał sprite’a,
+## - wyłącza outline na starcie.
 func _ready() -> void:
-	## Przygotowanie Area2D i materiału dla outline’u.
 	if area:
 		area.input_pickable = true
 		area.monitoring = true
@@ -47,17 +64,21 @@ func _ready() -> void:
 	_set_outline(false)
 
 
-func _process(_dt: float) -> void:
-	## Co klatkę aktualizujemy decyzję o podświetleniu (np. gdy probówka przejeżdża nad zlewką).
+## Aktualizuje stan outline’u co klatkę (np. gdy probówka przejeżdża nad zlewką).
+func _process(_delta: float) -> void:
 	_update_outline_interaction()
 
 
-# -------------------------------------------------------------------
-# KLIK W ZLEWKĘ (dropper / pipeta)
-# -------------------------------------------------------------------
+# =========================================================================
+# KLIK W ZLEWKĘ (DROPper)
+# =========================================================================
+
+## Obsługuje kliknięcie LPM w obszar zlewki:
+## - w trybie TRANSFER wylewa zawartość droppera do zlewki (przez Lab),
+## - inne tryby są ignorowane.
 func _on_area_input(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
-	var mb := event as InputEventMouseButton
-	if mb == null or not mb.pressed or mb.button_index != MOUSE_BUTTON_LEFT:
+	var mouse_button := event as InputEventMouseButton
+	if mouse_button == null or not mouse_button.pressed or mouse_button.button_index != MOUSE_BUTTON_LEFT:
 		return
 
 	var lab := get_tree().get_first_node_in_group("lab_root")
@@ -67,30 +88,26 @@ func _on_area_input(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	var ModeEnum: Variant = lab.get("Mode")
 	var current_mode: Variant = lab.get("mode")
 
-	# 1) TRANSFER – dropper w ręku, wylewamy zawartość do zlewki
+	# TRANSFER – dropper w ręku, wylewamy zawartość do zlewki.
 	if current_mode == ModeEnum.TRANSFER:
 		var dropper_has_content := bool(lab.get("dropper_loaded"))
 		if dropper_has_content and lab.has_method("_dropper_drop"):
-			# Lab wewnętrznie woła receive_mixture(...) na tym obiekcie.
+			# Lab wewnętrznie wywoła receive_mixture(...) na tym obiekcie.
 			lab._dropper_drop(self)
 			get_viewport().set_input_as_handled()
 		return
 
-	# 2) HOLDING – pipeta w ręku, opcjonalnie „konsumpcja” jednej kropli (bez zapisywania chemii)
-	if current_mode == ModeEnum.HOLDING and accepts_holding_pipette:
-		var reagent_id := String(lab.get("active_reagent_id"))
-		if reagent_id != "":
-			receive_drop(reagent_id)
-			get_viewport().set_input_as_handled()
-		return
 
-
-# -------------------------------------------------------------------
+# =========================================================================
 # DROPZONA DLA PROBÓWEK
-# -------------------------------------------------------------------
+# =========================================================================
+
+## Obsługuje „drop” probówki na zlewkę (probówki nie stają się dzieckiem zlewki):
+## - jeżeli probówka faktycznie wylądowała nad zlewką i ma ciecz lub pellet,
+##   wylewa jej zawartość (pusta probówka),
+## - uruchamia animację przechylenia po stronie Probe.gd,
+## - czyści chemiczny stan probówki.
 func accept_probe(probe: Node, at_global_pos: Vector2) -> bool:
-	## Zlewka nigdy nie przejmuje probówki jako dziecka – zawsze zwraca false.
-	## Jedyna logika to „wylanie” zawartości, jeśli probówka faktycznie trafi w obszar zlewki.
 	if probe == null:
 		return false
 
@@ -109,7 +126,7 @@ func accept_probe(probe: Node, at_global_pos: Vector2) -> bool:
 	if not (has_liquid or has_pellet):
 		return false
 
-	# Prosta animacja przechylenia w stronę zlewki (po stronie Probe.gd).
+	# Prosta animacja „wylania” po stronie probówki.
 	if probe.has_method("request_dump_anim"):
 		probe.request_dump_anim()
 
@@ -126,16 +143,17 @@ func accept_probe(probe: Node, at_global_pos: Vector2) -> bool:
 	if probe.has_method("_clear_contents_completely"):
 		probe._clear_contents_completely()
 
-	# Efekt dźwiękowy dla zrzutu zawartości probówki.
-	_play_sfx_probe()
+	# Efekt dźwiękowy dla zrzutu zawartości probówki (zakomentowany).
+	# _play_sfx_probe()
 
 	# Probówka wraca później na swoje miejsce (tween po jej stronie), więc tu zawsze false.
 	return false
 
 
+## Sprawdza, czy probówka faktycznie „wpadła” nad zlewkę:
+## - najpierw sprawdza overlap po Area2D,
+## - jeśli to nie zadziała, używa prostego testu odległości w promieniu.
 func _is_probe_over_me(probe: Node, at_global_pos: Vector2) -> bool:
-	## Sprawdzanie, czy probówka wylądowała nad zlewką:
-	## najpierw overlap po Area2D, a gdy się nie uda – prosty test w promieniu.
 	if area and area.monitoring and area.monitorable:
 		var probe_area := probe.get_node_or_null("ProbeArea2D") as Area2D
 		if probe_area:
@@ -145,43 +163,48 @@ func _is_probe_over_me(probe: Node, at_global_pos: Vector2) -> bool:
 			if overlaps.has(probe_area):
 				return true
 
-	var center := (area.global_position if area else global_position)
+	var center: Vector2 = (area.global_position if area else global_position)
 	return center.distance_to(at_global_pos) <= accept_radius_px
 
 
-# -------------------------------------------------------------------
-# „SINK” DLA DROPPERA I PIPETY
-# -------------------------------------------------------------------
-func receive_mixture(_m: Mixture, _units: float = 0.0) -> void:
-	## Dropper wylewa mieszaninę do zlewki – chemia nie jest nigdzie zapisywana,
-	## zostaje tylko efekt dźwiękowy (jeżeli włączony).
-	_play_sfx_dropper()
+# =========================================================================
+# „SINK” DLA DROPPERA
+# =========================================================================
+
+## Przyjmuje mieszaninę z droppera:
+## - chemia nie jest zapisywana,
+## - zostaje tylko efekt (opcjonalnie SFX – zakomentowany).
+func receive_mixture(_mixture: Mixture, _units: float = 0.0) -> void:
+	# _play_sfx_dropper()
+	pass
 
 
-func receive_drop(_reagent_id: String) -> void:
-	## Jedna kropla z pipety w trybie HOLDING – również tylko SFX, bez śledzenia składu.
-	_play_sfx_holding()
-
-
-# Zlewka nie jest źródłem cieczy – funkcje pobierające zawsze zwracają brak danych.
+## Zlewka nie jest źródłem cieczy – zawsze zwraca brak cieczy.
 func has_any_liquid() -> bool:
 	return false
 
+
+## Zlewka nie udostępnia pobierania objętości – zawsze null.
 func take_volume(_units: float):
 	return null
 
+
+## Zlewka nie udostępnia pobierania próbki – zawsze null.
 func take_sample(_frac: float) -> Mixture:
 	return null
 
-func take_fraction(_f: float) -> Mixture:
+
+## Zlewka nie udostępnia ułamkowego pobierania – zawsze null.
+func take_fraction(_frac: float) -> Mixture:
 	return null
 
 
-# -------------------------------------------------------------------
+# =========================================================================
 # GLOBALNE HIGHLIGHTY (Settings)
-# -------------------------------------------------------------------
+# =========================================================================
+
+## Sprawdza globalny przełącznik highlightów w autoload Settings (jeśli istnieje).
 func _are_global_highlights_enabled() -> bool:
-	## Sprawdzenie globalnego przełącznika highlightów w autoload `Settings` (jeśli istnieje).
 	var settings_node := get_tree().get_root().get_node_or_null("Settings")
 	if settings_node:
 		if settings_node.has_method("are_highlights_enabled"):
@@ -192,22 +215,25 @@ func _are_global_highlights_enabled() -> bool:
 	return true
 
 
-# -------------------------------------------------------------------
+# =========================================================================
 # HOVER / OUTLINE
-# -------------------------------------------------------------------
+# =========================================================================
+
+## Reaguje na wejście kursora nad zlewkę – ustawia flagę i odświeża outline.
 func _on_mouse_entered() -> void:
 	_cursor_inside = true
 	_update_outline_interaction()
 
 
+## Reaguje na wyjście kursora ze zlewki – resetuje outline.
 func _on_mouse_exited() -> void:
 	_cursor_inside = false
 	_set_outline(false)
 
 
+## Aktualizuje decyzję o podświetleniu zlewki:
+## - uwzględnia lokalną flagę, globalne highlighty i realną możliwość interakcji.
 func _update_outline_interaction() -> void:
-	## Decyzja, czy zlewka powinna być aktualnie podświetlona:
-	## bierzemy pod uwagę lokalną flagę, globalne ustawienia oraz faktyczną interakcję.
 	if not hover_enabled:
 		_set_outline(false)
 		return
@@ -225,23 +251,23 @@ func _update_outline_interaction() -> void:
 		var current_mode: Variant = lab.get("mode")
 		can_by_dropper = (current_mode == ModeEnum.TRANSFER) and bool(lab.get("dropper_loaded"))
 
-	# Jeśli trzymamy LMB i nie ma realnej interakcji, gasimy outline.
+	# Jeśli trzymamy LPM i nie ma realnej interakcji, gasimy outline.
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not (can_by_probe or can_by_dropper):
 		_set_outline(false)
 		return
 
-	# Wrażenie „hoveru”: kursor lub probówka nad zlewką + realna możliwość użycia.
+	# Hover: kursor lub probówka nad zlewką + realna możliwość użycia.
 	var hover_ok := _cursor_inside or can_by_probe
 	_set_outline(hover_ok and (can_by_probe or can_by_dropper))
 
 
+## Sprawdza, czy jakakolwiek probówka z cieczą overlapuje Area2D zlewki.
 func _any_probe_with_liquid_over_me() -> bool:
-	## Sprawdza, czy jakakolwiek probówka z cieczą overlapuje Area2D zlewki.
 	if area == null or not (area.monitoring and area.monitorable):
 		return false
 
-	for a in area.get_overlapping_areas():
-		var overlap_area := a as Area2D
+	for overlap in area.get_overlapping_areas():
+		var overlap_area := overlap as Area2D
 		if overlap_area == null:
 			continue
 
@@ -257,6 +283,7 @@ func _any_probe_with_liquid_over_me() -> bool:
 	return false
 
 
+## Ustawia podświetlenie outline'u.
 func _set_outline(on: bool) -> void:
 	if outline_material == null:
 		return
@@ -265,37 +292,36 @@ func _set_outline(on: bool) -> void:
 	_set_shader_param_safe(outline_material, "highlight_strength", strength)
 
 
-func _set_shader_param_safe(m: ShaderMaterial, param_name: String, value) -> void:
-	## Helper: ustawia parametr shadera tylko wtedy, gdy shader faktycznie go definiuje.
-	if m == null or m.shader == null:
+## Ustawia parametr shadera tylko, gdy shader faktycznie posiada dany uniform.
+func _set_shader_param_safe(mat: ShaderMaterial, param_name: String, value) -> void:
+	if mat == null or mat.shader == null:
 		return
-	for u in m.shader.get_shader_uniform_list():
-		var ud: Dictionary = u
-		if String(ud.get("name", "")) == param_name:
-			m.set_shader_parameter(param_name, value)
+	for uniform in mat.shader.get_shader_uniform_list():
+		var uniform_dict: Dictionary = uniform
+		if String(uniform_dict.get("name", "")) == param_name:
+			mat.set_shader_parameter(param_name, value)
 			return
 
 
-# -------------------------------------------------------------------
-# AUDIO
-# -------------------------------------------------------------------
-func _play_stream(stream: AudioStream) -> void:
-	if snd == null or stream == null:
-		return
-	snd.stream = stream
-	snd.play()
+# =========================================================================
+# AUDIO – EFEKTY DŹWIĘKOWE (zakomentowane)
+# =========================================================================
+
+## Odtwarza podany strumień audio (jeżeli skonfigurowany).
+# func _play_stream(stream: AudioStream) -> void:
+# 	if snd == null or stream == null:
+# 		return
+# 	snd.stream = stream
+# 	snd.play()
 
 
-func _play_sfx_probe() -> void:
-	if play_sound_on_probe_dump:
-		_play_stream(sfx_probe_dump)
+## Odtwarza dźwięk zrzutu zawartości probówki do zlewki.
+# func _play_sfx_probe() -> void:
+# 	if play_sound_on_probe_dump:
+# 		_play_stream(sfx_probe_dump)
 
 
-func _play_sfx_dropper() -> void:
-	if play_sound_on_dropper_pour:
-		_play_stream(sfx_dropper_pour)
-
-
-func _play_sfx_holding() -> void:
-	if play_sound_on_holding_pipette:
-		_play_stream(sfx_holding_pipette)
+## Odtwarza dźwięk wylania z droppera.
+# func _play_sfx_dropper() -> void:
+# 	if play_sound_on_dropper_pour:
+# 		_play_stream(sfx_dropper_pour)

@@ -1,0 +1,37 @@
+[gd_scene load_steps=6 format=3 uid="uid://bb4yysak1cppq"]
+
+[ext_resource type="Script" uid="uid://dpscx6yu2x5lh" path="res://scenes/platin_rod_on_table.gd" id="1_xlf21"]
+[ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="2_iq3vq"]
+[ext_resource type="Texture2D" uid="uid://cb1vfcavbcu1i" path="res://assets/platinwire.png" id="3_xlf21"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_bly4o"]
+shader = ExtResource("2_iq3vq")
+shader_parameter/highlight = false
+shader_parameter/highlight_strength = 0.0
+shader_parameter/outline_color = Color(1, 0.95, 0.2, 1)
+shader_parameter/outline_width = 10.0
+shader_parameter/alpha_threshold = 0.35
+
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_jym16"]
+radius = 47.0
+height = 312.0
+
+[node name="PlatinRodOnTable" type="Node2D"]
+script = ExtResource("1_xlf21")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+material = SubResource("ShaderMaterial_bly4o")
+position = Vector2(-11.000004, 7)
+rotation = 0.27750736
+scale = Vector2(0.30933335, 0.18392348)
+texture = ExtResource("3_xlf21")
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+rotation = 1.2566371
+shape = SubResource("CapsuleShape2D_jym16")
+
+[connection signal="input_event" from="Area2D" to="." method="_on_area_input"]
+[connection signal="mouse_entered" from="Area2D" to="." method="_on_mouse_entered"]
+[connection signal="mouse_exited" from="Area2D" to="." method="_on_mouse_exited"]

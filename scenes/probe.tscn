@@ -96,7 +96,7 @@ scale = Vector2(1.8333334, 1.7368422)
 texture = ExtResource("10_tnybu")
 
 [node name="LiquidLevelSprite2D" type="Sprite2D" parent="LiquidFill"]
-z_index = 15
+z_index = 12
 material = SubResource("ShaderMaterial_yr4bq")
 position = Vector2(-0.99999905, 2.2668533)
 scale = Vector2(0.40000007, 1.1446942)

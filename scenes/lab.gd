@@ -6,9 +6,9 @@ extends Node2D  ## Główny węzeł sceny stołu laboratoryjnego – centralny k
 ## Odpowiada za:
 ## - pilnowanie globalnego trybu interakcji:
 ##   IDLE / HOLDING (pipeta) / TRANSFER (dropper) / INDICATOR (papierek) /
-##   STIR_ROD (bagietka) / SQUIRT (butelka z wodą),
+##   STIR_ROD (bagietka) / PLATIN_ROD (drucik do płomienia) / SQUIRT (butelka z wodą),
 ## - sterowanie „kursorami” narzędzi (pipeta, dropper, papierek wskaźnikowy,
-##   bagietka, butelka z wodą) i ich odpowiednikami leżącymi na stole,
+##   bagietka, drucik platynowy, butelka z wodą) i ich odpowiednikami leżącymi na stole,
 ## - integrację z LevelManagerem (tryb: ćwiczenie 1/2, egzamin, sandbox;
 ##   gałąź: kationy / aniony / sandbox),
 ## - zarządzanie highlightami probówek (co można kliknąć, co jest zablokowane,
@@ -27,7 +27,7 @@ const DEBUG_LOG_FINISH_CTX := false  ## Flaga debugowa – gdy true, wypisuje ko
 # TRYBY GLOBALNE STOŁU
 # ==============================
 
-enum Mode { IDLE, HOLDING, TRANSFER, INDICATOR, STIR_ROD, SQUIRT }
+enum Mode { IDLE, HOLDING, TRANSFER, INDICATOR, STIR_ROD, PLATIN_ROD, SQUIRT }
 
 ## Przechowuje aktualny tryb pracy stołu.
 var mode: Mode = Mode.IDLE
@@ -128,6 +128,16 @@ const STIR_ROD_OFFSET: Vector2 = Vector2(6, -28)          ## Przesunięcie bagie
 
 
 # ==============================
+# PLATIN ROD (DRUCIK PLATYNOWY)
+# ==============================
+
+@onready var platin_rod_on_table: Node2D = $PlatinRodOnTable    ## Drucik platynowy na stole.
+@onready var platin_rod_cursor: Node2D = $PlatinRodCursor       ## Drucik platynowy przy kursorze.
+
+const PLATIN_ROD_OFFSET: Vector2 = Vector2(6, -28)              ## Przesunięcie drucika względem kursora.
+
+
+# ==============================
 # SQUIRT BOTTLE (BUTELKA Z WODĄ)
 # ==============================
 
@@ -155,7 +165,7 @@ var _squirt_lmb_down: bool = false
 ## Przygotowuje scenę stołu:
 ## - dodaje Lab do grupy "lab_root",
 ## - odczytuje ustawienia highlightów z Settings,
-## - podpina sygnały z narzędzi (pipeta, dropper, papierek, bagietka, squirt),
+## - podpina sygnały z narzędzi (pipeta, dropper, papierek, bagietka, drucik, squirt),
 ## - ustawia interaktywność probówek,
 ## - ustawia początkowy stan hoverów i highlightów.
 func _ready() -> void:
@@ -196,6 +206,10 @@ func _ready() -> void:
 	if stir_rod_cursor and stir_rod_cursor.has_signal("cancel_requested"):
 		stir_rod_cursor.cancel_requested.connect(_on_stir_rod_cancel)
 
+	# Podłącza drucik platynowy na stole.
+	if platin_rod_on_table and platin_rod_on_table.has_signal("left_clicked"):
+		platin_rod_on_table.left_clicked.connect(_on_platin_rod_on_table_clicked)
+
 	# Ustawia poprawną interaktywność Area2D probówek.
 	_ensure_probes_pickable()
 
@@ -234,6 +248,10 @@ func _process(delta: float) -> void:
 		Mode.STIR_ROD:
 			if stir_rod_cursor:
 				stir_rod_cursor.global_position = get_global_mouse_position() + STIR_ROD_OFFSET
+
+		Mode.PLATIN_ROD:
+			if platin_rod_cursor:
+				platin_rod_cursor.global_position = get_global_mouse_position() + PLATIN_ROD_OFFSET
 
 		Mode.SQUIRT:
 			if squirt_cursor:
@@ -311,6 +329,10 @@ func _unhandled_input(event: InputEvent) -> void:
 				_stir_rod_put_back(true)
 				get_viewport().set_input_as_handled()
 
+			Mode.PLATIN_ROD:
+				_platin_rod_put_back(true)
+				get_viewport().set_input_as_handled()
+
 			Mode.SQUIRT:
 				_squirt_put_back(true)
 				get_viewport().set_input_as_handled()
@@ -326,6 +348,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				get_viewport().set_input_as_handled()
 			Mode.STIR_ROD:
 				_stir_rod_put_back(true)
+				get_viewport().set_input_as_handled()
+			Mode.PLATIN_ROD:
+				_platin_rod_put_back(true)
 				get_viewport().set_input_as_handled()
 			Mode.SQUIRT:
 				_squirt_put_back(true)
@@ -371,27 +396,10 @@ func _on_finish_btn_pressed() -> void:
 
 	if mode_str == "EXERCISE_SINGLE":
 		ctx["single_answer_map"] = level_manager.get_single_answer_map()
-		if DEBUG_LOG_FINISH_CTX:
-			var answer_map: Dictionary = ctx["single_answer_map"] as Dictionary
-			print("[Lab] single_answer_map.size() = ", answer_map.size())
 	elif mode_str == "EXERCISE_MIX":
 		ctx["mix_answer_list"] = level_manager.get_mix_answer_list()
-		if DEBUG_LOG_FINISH_CTX:
-			var answer_list: Array = ctx["mix_answer_list"] as Array
-			print("[Lab] mix_answer_list = ", answer_list)
 
 	Settings.set_last_run_context(ctx)
-
-	if DEBUG_LOG_FINISH_CTX:
-		# Zakomentowane logi diagnostyczne – zostawione na wszelki wypadek.
-		# print_rich(
-		# 	"[color=yellow][Lab] ctx zapisany: mode=", ctx.get("mode_str"),
-		# 	", group=", ctx.get("group_id"),
-		# 	", single_keys=", ((ctx["single_answer_map"] as Dictionary).keys() if ctx.has("single_answer_map") else []),
-		# 	", mix=", (ctx["mix_answer_list"] if ctx.has("mix_answer_list") else []),
-		# 	"[/color]"
-		# )
-		pass
 
 	if level_manager.is_cations_branch():
 		get_tree().change_scene_to_file("res://scenes/menu/results_cations.tscn")
@@ -423,7 +431,7 @@ func _on_bottle_left_clicked(bottle: Node) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if mode in [Mode.TRANSFER, Mode.INDICATOR, Mode.STIR_ROD, Mode.SQUIRT]:
+	if mode in [Mode.TRANSFER, Mode.INDICATOR, Mode.STIR_ROD, Mode.PLATIN_ROD, Mode.SQUIRT]:
 		return
 
 	if mode == Mode.IDLE:
@@ -501,7 +509,6 @@ func _dropper_take_from_table() -> void:
 
 	_set_all_bottles_hover(false)
 	_refresh_probe_highlights()
-	
 	_refresh_table_hovers()
 	_update_dropper_ui()
 
@@ -719,7 +726,7 @@ func _dropper_make_portion(source_mix: Mixture, fraction_value: float) -> Mixtur
 
 ## Odejmuje z mieszaniny w dropperze ułamek, który został wylany:
 ## - wywołuje subtract_fraction_in_place,
-## - czyści pola pH, aby zaufac nowemu przeliczeniu na probówce docelowej.
+## - czyści pola pH, aby zaufać nowemu przeliczeniu na probówce docelowej.
 func _dropper_apply_fraction_loss(target_mix: Mixture, fraction_value: float) -> void:
 	var clamped_fraction: float = clamp(fraction_value, 0.0, 1.0)
 	target_mix.subtract_fraction_in_place(clamped_fraction)
@@ -941,6 +948,124 @@ func _stir_rod_use_on_probe(probe: Node) -> void:
 		if stir_rod_cursor and stir_rod_cursor.has_method("play_mix_wobble"):
 			stir_rod_cursor.play_mix_wobble()
 		get_viewport().set_input_as_handled()
+
+
+
+# =============================================================================
+# PLATIN ROD – podnoszenie/odkładanie i użycie
+# =============================================================================
+
+## Obsługuje kliknięcie drucika platynowego na stole – podnosi go tylko w trybie IDLE.
+func _on_platin_rod_on_table_clicked(_node: Node) -> void:
+	if mode != Mode.IDLE:
+		return
+	_platin_rod_take_from_table()
+
+
+## Podnosi drucik platynowy ze stołu:
+## - ustawia tryb PLATIN_ROD,
+## - pokazuje wersję kursorową,
+## - chowa drucik na stole i odświeża highlighty.
+func _platin_rod_take_from_table() -> void:
+	mode = Mode.PLATIN_ROD
+
+	if platin_rod_cursor:
+		platin_rod_cursor.visible = true
+		platin_rod_cursor.global_position = get_global_mouse_position() + PLATIN_ROD_OFFSET
+	if platin_rod_on_table:
+		platin_rod_on_table.visible = false
+
+	_set_all_bottles_hover(false)
+	_refresh_probe_highlights()
+	_refresh_table_hovers()
+
+## Odkłada drucik platynowy na stół (z animacją lub bez) i wraca do trybu IDLE.
+func _platin_rod_put_back(animated: bool = true) -> void:
+	mode = Mode.IDLE
+	_set_all_bottles_hover(true)
+	_refresh_probe_highlights()
+	_refresh_table_hovers()
+
+	# Jeśli brakuje któregoś z węzłów – sprzątamy tyle, ile się da.
+	if not platin_rod_cursor or not platin_rod_on_table:
+		if platin_rod_cursor:
+			if platin_rod_cursor.has_method("hide_tool"):
+				platin_rod_cursor.hide_tool()
+			else:
+				platin_rod_cursor.visible = false
+				platin_rod_cursor.rotation_degrees = 0.0
+				platin_rod_cursor.scale = Vector2.ONE
+		if platin_rod_on_table:
+			platin_rod_on_table.visible = true
+		return
+
+	var target_pos: Vector2 = _get_anchor_global(platin_rod_on_table) + PLATIN_ROD_OFFSET
+
+	var finish_put_back := func() -> void:
+		if platin_rod_cursor:
+			# Reset stanu drucika (schowany, bez próbki, bez obrotu).
+			if platin_rod_cursor.has_method("hide_tool"):
+				platin_rod_cursor.hide_tool()
+			else:
+				platin_rod_cursor.visible = false
+				platin_rod_cursor.rotation_degrees = 0.0
+				platin_rod_cursor.scale = Vector2.ONE
+		if platin_rod_on_table:
+			platin_rod_on_table.visible = true
+		_refresh_table_hovers()
+		_refresh_probe_highlights()
+
+	if animated:
+		var tween: Tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tween.tween_property(platin_rod_cursor, "global_position", target_pos, tool_return_time)
+		tween.finished.connect(finish_put_back)
+	else:
+		platin_rod_cursor.global_position = target_pos
+		finish_put_back.call()
+
+
+func _platin_rod_use_on_probe(probe: Node) -> void:
+	if probe and _probe_is_in_shelved_rack(probe):
+		return
+	if mode != Mode.PLATIN_ROD:
+		return
+	if probe == null:
+		return
+	if _locked(probe):
+		get_viewport().set_input_as_handled()
+		return
+	if not _has_liquid(probe):
+		get_viewport().set_input_as_handled()
+		return
+
+	# Jeżeli drucik ma już próbkę – nie pobiera kolejnej.
+	if platin_rod_cursor:
+		var has_sample_val :Variant = platin_rod_cursor.get("has_sample")
+		if has_sample_val is bool and has_sample_val:
+			get_viewport().set_input_as_handled()
+			return
+
+	# Pobranie mieszaniny z probówki – bez jej modyfikowania.
+	var mixture: Mixture = probe.get("mixture") as Mixture
+	if mixture == null:
+		get_viewport().set_input_as_handled()
+		return
+
+	# Mała „teoretyczna” próbka – np. 10% zawartości, ale tylko jako kopia.
+	var sample_fraction: float = 0.1
+	var sample_mix: Mixture = mixture.scaled_fraction(sample_fraction)
+
+	# DEBUG: co drucik skopiował z probówki
+	print("[PLATINROD] próbka:  IONS=", sample_mix.ions, "  SOLIDS=", sample_mix.solids, "  TAGS=", sample_mix.tags)
+
+	if platin_rod_cursor:
+		if platin_rod_cursor.has_method("set_sample"):
+			platin_rod_cursor.set_sample(sample_mix)
+
+		if platin_rod_cursor.has_method("play_sample_rotation"):
+			platin_rod_cursor.play_sample_rotation()
+
+	get_viewport().set_input_as_handled()
 
 
 
@@ -1174,6 +1299,21 @@ func _refresh_probe_highlights() -> void:
 				return not _locked(probe) and _has_liquid(probe)
 			)
 
+		Mode.PLATIN_ROD:
+			_set_highlights_by(func(probe: Node) -> bool:
+				# jeśli drucik ma już próbkę – nie pokazujemy żadnych highlightów
+				if platin_rod_cursor:
+					var has_sample_val :Variant = platin_rod_cursor.get("has_sample")
+					if has_sample_val is bool and has_sample_val:
+						return false
+
+				if _locked(probe):
+					return false
+				# drucik działa jak „mini-dropper” – interesują nas probówki z cieczą
+				return _has_liquid(probe)
+			)
+
+
 		Mode.SQUIRT:
 			_set_highlights_by(func(probe: Node) -> bool:
 				return not _locked(probe) and not _is_full(probe)
@@ -1269,6 +1409,8 @@ func _reset_to_idle() -> void:
 		_indicator_put_back(false)
 	elif mode == Mode.STIR_ROD:
 		_stir_rod_put_back(false)
+	elif mode == Mode.PLATIN_ROD:
+		_platin_rod_put_back(false)
 	elif mode == Mode.SQUIRT:
 		_squirt_put_back(false)
 	else:
@@ -1331,12 +1473,13 @@ func _ensure_probes_pickable() -> void:
 	_apply_shelf_guard_to_all_probes()
 
 
-## Odświeża hover dla narzędzi na stole (dropper, papierek, bagietka, squirt),
+## Odświeża hover dla narzędzi na stole (dropper, papierek, bagietka, drucik, squirt),
 ## tak aby były podświetlane tylko wtedy, gdy można je podnieść.
 func _refresh_table_hovers() -> void:
 	_update_dropper_table_hover()
 	_update_indicator_table_hover()
 	_update_stir_rod_table_hover()
+	_update_platin_rod_table_hover()
 	_update_squirt_table_hover()
 
 
@@ -1367,6 +1510,13 @@ func _update_stir_rod_table_hover() -> void:
 	var can_highlight: bool = _can_pick_table_tool() and _highlights_enabled_global
 	if stir_rod_on_table and stir_rod_on_table.has_method("set_hover_enabled"):
 		stir_rod_on_table.set_hover_enabled(can_highlight)
+
+
+## Ustawia hover na druciku platynowym leżącym na stole.
+func _update_platin_rod_table_hover() -> void:
+	var can_highlight: bool = _can_pick_table_tool() and _highlights_enabled_global
+	if platin_rod_on_table and platin_rod_on_table.has_method("set_hover_enabled"):
+		platin_rod_on_table.set_hover_enabled(can_highlight)
 
 
 ## Ustawia hover na butelce z wodą leżącej na stole.

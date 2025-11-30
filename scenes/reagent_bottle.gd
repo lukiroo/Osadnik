@@ -2,14 +2,22 @@
 extends Node2D
 class_name ReagentBottle
 
-## Butelka z odczynnikiem na półce.
-## - reaguje na klik LMB (sygnał left_clicked → Lab wchodzi w tryb HOLDING),
-## - wyświetla etykietę z nazwą odczynnika,
-## - kolor cieczy jest brany z zasobu Reagent.
+## =========================================================================
+## reagent_bottle.gd – butelka z odczynnikiem na półce
+## -------------------------------------------------------------------------
+## Odpowiada za:
+## - reagowanie na klik LPM (sygnał left_clicked → Lab wchodzi w tryb HOLDING),
+## - wyświetlanie etykiety z nazwą odczynnika (display_name / id),
+## - pokazywanie koloru cieczy w butelce na podstawie Reagent.liquid_color,
+## - prosty outline przy hoverze, sterowany z Lab (set_hover_enabled).
+## =========================================================================
 
 signal left_clicked(bottle: ReagentBottle)
 
-# -------------------- WĘZŁY SCENY --------------------
+# -----------------------------
+# WĘZŁY SCENY
+# -----------------------------
+
 @onready var area: Area2D            = $BottleArea2D
 @onready var full_sprite: Sprite2D   = $BottleClosed
 @onready var empty_sprite: Sprite2D  = $BottleOpened
@@ -18,7 +26,11 @@ signal left_clicked(bottle: ReagentBottle)
 @export var label_path: NodePath = ^"Label"
 @onready var label: Label = get_node_or_null(label_path) as Label
 
-# -------------------- ZASÓB ODCZYNNIKA --------------------
+
+# -----------------------------
+# ZASÓB ODCZYNNIKA
+# -----------------------------
+
 var _reagent: Reagent = null
 
 @export var reagent: Reagent:
@@ -29,117 +41,126 @@ var _reagent: Reagent = null
 	get:
 		return _reagent
 
-# -------------------- MATERIAŁY / HOVER --------------------
-var mat_full: ShaderMaterial = null  ## Materiał sprita „pełnej” butelki (duplikowany per instancja).
-var mat_empty: ShaderMaterial = null ## Materiał sprita „pustej” butelki.
-var hover_enabled: bool = true       ## Czy butelka reaguje na hover (outline).
+
+# -----------------------------
+# MATERIAŁY / HOVER
+# -----------------------------
+
+var mat_full: ShaderMaterial = null   ## Materiał sprita „pełnej” butelki (duplikowany per instancja).
+var mat_empty: ShaderMaterial = null  ## Materiał sprita „pustej” butelki.
+var hover_enabled: bool = true        ## Czy butelka reaguje na hover (outline).
 
 const U_HIGHLIGHT := "highlight"
 const U_HIGHLIGHT_STRENGTH := "highlight_strength"
 
 
-# =================================================================
+# =========================================================================
 # INIT – konfiguracja butelki i materiałów
-# =================================================================
+# =========================================================================
+
+## Przygotowuje butelkę po starcie:
+## - dodaje do grupy "bottles" (Lab szuka po tej grupie),
+## - duplikuje materiały shaderowe, żeby highlight był per instancja,
+## - ustawia stan „pełna” + etykietę i kolor cieczy z reagenta.
 func _ready() -> void:
-	## Rejestracja w grupie – Lab może szukać butelek przez `get_nodes_in_group("bottles")`.
 	add_to_group("bottles")
 
-	## Duplikacja materiałów shaderowych, żeby parametry były per-instancja.
 	mat_full = _dup_shader_if_any(full_sprite)
 	mat_empty = _dup_shader_if_any(empty_sprite)
 
-	## Stan początkowy: butelka „pełna”, brak outline, etykieta i kolor ustawione z reagentu.
 	show_full(true)
 	_set_outline(false)
 	_apply_label()
 	_apply_liquid_color()
 
 
-# =================================================================
+# =========================================================================
 # INPUT / HOVER
-# =================================================================
+# =========================================================================
+
+## Obsługuje input na obszarze butelki:
+## - reaguje na LPM lub akcję "left_click",
+## - emituje left_clicked(bottle), Lab przełącza się w tryb HOLDING.
 func _on_area_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
-	## Reagujemy tylko na lewy przycisk myszy.
 	if event is InputEventMouseButton and event.pressed:
-		## Jeśli korzystasz z InputMap, używamy akcji "left_click".
-		if event.is_action_pressed("left_click"):
+		if event.button_index == MOUSE_BUTTON_LEFT or event.is_action_pressed("left_click"):
 			left_clicked.emit(self)
 			get_viewport().set_input_as_handled()
 
 
+## Reaguje na wejście kursora nad butelkę – włącza outline, jeśli hover_enabled.
 func _on_mouse_entered() -> void:
-	## Outline pojawia się przy wejściu kursora,
-	## ale tylko jeśli hover jest włączony i LMB nie jest aktualnie wciśnięty.
 	if hover_enabled and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_set_outline(true)
 
 
+## Reaguje na wyjście kursora z butelki – gasi outline.
 func _on_mouse_exited() -> void:
-	## Wyjście kursora z obszaru – gasimy outline.
 	_set_outline(false)
 
 
+## Gasi outline przy każdym wciśnięciu LPM (żeby nie zostawał „przyklejony”).
 func _input(event: InputEvent) -> void:
-	## Każde wciśnięcie LMB gdziekolwiek na ekranie gasi outline,
-	## żeby efekt nie zostawał „przyklejony”.
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		_set_outline(false)
 
 
-# =================================================================
-# HOVER – sterowanie z zewnątrz (np. z Lab)
-# =================================================================
+# =========================================================================
+# HOVER – sterowanie z zewnątrz (Lab)
+# =========================================================================
+
+## Umożliwia globalne włączenie/wyłączenie podświetlenia butelki.
 func set_hover_enabled(enabled: bool) -> void:
-	## Pozwala globalnie włączyć/wyłączyć podświetlenie butelki.
 	hover_enabled = enabled
 	if not enabled:
 		_set_outline(false)
 
 
+## Ustawia parametry outline w materiałach shaderowych (pełna/pusta).
 func _set_outline(on: bool) -> void:
-	## Ustawia parametry outline w materiałach shaderowych (jeśli istnieją).
-	var strength := (1.0 if on else 0.0)
+	var strength: float = (1.0 if on else 0.0)
 	if mat_full:
 		_set_highlight_uniforms(mat_full, on, strength)
 	if mat_empty:
 		_set_highlight_uniforms(mat_empty, on, strength)
-	## Ciecz nie ma outline – za podświetlenie odpowiada kontur butelki.
+	# Ciecz w butelce nie ma outline – tylko kontur.
 
 
-# =================================================================
+# =========================================================================
 # STAN „PEŁNA / PUSTA” – warstwa graficzna
-# =================================================================
-func show_full(v: bool) -> void:
-	## Ustawia wariant graficzny: butelka pełna albo otwarta/pusta.
+# =========================================================================
+
+## Ustawia wariant graficzny: butelka pełna albo otwarta/pusta.
+func show_full(is_full_state: bool) -> void:
 	if full_sprite:
-		full_sprite.visible = v
+		full_sprite.visible = is_full_state
 	if liquid_sprite:
-		liquid_sprite.visible = v
+		liquid_sprite.visible = is_full_state
 	if empty_sprite:
-		empty_sprite.visible = not v
+		empty_sprite.visible = not is_full_state
 
 
+## Skrót dla show_full(false).
 func show_empty() -> void:
-	## Skrót dla show_full(false).
 	show_full(false)
 
 
+## Zwraca informację, czy aktualnie wyświetlana jest grafika „pełnej” butelki.
 func is_full() -> bool:
-	## Informacja pomocnicza – czy aktualnie używany jest wariant „pełny”.
 	return full_sprite != null and full_sprite.visible
 
 
-# =================================================================
+# =========================================================================
 # API DLA LAB – identyfikacja odczynnika
-# =================================================================
+# =========================================================================
+
+## Zwraca identyfikator odczynnika (id z Reagent, np. "HCl").
 func get_reagent_id() -> String:
-	## Zwraca techniczny identyfikator odczynnika (np. "HCl").
 	return _reagent.id if _reagent else ""
 
 
+## Zwraca nazwę wyświetlaną na etykiecie (display_name albo id).
 func get_reagent_display_name() -> String:
-	## Zwraca nazwę wyświetlaną na etykiecie (display_name albo id).
 	if _reagent == null:
 		return ""
 	if _reagent.display_name != "":
@@ -147,69 +168,71 @@ func get_reagent_display_name() -> String:
 	return _reagent.id
 
 
-# =================================================================
+# =========================================================================
 # ETYKIETA I KOLOR CIECZY
-# =================================================================
+# =========================================================================
+
+## Aktualizuje tekst etykiety na podstawie zasobu Reagent.
 func _apply_label() -> void:
-	## Aktualizacja tekstu etykiety na podstawie zasobu Reagent.
 	if label == null:
 		return
 
-	var txt := ""
+	var label_text := ""
 	if _reagent:
 		if _reagent.display_name != "":
-			txt = _reagent.display_name
+			label_text = _reagent.display_name
 		else:
-			txt = _reagent.id
+			label_text = _reagent.id
 
-	label.text = txt
-	label.visible = (txt != "")
+	label.text = label_text
+	label.visible = (label_text != "")
 
 
+## Ustawia kolor cieczy w butelce na podstawie Reagent.liquid_color:
+## - jeśli reagent jest przypisany, moduluje sprite kolorem liquid_color,
+## - jeśli brak reagenta, ciecz jest „niewidoczna” (alpha = 0).
 func _apply_liquid_color() -> void:
-	## Ustawia kolor cieczy na podstawie pola `liquid_color` w Reagent.
 	if liquid_sprite == null:
 		return
 
-	var tint := Color(1, 1, 1, 0.0)  ## Domyślnie „pusta” butelka (alpha = 0).
-	if _reagent and _reagent.has_method("get"):
-		var v: Variant = _reagent.get("liquid_color")
-		if v is Color:
-			tint = v
+	var tint: Color = Color(1, 1, 1, 0.0)  ## Domyślnie „pusta” butelka (alpha = 0).
+	if _reagent:
+		# Bierzemy dokładnie liquid_color z Reagent (łącznie z alphą).
+		tint = _reagent.liquid_color
 
 	liquid_sprite.modulate = tint
 
 
-# =================================================================
+# =========================================================================
 # POMOCNICZE – materiały shaderowe i highlight
-# =================================================================
-func _dup_shader_if_any(spr: Sprite2D) -> ShaderMaterial:
-	## Jeżeli sprite ma materiał ShaderMaterial, duplikujemy go
-	## i zwracamy referencję do kopii (per instancja).
-	if spr and spr.material and spr.material is ShaderMaterial:
-		var dupe := (spr.material as ShaderMaterial).duplicate()
-		spr.material = dupe
-		return dupe
+# =========================================================================
+
+## Duplikuje materiał ShaderMaterial ze sprita, jeżeli istnieje, i ustawia go na spricie.
+func _dup_shader_if_any(sprite_node: Sprite2D) -> ShaderMaterial:
+	if sprite_node and sprite_node.material and sprite_node.material is ShaderMaterial:
+		var duplicate_material := (sprite_node.material as ShaderMaterial).duplicate()
+		sprite_node.material = duplicate_material
+		return duplicate_material
 	return null
 
 
+## Ustawia uniformy odpowiedzialne za outline w materiale shadera (jeśli istnieją).
 func _set_highlight_uniforms(mat: ShaderMaterial, on: bool, strength: float) -> void:
-	## Bezpieczne ustawianie uniformów odpowiedzialnych za outline.
 	if mat == null or mat.shader == null:
 		return
 
-	var has_h := false
-	var has_s := false
+	var has_highlight: bool = false
+	var has_strength: bool = false
 
-	for u in mat.shader.get_shader_uniform_list():
-		var ud: Dictionary = u
-		var u_name := String(ud.get("name", ""))
-		if u_name == U_HIGHLIGHT:
-			has_h = true
-		elif u_name == U_HIGHLIGHT_STRENGTH:
-			has_s = true
+	for uniform in mat.shader.get_shader_uniform_list():
+		var uniform_dict: Dictionary = uniform
+		var uniform_name := String(uniform_dict.get("name", ""))
+		if uniform_name == U_HIGHLIGHT:
+			has_highlight = true
+		elif uniform_name == U_HIGHLIGHT_STRENGTH:
+			has_strength = true
 
-	if has_h:
+	if has_highlight:
 		mat.set_shader_parameter(U_HIGHLIGHT, on)
-	if has_s:
+	if has_strength:
 		mat.set_shader_parameter(U_HIGHLIGHT_STRENGTH, strength)

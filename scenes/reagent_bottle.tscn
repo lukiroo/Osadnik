@@ -44,6 +44,7 @@ texture = ExtResource("2_npx57")
 [node name="BottleLiquid" type="Sprite2D" parent="."]
 modulate = Color(1, 1, 1, 0)
 z_index = 1
+position = Vector2(45.07, 0)
 
 [node name="BottleArea2D" type="Area2D" parent="."]
 z_index = 1

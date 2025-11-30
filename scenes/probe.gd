@@ -396,6 +396,12 @@ func _on_probe_area_2d_input_event(_vp: Viewport, event: InputEvent, _shape_idx:
 			get_viewport().set_input_as_handled()
 		return
 
+	if cur_mode == ModeEnum.PLATIN_ROD:
+		if lab.has_method("_platin_rod_use_on_probe"):
+			lab._platin_rod_use_on_probe(self)
+		get_viewport().set_input_as_handled()
+		return
+
 	if draggable:
 		_start_drag()
 		get_viewport().set_input_as_handled()

@@ -1,0 +1,22 @@
+[gd_scene load_steps=4 format=3 uid="uid://wey4ewxabsew"]
+
+[ext_resource type="Script" uid="uid://bdj8fqgue6oe4" path="res://scenes/platin_rod_cursor.gd" id="1_fq2y8"]
+[ext_resource type="Texture2D" uid="uid://cb1vfcavbcu1i" path="res://assets/platinwire.png" id="2_fq2y8"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ylokq"]
+size = Vector2(102, 334)
+
+[node name="PlatinRodCursor" type="Node2D"]
+script = ExtResource("1_fq2y8")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(-10, 44.999996)
+rotation = -0.4118977
+scale = Vector2(0.327, 0.38)
+texture = ExtResource("2_fq2y8")
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+position = Vector2(-2, -11)
+shape = SubResource("RectangleShape2D_ylokq")
