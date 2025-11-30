@@ -55,7 +55,7 @@ const U_HIGHLIGHT_STRENGTH := "highlight_strength"
 
 
 # =========================================================================
-# INIT – konfiguracja butelki i materiałów
+# INICJALIZACJA – konfiguracja butelki i materiałów
 # =========================================================================
 
 ## Przygotowuje butelkę po starcie:
@@ -151,7 +151,7 @@ func is_full() -> bool:
 
 
 # =========================================================================
-# API DLA LAB – identyfikacja odczynnika
+# POBRANIE ID ODCZYNNIKA – etykieeta butelki
 # =========================================================================
 
 ## Zwraca identyfikator odczynnika (id z Reagent, np. "HCl").

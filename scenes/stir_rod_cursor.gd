@@ -52,7 +52,7 @@ func _exit_tree() -> void:
 
 
 # =========================================================================
-# API LAB – POKAZANIE / SCHOWANIE NARZĘDZIA
+# POKAZANIE / SCHOWANIE NARZĘDZIA
 # =========================================================================
 
 ## Włącza bagietkę przy kursorze:

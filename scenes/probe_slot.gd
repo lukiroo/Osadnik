@@ -34,7 +34,7 @@ var _current_probe: Node2D = null
 
 
 # =========================================================================
-# INIT I STAN POCZĄTKOWY
+# INICJALIZACJA
 # =========================================================================
 
 ## Przygotowuje slot po starcie:
@@ -50,7 +50,7 @@ func _ready() -> void:
 
 
 # =========================================================================
-# API WYWOŁYWANE Z ZEWNĄTRZ
+# METODY WYWOŁYWANE Z ZEWNĄTRZ 
 # =========================================================================
 
 ## Sprawdza, czy slot jest aktualnie zajęty.

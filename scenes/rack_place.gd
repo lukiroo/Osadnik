@@ -22,7 +22,7 @@ var _occupied_by: Node = null
 
 
 # =========================================================================
-# API DLA ProbeRack – claim / release / hint
+# ZARZĄDZANIE MIEJSCAMI STOJAKA
 # =========================================================================
 
 ## Sprawdza, czy miejsce jest wolne.

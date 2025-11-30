@@ -1,4 +1,4 @@
-[gd_scene load_steps=27 format=3 uid="uid://cbijtqnh0c654"]
+[gd_scene load_steps=28 format=3 uid="uid://cbijtqnh0c654"]
 
 [ext_resource type="Script" uid="uid://cpu3bsk01o2g2" path="res://scenes/lab.gd" id="1_l8eg8"]
 [ext_resource type="PackedScene" uid="uid://c75ytlngbysag" path="res://scenes/indicator_paper.tscn" id="2_hxoer"]
@@ -20,6 +20,7 @@
 [ext_resource type="PackedScene" uid="uid://wey4ewxabsew" path="res://scenes/platin_rod_cursor.tscn" id="24_iyn56"]
 [ext_resource type="Script" uid="uid://2fnoreiqa0en" path="res://scenes/level_manager.gd" id="24_qempp"]
 [ext_resource type="PackedScene" uid="uid://bgmcg5ih16qe7" path="res://scenes/probe_beaker2.tscn" id="25_ffhs6"]
+[ext_resource type="PackedScene" uid="uid://jskp7ifhdgxs" path="res://scenes/bunsen_burner.tscn" id="25_gpqbo"]
 [ext_resource type="PackedScene" uid="uid://bb4yysak1cppq" path="res://scenes/platin_rod_on_table.tscn" id="25_iyn56"]
 [ext_resource type="Script" uid="uid://b0exgltg1dc3s" path="res://scenes/rack_place.gd" id="27_g70h3"]
 [ext_resource type="Texture2D" uid="uid://hxc3jjup6cct" path="res://assets/rackshadow.png" id="28_o3afa"]
@@ -165,6 +166,10 @@ visible = false
 position = Vector2(689, 659)
 
 [node name="PlatinRodCursor" parent="." instance=ExtResource("24_iyn56")]
+
+[node name="BunsenBurner" parent="." instance=ExtResource("25_gpqbo")]
+position = Vector2(727.9999, 535)
+scale = Vector2(0.34, 0.34)
 
 [node name="BackBtn" parent="." instance=ExtResource("22_kxeyc")]
 offset_left = 12.0

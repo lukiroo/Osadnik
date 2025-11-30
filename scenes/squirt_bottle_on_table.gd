@@ -24,7 +24,7 @@ var _hover_enabled: bool = true               ## Czy aktualnie reagujemy na hove
 
 
 # =========================================================================
-# INIT – konfiguracja materiału i stanu początkowego
+# INICJALIZACJA– konfiguracja materiału i stanu początkowego
 # =========================================================================
 
 ## Przygotowuje butelkę:

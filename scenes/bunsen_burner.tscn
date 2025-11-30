@@ -1,0 +1,53 @@
+[gd_scene load_steps=8 format=3 uid="uid://jskp7ifhdgxs"]
+
+[ext_resource type="Script" uid="uid://bvy1n2p2gksbw" path="res://bunsen_burner.gd" id="1_p7sgd"]
+[ext_resource type="Texture2D" uid="uid://bgr7ngnuuhsn4" path="res://assets/bunsen.png" id="2_3fjl5"]
+[ext_resource type="Shader" uid="uid://bsyjc3yvf70db" path="res://resources/flame.gdshader" id="3_3fjl5"]
+[ext_resource type="Texture2D" uid="uid://owxxi13qyahe" path="res://assets/flame.png" id="3_nbjth"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_63rt2"]
+radius = 40.012497
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_nbjth"]
+shader = ExtResource("3_3fjl5")
+shader_parameter/flame_mode = 0
+shader_parameter/brightness = 1.0
+shader_parameter/flicker_strength = 0.15
+shader_parameter/height_scale = 1.0
+shader_parameter/yellow_color = Vector4(1, 0.7, 0.25, 1)
+shader_parameter/blue_color = Vector4(0.3, 0.9, 1, 1)
+shader_parameter/use_test_color = false
+shader_parameter/test_color = Vector4(1, 0.9, 0.4, 1)
+shader_parameter/test_mix = 0.7
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2km1j"]
+size = Vector2(114.5, 345)
+
+[node name="BunsenBurner" type="Node2D"]
+script = ExtResource("1_p7sgd")
+
+[node name="Burner" type="Sprite2D" parent="."]
+texture = ExtResource("2_3fjl5")
+
+[node name="ValveArea2D" type="Area2D" parent="."]
+
+[node name="Valve" type="Sprite2D" parent="ValveArea2D"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="ValveArea2D"]
+position = Vector2(57, 40)
+shape = SubResource("CircleShape2D_63rt2")
+
+[node name="FlameArea2D" type="Area2D" parent="."]
+
+[node name="Flame" type="Sprite2D" parent="FlameArea2D"]
+material = SubResource("ShaderMaterial_nbjth")
+position = Vector2(8, -349)
+texture = ExtResource("3_nbjth")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="FlameArea2D"]
+position = Vector2(9, -351.5)
+shape = SubResource("RectangleShape2D_2km1j")
+
+[connection signal="input_event" from="ValveArea2D" to="." method="_on_valve_area_input_event"]
+[connection signal="mouse_entered" from="FlameArea2D" to="." method="_on_flame_area_mouse_entered"]
+[connection signal="mouse_exited" from="FlameArea2D" to="." method="_on_flame_area_mouse_exited"]

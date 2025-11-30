@@ -7,7 +7,6 @@ class_name SquirtBottleCursor
 ## Odpowiada za:
 ## - wyświetlanie butelki z wodą przy kursorze (follow_mouse + offset),
 ## - animację „ściśnięcia” przy dolewaniu wody,
-## - proste API show_tool / hide_tool używane przez Lab.
 ## =========================================================================
 
 # -------------------- USTAWIENIA OGÓLNE --------------------
@@ -53,7 +52,7 @@ func _exit_tree() -> void:
 
 
 # =========================================================================
-# API LAB – POKAZANIE / SCHOWANIE
+# POKAZANIE / SCHOWANIE
 # =========================================================================
 
 ## Włącza butelkę przy kursorze:

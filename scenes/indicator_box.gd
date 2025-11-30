@@ -23,7 +23,7 @@ var _hover_enabled: bool = true               ## Flaga umożliwiająca wyłącze
 
 
 # =========================================================================
-# INIT – przygotowanie materiału i stanu początkowego
+# INICJALIZACJA – przygotowanie materiału i stanu początkowego
 # =========================================================================
 
 ## Przygotowuje pudełko:

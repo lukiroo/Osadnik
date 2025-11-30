@@ -24,7 +24,7 @@ var _hover_enabled: bool = true               ## Możliwość czasowego wyłącz
 
 
 # =========================================================================
-# INIT – konfiguracja materiału i stanu początkowego
+# INICJALIZACJA – konfiguracja materiału i stanu początkowego
 # =========================================================================
 
 ## Przygotowuje dropper:

@@ -88,7 +88,7 @@ func _process(_delta: float) -> void:
 
 
 # =========================================================================
-# API (Lab → IndicatorPaper)
+# METODY WYWOŁYWANE Z ZEWNĄTRZ 
 # =========================================================================
 
 ## Używa papierek na konkretnej probówce:

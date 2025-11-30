@@ -49,7 +49,7 @@ func _ready() -> void:
 
 
 # =========================================================================
-# API WYWOŁYWANE Z ZEWNĄTRZ
+# A# METODY WYWOŁYWANE Z ZEWNĄTRZ 
 # =========================================================================
 
 ## Ustawia poziom napełnienia (0..1) i odświeża widok.

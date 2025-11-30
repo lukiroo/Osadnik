@@ -56,7 +56,7 @@ var _z_before_drag: int = 0
 
 
 # =========================================================================
-# INIT I STAN STARTOWY
+# INICJALIZACJA I PROCESS
 # =========================================================================
 
 ## Przygotowuje stojak po starcie:

@@ -138,6 +138,13 @@ const PLATIN_ROD_OFFSET: Vector2 = Vector2(6, -28)              ## Przesunięcie
 
 
 # ==============================
+# BUNSEN BURNER (PALNIK)
+# ==============================
+
+@onready var bunsen_burner: BunsenBurner = $BunsenBurner
+
+
+# ==============================
 # SQUIRT BOTTLE (BUTELKA Z WODĄ)
 # ==============================
 
@@ -209,6 +216,16 @@ func _ready() -> void:
 	# Podłącza drucik platynowy na stole.
 	if platin_rod_on_table and platin_rod_on_table.has_signal("left_clicked"):
 		platin_rod_on_table.left_clicked.connect(_on_platin_rod_on_table_clicked)
+
+	# Podłącza palnik (wejście drucika w płomień).
+	if bunsen_burner and bunsen_burner.has_signal("flame_entered"):
+		bunsen_burner.flame_entered.connect(_on_bunsen_flame_entered)
+
+	if bunsen_burner and bunsen_burner.has_signal("flame_test_finished"):
+		bunsen_burner.flame_test_finished.connect(_on_bunsen_flame_test_finished)
+
+	if bunsen_burner and bunsen_burner.has_signal("flame_exited"):
+		bunsen_burner.flame_exited.connect(_on_bunsen_flame_exited)
 
 	# Ustawia poprawną interaktywność Area2D probówek.
 	_ensure_probes_pickable()
@@ -1068,6 +1085,71 @@ func _platin_rod_use_on_probe(probe: Node) -> void:
 	get_viewport().set_input_as_handled()
 
 
+## Reaguje na wejście drucika platynowego w płomień palnika (mouse_entered na FlameArea2D).
+## - działa tylko w trybie PLATIN_ROD,
+## - wymaga, żeby drucik miał pobraną próbkę (has_sample == true),
+## - przekazuje słownik jonów z próbki do palnika,
+## - czyści próbkę z drucika (traktujemy ją jako „spaloną”).
+func _on_bunsen_flame_entered(burner: BunsenBurner) -> void:
+	print("[LAB] flame entered, mode=", mode)
+	if mode != Mode.PLATIN_ROD:
+		return
+
+	var rod := platin_rod_cursor as PlatinRodCursor
+	if rod == null:
+		return
+
+	if not rod.has_sample:
+		get_viewport().set_input_as_handled()
+		return
+
+	var sample_mix: Mixture = rod.sample_mix
+	if sample_mix == null or not (sample_mix.ions is Dictionary):
+		get_viewport().set_input_as_handled()
+		return
+
+	if burner and burner.has_method("apply_flame_test_for_ions"):
+		burner.apply_flame_test_for_ions(sample_mix.ions)
+
+	# Uwaga: próbki NIE czyścimy tutaj.
+	# Zniknie dopiero, gdy palnik wyemituje flame_test_finished po test_duration_sec.
+
+	get_viewport().set_input_as_handled()
+
+
+## Reaguje na koniec barwienia płomienia (timer w palniku się skończył).
+## - jeśli nadal jesteśmy w trybie PLATIN_ROD i drucik ma próbkę,
+##   traktujemy ją jako „spaloną” i czyścimy.
+func _on_bunsen_flame_test_finished(_burner: BunsenBurner) -> void:
+	if mode != Mode.PLATIN_ROD:
+		return
+
+	var rod := platin_rod_cursor as PlatinRodCursor
+	if rod == null:
+		return
+
+	if not rod.has_sample:
+		return
+
+	rod.clear_sample()
+	_refresh_probe_highlights()
+
+
+func _on_bunsen_flame_exited(_burner: BunsenBurner) -> void:
+	if mode != Mode.PLATIN_ROD:
+		return
+
+	var rod := platin_rod_cursor as PlatinRodCursor
+	if rod == null:
+		return
+
+	# Jeśli próbka jest już spalona (has_sample == false) i drucik jest przekręcony,
+	# wracamy płynnie do pozycji bazowej.
+	if not rod.has_sample and rod.rotation_degrees != 0.0:
+		if rod.has_method("tween_back_to_base"):
+			rod.tween_back_to_base()
+		else:
+			rod.rotation_degrees = 0.0
 
 # =============================================================================
 # SQUIRT BOTTLE (woda) – podnoszenie, wylewanie ciągłe i odkładanie
@@ -1623,7 +1705,7 @@ func _get_anchor_global(node: Node) -> Vector2:
 
 
 # =============================================================================
-# PUBLICZNE API DRAG-GUARD (dla Probe.gd)
+# DRAG-GUARD (dla Probe.gd)
 # =============================================================================
 
 ## Informuje Lab, że pobrano probówkę do przeciągania – wyłącza highlighty na czas dragu.

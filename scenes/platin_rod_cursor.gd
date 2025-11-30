@@ -5,10 +5,9 @@ class_name PlatinRodCursor
 ## platin_rod_cursor.gd – drucik platynowy przy kursorze
 ## -------------------------------------------------------------------------
 ## Odpowiada za:
-## - wyświetlanie drucika przy kursorze (follow_mouse + offset),
-## - prostą animację obrotu po pobraniu próbki z probówki,
-## - przechowywanie informacji o tym, czy drucik ma „próbkę” (Mixture),
-## - proste API show_tool / hide_tool używane przez Lab.
+## - wyświetlanie drucika przy kursorze,
+## - animację obrotu po pobraniu próbki z probówki,
+## - przechowywanie informacji o tym, czy drucik ma próbkę,
 ## =========================================================================
 
 # -------------------- USTAWIENIA OGÓLNE --------------------
@@ -19,7 +18,7 @@ class_name PlatinRodCursor
 
 ## Parametry animacji obrotu przy pobraniu próbki.
 @export var sample_rot_deg: float = 45.0        ## Kąt wychylenia przy pobieraniu próbki.
-@export var sample_rot_time: float = 0.12       ## Czas obrotu od 0° do sample_rot_deg.
+@export var sample_rot_time: float = 0.4       ## Czas obrotu od 0° do sample_rot_deg.
 
 
 # -------------------- STAN WEWNĘTRZNY --------------------
@@ -54,7 +53,7 @@ func _exit_tree() -> void:
 
 
 # =========================================================================
-# API LAB – POKAZANIE / SCHOWANIE
+# POKAZANIE / SCHOWANIE
 # =========================================================================
 
 ## Włącza drucik przy kursorze:
@@ -119,18 +118,23 @@ func _stop_tween() -> void:
 
 
 # =========================================================================
-# OBRÓT PRZY POBRANIU PRÓBKI
+# OBRÓT PRZY POBRANIU I SPALENIU PRÓBKI
 # =========================================================================
 
 ## Odtwarza prostą animację obrotu:
-## - wychyla drucik z 0° do sample_rot_deg i zostawia go w tej pozycji,
-## - reset następuje dopiero przy hide_tool().
+## - wychyla drucik z 0° do sample_rot_deg i zostawia go w tej pozycji
 func play_sample_rotation() -> void:
 	_stop_tween()
-
 	rotation_degrees = 0.0
 	_rotate_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 	_rotate_tween.tween_property(self, "rotation_degrees", sample_rot_deg, sample_rot_time)
+
+
+## Płynny powrót drucika do pozycji bazowej po spaleniu próbki.
+func tween_back_to_base() -> void:
+	_stop_tween()
+	_rotate_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_rotate_tween.tween_property(self, "rotation_degrees", 0.0, sample_rot_time)
 
 
 # =========================================================================
