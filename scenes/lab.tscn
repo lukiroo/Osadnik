@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3 uid="uid://cbijtqnh0c654"]
+[gd_scene load_steps=30 format=3 uid="uid://cbijtqnh0c654"]
 
 [ext_resource type="Script" uid="uid://cpu3bsk01o2g2" path="res://scenes/lab.gd" id="1_l8eg8"]
 [ext_resource type="PackedScene" uid="uid://c75ytlngbysag" path="res://scenes/indicator_paper.tscn" id="2_hxoer"]
@@ -24,6 +24,7 @@
 [ext_resource type="PackedScene" uid="uid://jskp7ifhdgxs" path="res://scenes/bunsen_burner.tscn" id="25_gpqbo"]
 [ext_resource type="PackedScene" uid="uid://bb4yysak1cppq" path="res://scenes/platin_rod_on_table.tscn" id="25_iyn56"]
 [ext_resource type="Script" uid="uid://b0exgltg1dc3s" path="res://scenes/rack_place.gd" id="27_g70h3"]
+[ext_resource type="FontFile" uid="uid://bsrg2lg3kio6c" path="res://resources/naturebold.tres" id="28_jttm5"]
 [ext_resource type="Texture2D" uid="uid://hxc3jjup6cct" path="res://assets/rackshadow.png" id="28_o3afa"]
 [ext_resource type="PackedScene" uid="uid://n383gm1hms3s" path="res://scenes/waste_beaker.tscn" id="29_t554p"]
 [ext_resource type="PackedScene" uid="uid://ch2xav7s8qbt2" path="res://scenes/squirt_bottle_on_table.tscn" id="30_exfyd"]
@@ -280,16 +281,17 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -20.0
-offset_top = -11.5
-offset_right = 20.0
-offset_bottom = 11.5
+offset_left = -36.0
+offset_top = -9.230713
+offset_right = 36.0
+offset_bottom = 10.769287
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
 theme_override_constants/outline_size = 3
 theme_override_constants/shadow_outline_size = 2
-theme_override_font_sizes/font_size = 18
+theme_override_fonts/font = ExtResource("28_jttm5")
+theme_override_font_sizes/font_size = 16
 text = "WYJŚCIE"
 
 [node name="FinishBtn" parent="." instance=ExtResource("23_jie0k")]
@@ -322,6 +324,7 @@ grow_vertical = 2
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.27450982)
 theme_override_constants/outline_size = 3
 theme_override_constants/shadow_outline_size = 3
+theme_override_fonts/font = ExtResource("28_jttm5")
 theme_override_font_sizes/font_size = 22
 text = "IDENTYFIKACJA"
 
