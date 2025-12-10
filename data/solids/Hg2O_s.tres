@@ -6,5 +6,5 @@
 script = ExtResource("1_430e0")
 id = "Hg2O_s"
 display_name = "Hg2O"
-color = Color(0.10932686, 0.050157405, 0.048216946, 1)
+color = Color(0.061489858, 0.035292074, 0.03805415, 1)
 metadata/_custom_type_script = "uid://cseysmrx52n3i"

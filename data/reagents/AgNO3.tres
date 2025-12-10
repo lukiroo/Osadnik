@@ -5,10 +5,9 @@
 [resource]
 script = ExtResource("1_df67l")
 id = "AgNO3"
-display_name = "AgNO[sub]2[/sub]"
+display_name = "AgNO₃"
 ions = {
-"Ag+": 1,
-"NO3-": 1
+"Ag+": 50,
+"NO3-": 50
 }
-sets_pH = "neutral"
 metadata/_custom_type_script = "uid://bp7lhj2v28shg"

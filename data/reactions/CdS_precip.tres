@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://c810j5vmeu8q"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_qwcrh"]
+
+[resource]
+script = ExtResource("1_qwcrh")
+id = "CdS_precip"
+priority = 1
+reactants_ions = {
+"Cd2+": 1,
+"Cl-": 1,
+"H+": 1,
+"S2-": 1
+}
+products_solids = {
+"CdS_s": 1
+}
+require_pH = Array[String](["acidic"])
+require_boiling = true
+min_boil_time = 10.0
+metadata/_custom_type_script = "uid://djapafftkk5kc"

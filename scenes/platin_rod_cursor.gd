@@ -12,13 +12,12 @@ class_name PlatinRodCursor
 
 # -------------------- USTAWIENIA OGÓLNE --------------------
 
-@export var follow_mouse: bool = false                 ## Czy drucik ma sam podążać za kursorem.
 @export var cursor_offset: Vector2 = Vector2(6, -20)   ## Przesunięcie względem pozycji myszy.
 @export var show_z_index: int = 99                     ## Z-index, gdy narzędzie jest aktywne.
 
 ## Parametry animacji obrotu przy pobraniu próbki.
 @export var sample_rot_deg: float = 45.0        ## Kąt wychylenia przy pobieraniu próbki.
-@export var sample_rot_time: float = 0.4       ## Czas obrotu od 0° do sample_rot_deg.
+@export var sample_rot_time: float = 0.4        ## Czas obrotu od 0° do sample_rot_deg.
 
 
 # -------------------- STAN WEWNĘTRZNY --------------------
@@ -56,9 +55,7 @@ func _exit_tree() -> void:
 # POKAZANIE / SCHOWANIE
 # =========================================================================
 
-## Włącza drucik przy kursorze:
-## - oznacza go jako aktywny,
-## - ustawia widoczność i z_index.
+## Włącza drucik przy kursorze
 func show_tool() -> void:
 	is_active = true
 	visible = true
@@ -141,8 +138,7 @@ func tween_back_to_base() -> void:
 # OPCJONALNE ŚLEDZENIE MYSZY
 # =========================================================================
 
-## Jeśli follow_mouse == true i narzędzie jest aktywne,
-## utrzymuje drucik przy kursorze z zadanym offsetem.
+## Jeśli narzędzie jest aktywne, utrzymuje drucik przy kursorze z zadanym offsetem.
 func _process(_delta: float) -> void:
-	if is_active and follow_mouse:
+	if is_active:
 		global_position = get_global_mouse_position() + cursor_offset

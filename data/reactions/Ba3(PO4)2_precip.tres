@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://b0tcn71deyetw"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_4pyno"]
+
+[resource]
+script = ExtResource("1_4pyno")
+id = "Ba3(PO4)_precip"
+priority = 10
+reactants_ions = {
+"Ba2+": 0,
+"PO43-": 1
+}
+products_solids = {
+"Ba3(PO4)_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

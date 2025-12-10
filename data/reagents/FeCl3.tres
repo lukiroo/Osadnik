@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://myrlt88rbdim"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_3m1ew"]
+
+[resource]
+script = ExtResource("1_3m1ew")
+id = "FeCl3"
+display_name = "FeCl₃"
+ions = {
+"Cl-": 50,
+"Fe3+": 50
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

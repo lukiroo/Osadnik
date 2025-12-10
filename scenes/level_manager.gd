@@ -381,7 +381,8 @@ func _get_reagent_ids_for_current_level() -> Array[String]:
 
 ## Zwraca listę odczynników do sandboxa.
 func _get_reagent_ids_for_sandbox() -> Array[String]:
-	return ["HCl", "NaOH"]
+	return ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 
 
 ## Zwraca listę odczynników dla ścieżki kationowej dla danej grupy.
@@ -390,16 +391,21 @@ func _get_reagent_ids_for_cations() -> Array[String]:
 
 	match group_id:
 		1:
-			ids = ["HCl", "NaOH", "KI", "KBr", "K2CrO4"]
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		2:
-			ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		3:
-			ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		4:
-			ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		0:
-			# Egzamin kationowy – na razie ten sam zestaw.
-			ids = ["HCl", "NaOH", "KI", "KBr", "Pb(NO3)2"]
+			# Sprawdzian z kationów
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		_:
 			ids = []
 
@@ -413,22 +419,28 @@ func _get_reagent_ids_for_anions() -> Array[String]:
 	match group_id:
 		1:
 			# Grupa I: Cl-, Br-, I-, CN-, SCN-
-			ids = ["HCl", "NaOH"]
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		2:
 			# Grupa II: S2-, CH3COO-, NO2-
-			ids = ["HCl", "NaOH"]
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		3:
 			# Grupa III: SO32-, CO32-, BO2-
-			ids = ["HCl", "NaOH"]
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		4:
 			# Grupa IV: CrO42-, AsO33-, AsO43-, PO43-
-			ids = ["HCl", "NaOH"]
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		5:
 			# Grupa V+VI: NO3-, ClO3-, ClO4-, MnO4-, SO42-, F-
-			ids = ["HCl", "NaOH"]
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		0:
-			# Egzamin anionowy – miks odczynników z kilku grup.
-			ids = ["HCl", "NaOH"]
+			# Sprawdzian anionowy
+			ids = ["HCl", "HCl_3M", "AKT", "HNO3", "HNO2", "NaOH", "NaOH_3M", "NH4OH", "KI", "KBr", "K2CrO4", "Na2CO3","NH3NH4Cl","KCN", "KSCN", "K(Sb(OH)6)", "K2(HgI4)", "magnezon", 
+			"AgNO3", "Ba(NO3)2", "H2SO4", "FeCl3", "CuSO4", "Pb(NO3)2", "Cd(NO3)2"]
 		_:
 			ids = []
 
@@ -541,6 +553,9 @@ func _spawn_work_tubes() -> void:
 		if not accepted:
 			slot.add_child(tube)
 			tube.global_position = target_pos
+			
+			if slot.has_method("on_probe_returned"):
+				slot.call("on_probe_returned", tube)
 
 		_label_probe_for_slot(tube, slot)
 
@@ -668,7 +683,7 @@ func _label_probe_for_slot(probe: Node2D, slot: Node) -> void:
 		"ProbeRack1":
 			_set_probe_num_label(probe, str(slot_index), WORK_LABEL_FONT_SIZE, false)
 		"ProbeRack2":
-			_set_probe_num_label(probe, str(5 + slot_index), WORK_LABEL_FONT_SIZE, false)
+			_set_probe_num_label(probe, str(6 + slot_index), WORK_LABEL_FONT_SIZE, false)
 		"ProbeBeaker1", "ProbeBeaker2", "ProbeBeaker3":
 			match mode:
 				Mode.EXERCISE_SINGLE:
@@ -847,7 +862,7 @@ func _make_multi_cation_solution(cation_ids: Array[String]) -> Mixture:
 func _get_group_anions(group: int) -> Array[String]:
 	var g1: Array[String] = ["Cl-","Br-","I-","CN-","SCN-"]
 	var g2: Array[String] = ["S2-","CH3COO-","NO2-"]
-	var g3: Array[String] = ["SO32-","CO32-","BO2-"]
+	var g3: Array[String] = ["SO32-","CO32-","BO32-"]
 	var g4: Array[String] = ["CrO42-","AsO33-","AsO43-","PO43-"]
 	var g5: Array[String] = ["NO3-","ClO3-","ClO4-","MnO4-","SO42-","F-"]
 

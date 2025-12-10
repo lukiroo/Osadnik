@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://ds5ur6tqsl8y5"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_7o858"]
+
+[resource]
+script = ExtResource("1_7o858")
+id = "BaSO4_precip"
+priority = 10
+reactants_ions = {
+"Ba2+": 1,
+"SO42-": 1
+}
+products_solids = {
+"BaSO4_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

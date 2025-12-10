@@ -1,4 +1,3 @@
-@tool
 extends Node2D
 class_name ReagentBottle
 
@@ -46,9 +45,9 @@ var _reagent: Reagent = null
 # MATERIAŁY / HOVER
 # -----------------------------
 
-var mat_full: ShaderMaterial = null   ## Materiał sprita „pełnej” butelki (duplikowany per instancja).
-var mat_empty: ShaderMaterial = null  ## Materiał sprita „pustej” butelki.
-var hover_enabled: bool = true        ## Czy butelka reaguje na hover (outline).
+var mat_full: ShaderMaterial = null
+var mat_empty: ShaderMaterial = null
+var hover_enabled: bool = true
 
 const U_HIGHLIGHT := "highlight"
 const U_HIGHLIGHT_STRENGTH := "highlight_strength"
@@ -65,7 +64,7 @@ const U_HIGHLIGHT_STRENGTH := "highlight_strength"
 func _ready() -> void:
 	add_to_group("bottles")
 
-	mat_full = _dup_shader_if_any(full_sprite)
+	mat_full  = _dup_shader_if_any(full_sprite)
 	mat_empty = _dup_shader_if_any(empty_sprite)
 
 	show_full(true)
@@ -79,13 +78,13 @@ func _ready() -> void:
 # =========================================================================
 
 ## Obsługuje input na obszarze butelki:
-## - reaguje na LPM lub akcję "left_click",
+## - reaguje na LPM,
 ## - emituje left_clicked(bottle), Lab przełącza się w tryb HOLDING.
 func _on_area_input_event(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
-	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT or event.is_action_pressed("left_click"):
-			left_clicked.emit(self)
-			get_viewport().set_input_as_handled()
+	var mb := event as InputEventMouseButton
+	if mb and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+		left_clicked.emit(self)
+		get_viewport().set_input_as_handled()
 
 
 ## Reaguje na wejście kursora nad butelkę – włącza outline, jeśli hover_enabled.
@@ -99,9 +98,10 @@ func _on_mouse_exited() -> void:
 	_set_outline(false)
 
 
-## Gasi outline przy każdym wciśnięciu LPM (żeby nie zostawał „przyklejony”).
+## Gasi outline przy każdym wciśnięciu LPM – żeby nie został po kliknięciu.
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	var mb := event as InputEventMouseButton
+	if mb and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
 		_set_outline(false)
 
 
@@ -123,7 +123,6 @@ func _set_outline(on: bool) -> void:
 		_set_highlight_uniforms(mat_full, on, strength)
 	if mat_empty:
 		_set_highlight_uniforms(mat_empty, on, strength)
-	# Ciecz w butelce nie ma outline – tylko kontur.
 
 
 # =========================================================================
@@ -151,7 +150,7 @@ func is_full() -> bool:
 
 
 # =========================================================================
-# POBRANIE ID ODCZYNNIKA – etykieeta butelki
+# POBRANIE ID ODCZYNNIKA – etykieta butelki
 # =========================================================================
 
 ## Zwraca identyfikator odczynnika (id z Reagent, np. "HCl").
@@ -177,12 +176,9 @@ func _apply_label() -> void:
 	if label == null:
 		return
 
-	var label_text := ""
+	var label_text: String = ""
 	if _reagent:
-		if _reagent.display_name != "":
-			label_text = _reagent.display_name
-		else:
-			label_text = _reagent.id
+		label_text = _reagent.display_name if _reagent.display_name != "" else _reagent.id
 
 	label.text = label_text
 	label.visible = (label_text != "")
@@ -195,9 +191,8 @@ func _apply_liquid_color() -> void:
 	if liquid_sprite == null:
 		return
 
-	var tint: Color = Color(1, 1, 1, 0.0)  ## Domyślnie „pusta” butelka (alpha = 0).
+	var tint := Color(1, 1, 1, 0.0)
 	if _reagent:
-		# Bierzemy dokładnie liquid_color z Reagent (łącznie z alphą).
 		tint = _reagent.liquid_color
 
 	liquid_sprite.modulate = tint
@@ -209,30 +204,16 @@ func _apply_liquid_color() -> void:
 
 ## Duplikuje materiał ShaderMaterial ze sprita, jeżeli istnieje, i ustawia go na spricie.
 func _dup_shader_if_any(sprite_node: Sprite2D) -> ShaderMaterial:
-	if sprite_node and sprite_node.material and sprite_node.material is ShaderMaterial:
+	if sprite_node and sprite_node.material is ShaderMaterial:
 		var duplicate_material := (sprite_node.material as ShaderMaterial).duplicate()
 		sprite_node.material = duplicate_material
 		return duplicate_material
 	return null
 
 
-## Ustawia uniformy odpowiedzialne za outline w materiale shadera (jeśli istnieją).
+## Ustawia uniformy odpowiedzialne za outline w materiale shadera.
 func _set_highlight_uniforms(mat: ShaderMaterial, on: bool, strength: float) -> void:
-	if mat == null or mat.shader == null:
+	if mat == null:
 		return
-
-	var has_highlight: bool = false
-	var has_strength: bool = false
-
-	for uniform in mat.shader.get_shader_uniform_list():
-		var uniform_dict: Dictionary = uniform
-		var uniform_name := String(uniform_dict.get("name", ""))
-		if uniform_name == U_HIGHLIGHT:
-			has_highlight = true
-		elif uniform_name == U_HIGHLIGHT_STRENGTH:
-			has_strength = true
-
-	if has_highlight:
-		mat.set_shader_parameter(U_HIGHLIGHT, on)
-	if has_strength:
-		mat.set_shader_parameter(U_HIGHLIGHT_STRENGTH, strength)
+	mat.set_shader_parameter(U_HIGHLIGHT, on)
+	mat.set_shader_parameter(U_HIGHLIGHT_STRENGTH, strength)

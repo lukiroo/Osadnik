@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://bwmhk8u5yil0v"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_y1gw4"]
+
+[resource]
+script = ExtResource("1_y1gw4")
+id = "Na2CO3"
+display_name = "Na₂CO₃"
+ions = {
+"CO32-": 30,
+"Na+": 1
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

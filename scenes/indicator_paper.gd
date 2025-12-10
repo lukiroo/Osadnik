@@ -5,7 +5,7 @@ class_name IndicatorPaper
 ## indicator_paper.gd – papierek wskaźnikowy (litmus)
 ## -------------------------------------------------------------------------
 ## Odpowiada za:
-## - śledzenie kursora (gdy follow_mouse == true),
+## - śledzenie kursora,
 ## - jednokrotne „użycie” na probówce i emisję used_on_probe,
 ## - ustawienie koloru końcówki na podstawie oceny pH (grade -3..+3),
 ## - obsługę shadera z uniformem `tip_color` (jeśli jest obecny).
@@ -19,9 +19,6 @@ signal used_on_probe(probe: Node, grade: int)
 @onready var tip_sprite: Sprite2D   = $Tip    ## Sprite końcówki, na którym widać kolor po reakcjach.
 
 # -------------------------- RUCH / ZACHOWANIE -----------------------------
-
-## Czy papierek ma automatycznie śledzić pozycję myszy.
-var follow_mouse: bool = true
 
 ## Przesunięcie względem kursora, żeby grafika nie zasłaniała wskaźnika myszy.
 @export var cursor_offset: Vector2 = Vector2(8, -40)
@@ -61,8 +58,7 @@ const GRADE_COLORS: Array[Color] = [
 ## Przy starcie:
 ## - ustawia wysoki z_index, żeby papierek był nad stołem,
 ## - ukrywa końcówkę do czasu pierwszego „zamoczenia”,
-## - sprawdza, czy shader ma uniform `tip_color`,
-## - włącza/wyłącza _process w zależności od follow_mouse.
+## - sprawdza, czy shader ma uniform `tip_color`
 func _ready() -> void:
 	z_index = 100
 
@@ -71,20 +67,19 @@ func _ready() -> void:
 
 	if paper_sprite and paper_sprite.material is ShaderMaterial:
 		var shader_material: ShaderMaterial = paper_sprite.material as ShaderMaterial
-		if shader_material.shader != null:
+		if shader_material.shader:
 			for uniform_info in shader_material.shader.get_shader_uniform_list():
 				var uniform_name := String(uniform_info.get("name", ""))
 				if uniform_name == "tip_color":
 					_has_tip_uniform = true
 					break
 
-	set_process(follow_mouse)
+	set_process(true)
 
 
-## Jeżeli follow_mouse == true, trzyma papierek przy kursorze z zadanym offsetem.
+## Trzyma papierek przy kursorze z zadanym offsetem.
 func _process(_delta: float) -> void:
-	if follow_mouse:
-		global_position = get_global_mouse_position() + cursor_offset
+	global_position = get_global_mouse_position() + cursor_offset
 
 
 # =========================================================================
@@ -112,9 +107,9 @@ func set_grade(grade: int) -> void:
 
 
 ## Włącza albo wyłącza tryb „przyklejony do kursora”.
-func set_follow_mouse(enabled: bool) -> void:
-	follow_mouse = enabled
-	set_process(enabled)
+func set_follow_mouse(_enabled: bool) -> void:
+	# pozostawione dla zgodności – papierek i tak zawsze śledzi kursor
+	pass
 
 
 ## Pozwala z zewnątrz zmienić przesunięcie względem kursora.

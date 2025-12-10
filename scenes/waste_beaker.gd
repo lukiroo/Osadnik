@@ -8,7 +8,6 @@ class_name WasteBeaker
 ## - „wylanie” zawartości probówki (czyszczenie mieszaniny + reset wizualny),
 ## - przyjęcie porcji cieczy z droppera w trybie TRANSFER,
 ## - proste podświetlanie przy hoverze i sensownej interakcji.
-## Sama zlewka nie jest źródłem cieczy – wszystkie funkcje take_* zwracają null.
 ## =========================================================================
 
 # -----------------------------
@@ -17,7 +16,6 @@ class_name WasteBeaker
 
 @onready var area: Area2D     = $Area2D
 @onready var sprite: Sprite2D = $Sprite2D
-# @onready var snd: AudioStreamPlayer2D  = $AudioStreamPlayer2D   ## Audio chwilowo niewykorzystywane.
 
 
 # -----------------------------
@@ -33,24 +31,12 @@ var outline_material: ShaderMaterial = null             ## Lokalna kopia materia
 var _cursor_inside: bool = false                        ## Informuje, czy kursor jest nad Area2D.
 
 
-# -----------------------------
-# Audio – efekty dźwiękowe (zakomentowane)
-# -----------------------------
-
-# @export var play_sound_on_probe_dump: bool = true
-# @export var play_sound_on_dropper_pour: bool = false
-
-# @export var sfx_probe_dump: AudioStream
-# @export var sfx_dropper_pour: AudioStream
-
-
 # =========================================================================
 # INICJALIZACJA
 # =========================================================================
 
 ## Przygotowuje zlewkę:
 ## - ustawia Area2D jako pickable/monitoring,
-## - duplikuje materiał sprite’a,
 ## - wyłącza outline na starcie.
 func _ready() -> void:
 	if area:
@@ -59,8 +45,8 @@ func _ready() -> void:
 		area.monitorable = true
 
 	if sprite and sprite.material:
-		sprite.material = sprite.material.duplicate()
-	outline_material = sprite.material as ShaderMaterial
+		outline_material = sprite.material as ShaderMaterial
+
 	_set_outline(false)
 
 
@@ -85,17 +71,10 @@ func _on_area_input(_vp: Node, event: InputEvent, _shape_idx: int) -> void:
 	if lab == null:
 		return
 
-	var ModeEnum: Variant = lab.get("Mode")
-	var current_mode: Variant = lab.get("mode")
-
-	# TRANSFER – dropper w ręku, wylewamy zawartość do zlewki.
-	if current_mode == ModeEnum.TRANSFER:
-		var dropper_has_content := bool(lab.get("dropper_loaded"))
-		if dropper_has_content and lab.has_method("_dropper_drop"):
-			# Lab wewnętrznie wywoła receive_mixture(...) na tym obiekcie.
-			lab._dropper_drop(self)
-			get_viewport().set_input_as_handled()
-		return
+	# Zakładam, że Lab ma enum Mode i pole dropper_loaded (tak jak w lab.gd).
+	if lab.mode == lab.Mode.TRANSFER and lab.dropper_loaded and lab.has_method("_dropper_drop"):
+		lab._dropper_drop(self)
+		get_viewport().set_input_as_handled()
 
 
 # =========================================================================
@@ -114,13 +93,8 @@ func accept_probe(probe: Node, at_global_pos: Vector2) -> bool:
 	if not _is_probe_over_me(probe, at_global_pos):
 		return false
 
-	var has_liquid := false
-	if probe.has_method("has_any_liquid"):
-		has_liquid = bool(probe.has_any_liquid())
-
-	var has_pellet := false
-	if probe.has_method("_has_pellet_ready"):
-		has_pellet = bool(probe._has_pellet_ready())
+	var has_liquid: bool = probe.has_method("has_any_liquid") and probe.has_any_liquid()
+	var has_pellet: bool = probe.has_method("_has_pellet_ready") and probe._has_pellet_ready()
 
 	# Jeżeli probówka jest całkowicie pusta, nie reagujemy.
 	if not (has_liquid or has_pellet):
@@ -143,9 +117,6 @@ func accept_probe(probe: Node, at_global_pos: Vector2) -> bool:
 	if probe.has_method("_clear_contents_completely"):
 		probe._clear_contents_completely()
 
-	# Efekt dźwiękowy dla zrzutu zawartości probówki (zakomentowany).
-	# _play_sfx_probe()
-
 	# Probówka wraca później na swoje miejsce (tween po jej stronie), więc tu zawsze false.
 	return false
 
@@ -159,7 +130,7 @@ func _is_probe_over_me(probe: Node, at_global_pos: Vector2) -> bool:
 		if probe_area:
 			probe_area.monitorable = true
 			probe_area.monitoring = true
-			var overlaps := area.get_overlapping_areas()
+			var overlaps: Array = area.get_overlapping_areas()
 			if overlaps.has(probe_area):
 				return true
 
@@ -205,13 +176,9 @@ func take_fraction(_frac: float) -> Mixture:
 
 ## Sprawdza globalny przełącznik highlightów w autoload Settings (jeśli istnieje).
 func _are_global_highlights_enabled() -> bool:
-	var settings_node := get_tree().get_root().get_node_or_null("Settings")
-	if settings_node:
-		if settings_node.has_method("are_highlights_enabled"):
-			return bool(settings_node.are_highlights_enabled())
-		elif "highlights_enabled" in settings_node:
-			return bool(settings_node.highlights_enabled)
-	# Brak Settings → przyjmujemy, że highlighty są włączone.
+	var settings_node := get_tree().root.get_node_or_null("Settings")
+	if settings_node and "highlights_enabled" in settings_node:
+		return bool(settings_node.highlights_enabled)
 	return true
 
 
@@ -234,11 +201,7 @@ func _on_mouse_exited() -> void:
 ## Aktualizuje decyzję o podświetleniu zlewki:
 ## - uwzględnia lokalną flagę, globalne highlighty i realną możliwość interakcji.
 func _update_outline_interaction() -> void:
-	if not hover_enabled:
-		_set_outline(false)
-		return
-
-	if not _are_global_highlights_enabled():
+	if not hover_enabled or not _are_global_highlights_enabled():
 		_set_outline(false)
 		return
 
@@ -247,9 +210,7 @@ func _update_outline_interaction() -> void:
 	var can_by_dropper := false
 	var lab := get_tree().get_first_node_in_group("lab_root")
 	if lab:
-		var ModeEnum: Variant = lab.get("Mode")
-		var current_mode: Variant = lab.get("mode")
-		can_by_dropper = (current_mode == ModeEnum.TRANSFER) and bool(lab.get("dropper_loaded"))
+		can_by_dropper = (lab.mode == lab.Mode.TRANSFER) and lab.dropper_loaded
 
 	# Jeśli trzymamy LPM i nie ma realnej interakcji, gasimy outline.
 	if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not (can_by_probe or can_by_dropper):
@@ -272,13 +233,16 @@ func _any_probe_with_liquid_over_me() -> bool:
 			continue
 
 		var probe := overlap_area.get_parent()
-		if probe and probe.is_in_group("probes"):
-			if probe.has_method("has_any_liquid") and probe.has_any_liquid():
+		if not (probe and probe.is_in_group("probes")):
+			continue
+
+		if probe.has_method("has_any_liquid") and probe.has_any_liquid():
+			return true
+
+		if probe.has_method("get"):
+			var lvl: Variant = probe.get("fill_level")
+			if (lvl is float or lvl is int) and float(lvl) > 0.001:
 				return true
-			if probe.has_method("get"):
-				var lvl: Variant = probe.get("fill_level")
-				if (lvl is float or lvl is int) and float(lvl) > 0.001:
-					return true
 
 	return false
 
@@ -288,7 +252,7 @@ func _set_outline(on: bool) -> void:
 	if outline_material == null:
 		return
 	_set_shader_param_safe(outline_material, "highlight", on)
-	var strength := hover_outline_strength if on else 0.0
+	var strength: float = hover_outline_strength if on else 0.0
 	_set_shader_param_safe(outline_material, "highlight_strength", strength)
 
 
@@ -301,27 +265,3 @@ func _set_shader_param_safe(mat: ShaderMaterial, param_name: String, value) -> v
 		if String(uniform_dict.get("name", "")) == param_name:
 			mat.set_shader_parameter(param_name, value)
 			return
-
-
-# =========================================================================
-# AUDIO – EFEKTY DŹWIĘKOWE (zakomentowane)
-# =========================================================================
-
-## Odtwarza podany strumień audio (jeżeli skonfigurowany).
-# func _play_stream(stream: AudioStream) -> void:
-# 	if snd == null or stream == null:
-# 		return
-# 	snd.stream = stream
-# 	snd.play()
-
-
-## Odtwarza dźwięk zrzutu zawartości probówki do zlewki.
-# func _play_sfx_probe() -> void:
-# 	if play_sound_on_probe_dump:
-# 		_play_stream(sfx_probe_dump)
-
-
-## Odtwarza dźwięk wylania z droppera.
-# func _play_sfx_dropper() -> void:
-# 	if play_sound_on_dropper_pour:
-# 		_play_stream(sfx_dropper_pour)

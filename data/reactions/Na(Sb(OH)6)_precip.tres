@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://oqhpm7srlvfx"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_1whlq"]
+
+[resource]
+script = ExtResource("1_1whlq")
+id = "Na(Sb(OH)6)_precip"
+priority = 10
+reactants_ions = {
+"(Sb(OH)6)-": 1,
+"Na+": 1
+}
+products_solids = {
+"Na(Sb(OH)6)_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

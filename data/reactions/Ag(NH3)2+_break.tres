@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://c6ahmr5xvf7hg"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_1h4xo"]
+
+[resource]
+script = ExtResource("1_1h4xo")
+id = "Ag(NH3)2+_break"
+priority = 15
+reactants_ions = {
+"Ag(NH3)2+": 1,
+"NO3-": 5
+}
+products_ions = {
+"Ag+": 1,
+"NH4+": 2
+}
+require_pH = Array[String](["strong_acid", "very_strong_acid", "acidic"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

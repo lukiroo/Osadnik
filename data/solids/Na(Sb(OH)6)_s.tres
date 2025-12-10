@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://cggowcd3wce5r"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_mgp8y"]
+
+[resource]
+script = ExtResource("1_mgp8y")
+id = "Na(Sb(OH)6)_s"
+color = Color(0.9254902, 0.9254902, 0.9254902, 0.94509804)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

@@ -1,12 +1,12 @@
 [gd_scene load_steps=8 format=3 uid="uid://jskp7ifhdgxs"]
 
-[ext_resource type="Script" uid="uid://bvy1n2p2gksbw" path="res://bunsen_burner.gd" id="1_p7sgd"]
+[ext_resource type="Script" uid="uid://bvy1n2p2gksbw" path="res://scenes/bunsen_burner.gd" id="1_p7sgd"]
 [ext_resource type="Texture2D" uid="uid://bgr7ngnuuhsn4" path="res://assets/bunsen.png" id="2_3fjl5"]
 [ext_resource type="Shader" uid="uid://bsyjc3yvf70db" path="res://resources/flame.gdshader" id="3_3fjl5"]
 [ext_resource type="Texture2D" uid="uid://owxxi13qyahe" path="res://assets/flame.png" id="3_nbjth"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_63rt2"]
-radius = 40.012497
+radius = 62.1289
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_nbjth"]
 shader = ExtResource("3_3fjl5")
@@ -27,6 +27,8 @@ size = Vector2(114.5, 345)
 script = ExtResource("1_p7sgd")
 
 [node name="Burner" type="Sprite2D" parent="."]
+position = Vector2(91, 55)
+scale = Vector2(2.5389757, 2.09)
 texture = ExtResource("2_3fjl5")
 
 [node name="ValveArea2D" type="Area2D" parent="."]
@@ -34,17 +36,19 @@ texture = ExtResource("2_3fjl5")
 [node name="Valve" type="Sprite2D" parent="ValveArea2D"]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ValveArea2D"]
-position = Vector2(57, 40)
+position = Vector2(-119, 114)
 shape = SubResource("CircleShape2D_63rt2")
 
 [node name="FlameArea2D" type="Area2D" parent="."]
 
 [node name="Flame" type="Sprite2D" parent="FlameArea2D"]
 material = SubResource("ShaderMaterial_nbjth")
-position = Vector2(8, -349)
+position = Vector2(4.9999976, -368)
+scale = Vector2(0.57894725, 1.1161474)
 texture = ExtResource("3_nbjth")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="FlameArea2D"]
+visible = false
 position = Vector2(9, -351.5)
 shape = SubResource("RectangleShape2D_2km1j")
 

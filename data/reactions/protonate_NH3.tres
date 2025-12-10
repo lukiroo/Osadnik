@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://bca3tyfja8416"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_g22l3"]
+
+[resource]
+script = ExtResource("1_g22l3")
+id = "protonate_NH3"
+priority = 12
+reactants_ions = {
+"H+": 1,
+"NH3": 1
+}
+products_ions = {
+"NH4+": 1
+}
+require_pH = Array[String](["strong_acid", "very_strong_acid", "acidic"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

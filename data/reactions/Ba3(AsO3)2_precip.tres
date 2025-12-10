@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://c4ftmqxg3lr80"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_ylaa8"]
+
+[resource]
+script = ExtResource("1_ylaa8")
+id = "Ba3(AsO3)2_precip"
+priority = 10
+reactants_ions = {
+"AsO33-": 1,
+"Ba2+": 1
+}
+products_solids = {
+"Ba3(AsO3)2_s": 1
+}
+require_pH = Array[String](["basic", "neutral"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

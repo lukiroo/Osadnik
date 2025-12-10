@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://c2k57ywrk7loi"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_8j41o"]
+
+[resource]
+script = ExtResource("1_8j41o")
+id = "Ag3AsO4_precip"
+priority = 10
+reactants_ions = {
+"Ag+": 1,
+"AsO43-": 1
+}
+products_solids = {
+"Ag3AsO4_s": 1
+}
+require_pH = Array[String](["basic", "neutral"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

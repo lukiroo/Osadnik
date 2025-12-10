@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://bj33vipfax7tl"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_p1es1"]
+
+[resource]
+script = ExtResource("1_p1es1")
+id = "Zn(OH)2_precip"
+priority = 14
+reactants_ions = {
+"OH-": 1,
+"Zn2+": 1
+}
+products_solids = {
+"Zn(OH)2_s": 1
+}
+require_pH = Array[String](["basic"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

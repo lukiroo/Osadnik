@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://dc27oubnt086e"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_8n1rq"]
+
+[resource]
+script = ExtResource("1_8n1rq")
+id = "Fe(OH)3_s"
+color = Color(0.17281285, 0.09650125, 0.0019949113, 0.9529412)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

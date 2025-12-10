@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://bhqavscxvpw8c"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_udxar"]
+
+[resource]
+script = ExtResource("1_udxar")
+id = "OHgNH2I_precip"
+reactants_ions = {
+"(HgI4)2-": 1,
+"NH4+": 1
+}
+products_solids = {
+"OHg2NH2I_s": 1
+}
+note = "kremowy osad AgBr"
+metadata/_custom_type_script = "uid://djapafftkk5kc"

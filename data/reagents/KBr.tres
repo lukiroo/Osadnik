@@ -7,7 +7,7 @@ script = ExtResource("1_uosn5")
 id = "KBr"
 display_name = "KBr"
 ions = {
-"Br-": 1,
+"Br-": 50,
 "K+": 1
 }
 metadata/_custom_type_script = "uid://bp7lhj2v28shg"

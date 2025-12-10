@@ -1,20 +1,33 @@
-[gd_scene load_steps=3 format=3 uid="uid://br5xqy3dxuioy"]
+[gd_scene load_steps=4 format=3 uid="uid://br5xqy3dxuioy"]
 
-[ext_resource type="Texture2D" uid="uid://cnhcpsccyd76f" path="res://assets/emptytubefront.png" id="1_mnu1c"]
+[ext_resource type="Texture2D" uid="uid://cd6no8cgbkf41" path="res://assets/beaker.png" id="1_rr8gj"]
 [ext_resource type="PackedScene" uid="uid://nt5ipyk1bagx" path="res://scenes/probe_slot.tscn" id="2_e3dmm"]
+[ext_resource type="Texture2D" uid="uid://cigbrm38iskrs" path="res://assets/beaker2.png" id="3_17ams"]
 
 [node name="ProbeBeaker" type="Node2D"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(-40.99998, 47.5)
-scale = Vector2(2.7238095, 0.53651685)
-texture = ExtResource("1_mnu1c")
+position = Vector2(-33.599995, 22.200003)
+scale = Vector2(0.865, 0.62)
+texture = ExtResource("1_rr8gj")
 
 [node name="ProbeSlot1" parent="." groups=["starter_slots"] instance=ExtResource("2_e3dmm")]
-position = Vector2(-92, 1)
+position = Vector2(-86.00001, -2.999999)
+rotation = -0.13788101
+scale = Vector2(0.9, 0.9)
 
 [node name="ProbeSlot2" parent="." groups=["starter_slots"] instance=ExtResource("2_e3dmm")]
-position = Vector2(-39, 1)
+position = Vector2(-37, 0)
+rotation = -0.06981317
+scale = Vector2(0.9, 0.9)
 
 [node name="ProbeSlot3" parent="." groups=["starter_slots"] instance=ExtResource("2_e3dmm")]
-position = Vector2(16, 1)
+position = Vector2(23.000002, -6)
+rotation = 0.13788101
+scale = Vector2(0.9, 0.9)
+
+[node name="Sprite2D2" type="Sprite2D" parent="."]
+z_index = 18
+position = Vector2(-33.599995, 22.200003)
+scale = Vector2(0.865, 0.62)
+texture = ExtResource("3_17ams")

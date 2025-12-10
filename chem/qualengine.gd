@@ -2,7 +2,7 @@ extends Node
 class_name QualEngine
 
 ## =========================================================================
-## qual_engine.gd – silnik chemiczny mieszanin
+## qualengine.gd – autoload, silnik chemiczny mieszanin
 ## -------------------------------------------------------------------------
 ## Odpowiada za:
 ## - rejestrację reagentów, osadów i reakcji (Resource .tres),
@@ -16,12 +16,12 @@ const DEBUG_CORE: bool = true          ## Flaga debugowa – ogólne logi pętli
 const DEBUG_REACTIONS: bool = false    ## Flaga debugowa – logi dopasowanych reakcji.
 const DEDUPE_SAME_FX_COLOR: bool = true  ## Czy unikać powtarzania tych samych FX.
 
-# Progi pH: c = |H - OH| / vol_u (przeskalowane x100).
-const NEUTRAL_C_EPS: float    = 50.0
-const PH_THRESH_STRONG: float = 800.0
-const PH_THRESH_VERY: float   = 1900.0
+# Progi pH: c = |H - OH| / vol_u 
+const NEUTRAL_C_EPS: float    = 25.0
+const PH_THRESH_STRONG: float = 400.0
+const PH_THRESH_VERY: float   = 1000.0
 
-# Minimalny przyrost objętości z dolejki, po którym przelicza się reakcje.
+# Minimalny przyrost objętości z dolewki, po którym przelicza się reakcje.
 const SQUIRT_RECOMPUTE_STEP: float = 0.05
 
 ## Mapa id->reagent (Reagent lub ReagentBuffer).
@@ -47,10 +47,7 @@ func register_reagent(reagent: Resource) -> void:
 		push_warning("register_reagent(): got null")
 		return
 
-	var reagent_id: String = ""
-	if reagent.has_method("get"):
-		reagent_id = str(reagent.get("id"))
-
+	var reagent_id: String = str(reagent.get("id"))
 	if reagent_id == "":
 		push_warning("register_reagent(): resource has empty id")
 		return
@@ -64,10 +61,7 @@ func register_solid(solid_res: Resource) -> void:
 		push_warning("register_solid(): got null")
 		return
 
-	var solid_id: String = ""
-	if solid_res.has_method("get"):
-		solid_id = str(solid_res.get("id"))
-
+	var solid_id: String = str(solid_res.get("id"))
 	if solid_id == "":
 		push_warning("register_solid(): resource has empty id")
 		return
@@ -82,7 +76,10 @@ func register_reaction(reaction_res: Resource) -> void:
 		return
 
 	reactions.append(reaction_res)
-	reactions.sort_custom(func(a, b): return int(a.get("priority")) < int(b.get("priority")))
+	reactions.sort_custom(
+		func(a: Resource, b: Resource) -> bool:
+			return int(a.get("priority")) < int(b.get("priority"))
+	)
 
 
 # =========================================================================
@@ -190,54 +187,51 @@ func add_drop_to_tube(tube: Node, reagent_id: String) -> void:
 	if tube == null:
 		return
 
-	var reagent_resource: Resource = reagents.get(reagent_id) as Resource
+	var reagent_resource := reagents.get(reagent_id, null) as Resource
 	if reagent_resource == null:
 		push_warning("[QE] unknown reagent_id: " + reagent_id)
 		return
 
-	var mixture: Mixture = tube.get("mixture") as Mixture
+	var mixture := tube.get("mixture") as Mixture
 	if mixture == null:
 		push_warning("[QE] tube has no 'mixture'")
 		return
 
 	# 1) Jony z reagenta.
 	var ions_from_reagent: Dictionary = {}
-	if reagent_resource.has_method("get"):
-		var ions_val: Variant = reagent_resource.get("ions")
-		if ions_val is Dictionary:
-			ions_from_reagent = ions_val
+	var ions_val: Variant = reagent_resource.get("ions")
+	if ions_val is Dictionary:
+		ions_from_reagent = ions_val
 	if ions_from_reagent.size() > 0:
 		mixture.add_ions(ions_from_reagent)
 
 	# 2) Liczniki nadmiaru „excess_…”.
-	if reagent_resource.has_method("get"):
-		var excess_key_raw: Variant = reagent_resource.get("excess_key")
-		if excess_key_raw != null and str(excess_key_raw) != "":
-			var excess_key: String = str(excess_key_raw)
-			var excess_amount: float = 1.0
-			var excess_amount_raw: Variant = reagent_resource.get("excess_per_click")
-			if excess_amount_raw is float or excess_amount_raw is int:
-				excess_amount = max(0.0, float(excess_amount_raw))
+	var excess_key_raw: Variant = reagent_resource.get("excess_key")
+	if excess_key_raw != null and str(excess_key_raw) != "":
+		var excess_key: String = str(excess_key_raw)
+		var excess_amount: float = 1.0
+		var excess_amount_raw: Variant = reagent_resource.get("excess_per_click")
+		if excess_amount_raw is float or excess_amount_raw is int:
+			excess_amount = max(0.0, float(excess_amount_raw))
 
-			_add_excess(mixture, "_excess_" + excess_key, excess_amount)
+		_add_excess(mixture, "_excess_" + excess_key, excess_amount)
 
-			# Specjalnie traktuje parę H/OH – liczniki wzajemnie się wygaszają.
-			if excess_key == "OH" or excess_key == "H":
-				_neutralize_excess_pair(mixture, "_excess_OH", "_excess_H")
+		# Specjalnie traktuje parę H/OH – liczniki wzajemnie się wygaszają.
+		if excess_key == "OH" or excess_key == "H":
+			_neutralize_excess_pair(mixture, "_excess_OH", "_excess_H")
 
 	# 3) Objętość z vol_per_click.
 	var added_volume: float = 0.0
-	if reagent_resource.has_method("get"):
-		var vol_raw: Variant = reagent_resource.get("vol_per_click")
-		if vol_raw is float or vol_raw is int:
-			added_volume = max(0.0, float(vol_raw))
+	var vol_raw: Variant = reagent_resource.get("vol_per_click")
+	if vol_raw is float or vol_raw is int:
+		added_volume = max(0.0, float(vol_raw))
 	if added_volume > 0.0:
 		mixture.add_vol(added_volume)
 
 	# 4) Neutralizacja silnego kwasu/zasady (H+/OH-).
 	_neutralize_strong_acid_base_ions(mixture)
 
-	# 5) Obsługa bufory – akumulacja i pasywne „zjadanie” nadmiaru.
+	# 5) Obsługa buforów – akumulacja i pasywne „zjadanie” nadmiaru.
 	_buffer_accumulate_from_reagent(mixture, reagent_resource)
 	_apply_buffer_passive(mixture)
 
@@ -256,7 +250,7 @@ func add_water_volume_step(tube: Node, volume_delta: float, step: float = -1.0) 
 	if tube == null or volume_delta <= 0.0:
 		return
 
-	var mixture: Mixture = tube.get("mixture") as Mixture
+	var mixture := tube.get("mixture") as Mixture
 	if mixture == null:
 		return
 
@@ -313,7 +307,7 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 	if tube == null:
 		return
 
-	var mixture: Mixture = tube.get("mixture") as Mixture
+	var mixture := tube.get("mixture") as Mixture
 	if mixture == null:
 		return
 
@@ -350,9 +344,9 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 	if iteration_count >= MAX_ITERS:
 		push_warning("QualEngine: reached max iterations (possible reaction loop).")
 
-	var mixture_end: Mixture = tube.get("mixture") as Mixture
-	#if DEBUG_CORE and mixture_end != null:
-		#print("[QE DBG] AFTER LOOP  ", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture_end))
+	var mixture_end := tube.get("mixture") as Mixture
+	if DEBUG_CORE and mixture_end != null:
+		print("[QE DBG] AFTER LOOP  ", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture_end))
 
 	var solids_dict: Dictionary = {}
 	if mixture_end != null and (mixture_end.solids is Dictionary):
@@ -384,7 +378,7 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 ## - uwzględnia warunki termiczne (boiling, min_boil_time),
 ## - sprawdza, czy są wymagane jony i osady.
 func _reaction_matches(tube: Node, reaction_res: Resource) -> bool:
-	var mixture: Mixture = tube.get("mixture") as Mixture
+	var mixture := tube.get("mixture") as Mixture
 	if mixture == null:
 		return false
 
@@ -410,19 +404,23 @@ func _reaction_matches(tube: Node, reaction_res: Resource) -> bool:
 	var req_all_raw: Variant = reaction_res.get("require_tags_all")
 	if req_all_raw is Dictionary and (req_all_raw as Dictionary).size() > 0:
 		var must_have: Dictionary = req_all_raw as Dictionary
+		if not (mixture.tags is Dictionary):
+			return false
+		var tags_dict: Dictionary = mixture.tags
 		for tag_key in must_have.keys():
-			if not (mixture.tags is Dictionary) or not (mixture.tags as Dictionary).has(tag_key):
+			if not tags_dict.has(tag_key):
 				return false
-			if (mixture.tags as Dictionary)[tag_key] != must_have[tag_key]:
+			if tags_dict[tag_key] != must_have[tag_key]:
 				return false
 
 	# Tagów zakazanych (forbid_tags_any) nie może być włączonych.
 	var forbid_raw: Variant = reaction_res.get("forbid_tags_any")
-	if forbid_raw is Array and (forbid_raw as Array).size() > 0:
+	if forbid_raw is Array and (forbid_raw as Array).size() > 0 and (mixture.tags is Dictionary):
+		var tags_dict2: Dictionary = mixture.tags
 		for forbidden_tag in (forbid_raw as Array):
 			var forbidden_str: String = String(forbidden_tag)
-			if (mixture.tags is Dictionary) and (mixture.tags as Dictionary).has(forbidden_str):
-				var val: Variant = (mixture.tags as Dictionary)[forbidden_str]
+			if tags_dict2.has(forbidden_str):
+				var val: Variant = tags_dict2[forbidden_str]
 				if _is_truthy(val):
 					return false
 
@@ -443,8 +441,14 @@ func _reaction_matches(tube: Node, reaction_res: Resource) -> bool:
 		return false
 
 	var need_solids: Dictionary = reaction_res.get("reactants_solids") as Dictionary
-	if need_solids.size() > 0 and not mixture.has_solids(need_solids):
-		return false
+	if need_solids.size() > 0:
+	# Jeżeli mamy pellet na dnie, to osad jest „związany” i nie reaguje,
+	# dopóki użytkownik nie rozmiesza go bagietką (hide_pellet() usuwa pellet_ready).
+		if mixture.tags is Dictionary and bool((mixture.tags as Dictionary).get("pellet_ready", false)):
+			return false
+
+		if not mixture.has_solids(need_solids):
+			return false
 
 	return true
 
@@ -459,7 +463,7 @@ func _reaction_matches(tube: Node, reaction_res: Resource) -> bool:
 ## - ustawia/usuwa tagi z Reaction.set_tags / clear_tags,
 ## - jeśli są produkty stałe (solids), zapisuje tryb osadu (precip_mode).
 func _apply_reaction(tube: Node, reaction_res: Resource) -> void:
-	var mixture: Mixture = tube.get("mixture") as Mixture
+	var mixture := tube.get("mixture") as Mixture
 	if mixture == null:
 		return
 
@@ -515,7 +519,7 @@ func _play_fx_from_current_mixture_if_any(tube: Node) -> void:
 	if not tube.has_method("play_precip"):
 		return
 
-	var mixture: Mixture = tube.get("mixture") as Mixture
+	var mixture := tube.get("mixture") as Mixture
 	if mixture == null or not (mixture.solids is Dictionary) or (mixture.solids as Dictionary).size() == 0:
 		return
 
@@ -524,7 +528,7 @@ func _play_fx_from_current_mixture_if_any(tube: Node) -> void:
 
 
 # =========================================================================
-# EMITOWANIE FX (z deduplikacją kolorów)
+# EMITOWANIE FX
 # =========================================================================
 
 ## Wysyła do probówki informację o osadzie:
@@ -536,7 +540,7 @@ func _emit_fx(tube: Node, color: Color, intensity: float, source: String) -> voi
 		return
 
 	var mode: String = "floc"
-	var mixture: Mixture = tube.get("mixture") as Mixture
+	var mixture := tube.get("mixture") as Mixture
 	if mixture != null and (mixture.tags is Dictionary):
 		var pm_raw: Variant = (mixture.tags as Dictionary).get("precip_mode", "floc")
 		if pm_raw is String:
@@ -566,7 +570,7 @@ func _emit_fx(tube: Node, color: Color, intensity: float, source: String) -> voi
 
 
 # =========================================================================
-# KOLORY OSADÓW – PROSTY MODEL DOMINACJI
+# KOLORY OSADÓW – MODEL DOMINACJI
 # =========================================================================
 
 ## Wylicza kolor mieszaniny osadów:
@@ -726,7 +730,7 @@ func _get_rxn_float(rx: Resource, field: String, def: float) -> float:
 	return def
 
 
-## Sprawdza, czy wartość jest „truthy”:
+## Sprawdza, czy wartość jest prawdziwa:
 ## - liczby niezerowe,
 ## - niepuste stringi,
 ## - nie-null.
@@ -741,7 +745,7 @@ func _is_truthy(v: Variant) -> bool:
 
 
 # =========================================================================
-# PROGI pH – KONWERSJA NA ETYKIETY I „GRADE 7”
+# PROGI pH – KONWERSJA NA ETYKIETY I SKALĘ 7 ST.
 # =========================================================================
 
 ## Przelicza kubełek pH na podstawie H+, OH- i vol_u:
@@ -891,9 +895,7 @@ func _neutralize_strong_acid_base_ions(mix: Mixture) -> void:
 
 ## Akumuluje pojemność buforową z ReagentBuffer do mieszanki (buffer_cap, buffer_bias).
 func _buffer_accumulate_from_reagent(mix: Mixture, reagent: Resource) -> void:
-	if reagent == null or not reagent.has_method("get"):
-		return
-	if not (reagent is ReagentBuffer):
+	if reagent == null or not (reagent is ReagentBuffer):
 		return
 
 	mix.ensure_tags()
@@ -976,9 +978,7 @@ func _apply_buffer_passive(mix: Mixture) -> void:
 func _dbg_probe_name(tube: Node) -> String:
 	if tube == null:
 		return "<null>"
-	if "name" in tube:
-		return str(tube.name)
-	return str(tube.get_instance_id())
+	return str(tube.name)
 
 
 ## Zwraca snapshot mieszaniny (jony, osady, tagi) jako string do debugowania.

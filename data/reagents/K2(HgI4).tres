@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://1c0pnrcvf2k0"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_u5ej6"]
+
+[resource]
+script = ExtResource("1_u5ej6")
+id = "K2(HgI4)"
+display_name = "o. Nesslera"
+ions = {
+"(HgI4)2-": 30,
+"K+": 30
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

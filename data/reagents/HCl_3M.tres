@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://bocdawe02y72p"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_b754m"]
+
+[resource]
+script = ExtResource("1_b754m")
+id = "HCl_3M"
+display_name = "HCl 3M"
+ions = {
+"Cl-": 200,
+"H+": 200
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

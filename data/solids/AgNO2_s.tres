@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://qfoytha1ma3w"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_0ijy6"]
+
+[resource]
+script = ExtResource("1_0ijy6")
+id = "AgNO2_s"
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

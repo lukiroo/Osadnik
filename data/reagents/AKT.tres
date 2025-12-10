@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://cxq41jv6u828"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_bk7sk"]
+
+[resource]
+script = ExtResource("1_bk7sk")
+id = "AKT"
+display_name = "AKT"
+ions = {
+"S2-": 30
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

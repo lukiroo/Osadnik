@@ -7,9 +7,7 @@ script = ExtResource("1_r3nt2")
 id = "Pb(NO3)2"
 display_name = "Pb(NO₃)₂"
 ions = {
-"NO3-": 2,
-"Pb2+": 1
+"NO3-": 50,
+"Pb2+": 50
 }
-sets_pH = "neutral"
-ph_value = nan
 metadata/_custom_type_script = "uid://bp7lhj2v28shg"

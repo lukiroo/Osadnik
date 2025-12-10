@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://tpff1vn61y2c"]
+[gd_scene load_steps=13 format=3 uid="uid://tpff1vn61y2c"]
 
 [ext_resource type="Script" uid="uid://bu32n2oflemoi" path="res://scenes/centrifuge.gd" id="1_jdbjd"]
 [ext_resource type="Texture2D" uid="uid://cgg8gh2ft1me" path="res://assets/centrifuge0.png" id="2_bfc42"]
@@ -7,20 +7,21 @@
 [ext_resource type="Texture2D" uid="uid://cuyoadd357iha" path="res://assets/centrifuge3.png" id="5_5deq5"]
 [ext_resource type="Texture2D" uid="uid://bfgilh0k3gr14" path="res://assets/centrifuge4.png" id="6_nufyu"]
 [ext_resource type="Texture2D" uid="uid://c6pjqpjj78wi0" path="res://assets/centrifuge.png" id="7_f812l"]
+[ext_resource type="Texture2D" uid="uid://5ifl6phb08s4" path="res://assets/ledred.png" id="8_bfc42"]
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_slmg8"]
-radius = 84.0
-height = 566.0
+radius = 52.0
+height = 170.0
 
 [sub_resource type="CapsuleShape2D" id="CapsuleShape2D_0pxey"]
-radius = 105.0
-height = 562.0
+radius = 62.0
+height = 208.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_xnt3s"]
-radius = 50.01
+radius = 30.016663
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_56f56"]
-size = Vector2(810, 628)
+size = Vector2(228, 148)
 
 [node name="Centrifuge" type="Node2D" groups=["probe_dropzones"]]
 script = ExtResource("1_jdbjd")
@@ -48,7 +49,7 @@ texture = ExtResource("7_f812l")
 [node name="LidOpenArea" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LidOpenArea"]
-position = Vector2(-120, -420)
+position = Vector2(0, -88)
 rotation = 1.5707964
 shape = SubResource("CapsuleShape2D_slmg8")
 
@@ -56,27 +57,24 @@ shape = SubResource("CapsuleShape2D_slmg8")
 position = Vector2(-14, -289)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="LidClosedArea"]
+position = Vector2(17, 265)
 rotation = 1.5707964
 shape = SubResource("CapsuleShape2D_0pxey")
 
 [node name="StartButton" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="StartButton"]
-position = Vector2(287, -33)
+position = Vector2(-6, 96)
 shape = SubResource("CircleShape2D_xnt3s")
 
 [node name="LedOn" type="Sprite2D" parent="."]
-
-[node name="ColorRect" type="ColorRect" parent="LedOn"]
-offset_left = 120.0
-offset_top = -40.0
-offset_right = 163.0
-offset_bottom = 3.0
-color = Color(0.35457295, 0.94164187, 0, 1)
+position = Vector2(-4.745, 57.34)
+texture = ExtResource("8_bfc42")
 
 [node name="PickupArea" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="PickupArea"]
+position = Vector2(1, 25)
 shape = SubResource("RectangleShape2D_56f56")
 
 [node name="Stored" type="Node" parent="."]

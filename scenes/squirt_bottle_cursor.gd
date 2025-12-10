@@ -11,7 +11,7 @@ class_name SquirtBottleCursor
 
 # -------------------- USTAWIENIA OGÓLNE --------------------
 
-@export var follow_mouse: bool = false                 ## Czy butelka ma sama podążać za kursorem.
+@export var follow_mouse: bool = false                 ## Czy butelka ma sama podążać za kurso
 @export var cursor_offset: Vector2 = Vector2(8, -40)   ## Przesunięcie względem pozycji myszy.
 @export var show_z_index: int = 99                     ## Z-index, gdy narzędzie jest aktywne.
 
@@ -46,9 +46,7 @@ func _ready() -> void:
 
 ## Sprząta tweena po wyjściu z drzewa.
 func _exit_tree() -> void:
-	if is_instance_valid(_squeeze_tween):
-		_squeeze_tween.kill()
-	_squeeze_tween = null
+	_stop_tween()
 
 
 # =========================================================================
@@ -102,12 +100,11 @@ func play_squeeze() -> void:
 	_squeeze_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 	var squashed_scale := Vector2(squeeze_scale_x, squeeze_scale_y)
-	var target_rot: float = squeeze_rot_deg
 
 	# 1) wejście w ścisk
 	_squeeze_tween.tween_property(self, "scale", squashed_scale, squeeze_in_time)
 	if squeeze_rot_deg != 0.0:
-		_squeeze_tween.parallel().tween_property(self, "rotation_degrees", target_rot, squeeze_in_time)
+		_squeeze_tween.parallel().tween_property(self, "rotation_degrees", squeeze_rot_deg, squeeze_in_time)
 
 	# 2) krótka pauza w „ściśniętej” pozycji
 	if squeeze_hold_time > 0.0:

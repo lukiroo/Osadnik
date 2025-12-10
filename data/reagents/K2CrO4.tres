@@ -7,7 +7,7 @@ script = ExtResource("1_v78w4")
 id = "K2CrO4"
 display_name = "K₂CrO₄"
 ions = {
-"CrO42-": 1,
+"CrO42-": 50,
 "K+": 1
 }
 metadata/_custom_type_script = "uid://bp7lhj2v28shg"

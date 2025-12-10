@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://dcqncs3ruxj3e"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_1c7ul"]
+
+[resource]
+script = ExtResource("1_1c7ul")
+id = "Sb(OH)3_s"
+color = Color(0.95896, 0.94368607, 0.9393255, 1)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

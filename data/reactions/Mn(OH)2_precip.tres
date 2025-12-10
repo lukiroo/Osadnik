@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://bhax375owaq67"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_yofef"]
+
+[resource]
+script = ExtResource("1_yofef")
+id = "Mn(OH)2_precip"
+priority = 14
+reactants_ions = {
+"Mn2+": 1,
+"OH-": 1
+}
+products_solids = {
+"Mn(OH)2_s": 1
+}
+require_pH = Array[String](["basic"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

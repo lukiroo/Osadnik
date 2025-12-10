@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://bsiowunpqj1c1"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_th4ku"]
+
+[resource]
+script = ExtResource("1_th4ku")
+id = "Cr(OH)3_precip"
+priority = 14
+reactants_ions = {
+"Cr3+": 1,
+"OH-": 1
+}
+products_solids = {
+"Cr(OH)3_s": 1
+}
+require_pH = Array[String](["basic"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

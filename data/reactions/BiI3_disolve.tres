@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://dlgapsgmvfspl"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_ksuwm"]
+
+[resource]
+script = ExtResource("1_ksuwm")
+id = "BiI3_disolve"
+priority = 1
+reactants_ions = {
+"I-": 20
+}
+reactants_solids = {
+"BiI3_s": 1
+}
+products_solids = {
+"BiI4-": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

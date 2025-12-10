@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://bhpr10gk3upig"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_oymjb"]
+
+[resource]
+script = ExtResource("1_oymjb")
+id = "Ni(CN)2_s"
+color = Color(0.40784314, 1, 0.9529412, 0.76862746)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

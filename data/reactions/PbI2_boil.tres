@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_2epbs")
 id = "PbI2_boil"
-priority = 6
+priority = 5
 reactants_solids = {
 "PbI2_s": 1
 }
@@ -18,5 +18,5 @@ set_tags = {
 "cooling_ready": true
 }
 clear_tags = Array[String](["cooled_enough", "cooling_t_s"])
-note = "Osad PbCl2 rozpuszcza sie"
+note = "Osad PbI2 rozpuszcza sie"
 metadata/_custom_type_script = "uid://djapafftkk5kc"

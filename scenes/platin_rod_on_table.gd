@@ -2,12 +2,13 @@ extends Node2D
 class_name PlatinRodOnTable
 
 ## =========================================================================
-## platin_rod_on_table.gd – drucik platynowy leżący na stole
+## platin_rod_cursor.gd – drucik platynowy przy kursorze
 ## -------------------------------------------------------------------------
 ## Odpowiada za:
-## - emitowanie sygnału left_clicked po kliknięciu LPM,
-## - podświetlenie drucika przy najechaniu kursorem (outline z shadera),
-## - duplikację materiału, żeby highlight był per instancja.
+## - wyświetlanie drucika przy kursorze (follow_mouse + offset),
+## - prostą animację obrotu po pobraniu próbki z probówki,
+## - przechowywanie informacji o tym, czy drucik ma „próbkę” (Mixture),
+## - proste API show_tool / hide_tool używane przez Lab.
 ## =========================================================================
 
 signal left_clicked(rod: Node)
@@ -30,9 +31,7 @@ var _hover_enabled: bool = true               ## Flaga umożliwiająca wyłącze
 ## Przygotowuje drucik po starcie:
 ## - wyłącza outline na starcie.
 func _ready() -> void:
-	if rod_sprite and rod_sprite.material:
-		_shader_mat = rod_sprite.material as ShaderMaterial
-
+	_shader_mat = rod_sprite.material as ShaderMaterial
 	_set_outline(false)
 
 
@@ -41,8 +40,9 @@ func _ready() -> void:
 # =========================================================================
 
 ## Obsługuje kliknięcie LPM w obszar drucika – emituje left_clicked(rod).
-func _on_area_input(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+func _on_area_input(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event and mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
 		left_clicked.emit(self)
 
 
@@ -63,7 +63,8 @@ func _on_mouse_exited() -> void:
 
 ## Gasi outline przy każdym kliknięciu LPM – zapobiega „zaczepieniu” efektu przy dragowaniu.
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event and mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
 		_set_outline(false)
 
 
@@ -86,16 +87,5 @@ func set_hover_enabled(enabled: bool) -> void:
 func _set_outline(on: bool) -> void:
 	if _shader_mat == null:
 		return
-	_set_shader_param_safe(_shader_mat, "highlight", on)
-	_set_shader_param_safe(_shader_mat, "highlight_strength", (1.0 if on else 0.0))
-
-
-## Helper do bezpiecznego ustawiania uniformów shaderowych.
-func _set_shader_param_safe(mat: ShaderMaterial, param_name: String, value) -> void:
-	if mat == null or mat.shader == null:
-		return
-	for uniform in mat.shader.get_shader_uniform_list():
-		var info: Dictionary = uniform
-		if String(info.get("name", "")) == param_name:
-			mat.set_shader_parameter(param_name, value)
-			return
+	_shader_mat.set_shader_parameter("highlight", on)
+	_shader_mat.set_shader_parameter("highlight_strength", (1.0 if on else 0.0))

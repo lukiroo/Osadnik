@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://jwdsilk8blpf"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_uipxc"]
+
+[resource]
+script = ExtResource("1_uipxc")
+id = "Ba3(AsO4)2_s"
+color = Color(0.94171417, 0.94335765, 0.9421063, 1)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

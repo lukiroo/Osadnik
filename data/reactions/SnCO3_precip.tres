@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://c5xwshn7gjche"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_ku4aj"]
+
+[resource]
+script = ExtResource("1_ku4aj")
+id = "Sn(OH)2_precip"
+priority = 14
+reactants_ions = {
+"CO32-": 1,
+"Sn2+": 1
+}
+products_solids = {
+"Sn(OH)2_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

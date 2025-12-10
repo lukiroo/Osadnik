@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_4ejtw")
 id = "PbCl2_precip"
-priority = 5
+priority = 8
 reactants_ions = {
 "Cl-": 1,
 "Pb2+": 1

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://d1hi8ba7gntqg"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_lng57"]
+
+[resource]
+script = ExtResource("1_lng57")
+id = "CoNO2_s"
+color = Color(0.8784314, 0.8, 0.28235295, 0.8666667)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

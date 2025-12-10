@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://cxil3fs0h1ih8"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_figqw"]
+
+[resource]
+script = ExtResource("1_figqw")
+id = "Ag2O_s"
+display_name = "AgOH/Ag2O"
+color = Color(0.47825968, 0.330906, 0.19816485, 1)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

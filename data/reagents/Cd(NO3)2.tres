@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://d2f7la1nni68k"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_s60ef"]
+
+[resource]
+script = ExtResource("1_s60ef")
+id = "Cd(NO3)2"
+display_name = "Cd(NO₃)₂"
+ions = {
+"Cd2+": 1,
+"NO3-": 50
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

@@ -5,7 +5,7 @@ class_name StirRodCursor
 ## stir_rod_cursor.gd – bagietka przy kursorze
 ## -------------------------------------------------------------------------
 ## Odpowiada za:
-## - pokazywanie bagietki przy kursorze (follow_mouse),
+## - pokazywanie bagietki przy kursorze,
 ## - krótką animację „bujnięcia” po mieszaniu (feedback),
 ## - emisję sygnału cancel_requested (RMB / ESC) do Lab.
 ## =========================================================================
@@ -14,7 +14,6 @@ signal cancel_requested()   ## Lab nasłuchuje, żeby odłożyć bagietkę (RMB 
 
 # -------------------- USTAWIENIA OGÓLNE --------------------
 
-@export var follow_mouse: bool = false  ## Jeśli true – bagietka śledzi myszkę w _process.
 @export var show_z_index: int = 99      ## Z-index, gdy bagietka jest aktywna.
 
 ## Proste parametry animacji „bujnięcia” po mieszaniu.
@@ -46,9 +45,7 @@ func _ready() -> void:
 
 ## Sprząta tweena po wyjściu z drzewa, żeby nie został „sierotą”.
 func _exit_tree() -> void:
-	if is_instance_valid(_wobble_tween):
-		_wobble_tween.kill()
-	_wobble_tween = null
+	_stop_tween()
 
 
 # =========================================================================
@@ -67,11 +64,7 @@ func show_tool() -> void:
 func hide_tool() -> void:
 	is_active = false
 	visible = false
-
-	if is_instance_valid(_wobble_tween):
-		_wobble_tween.kill()
-		_wobble_tween = null
-
+	_stop_tween()
 	rotation_degrees = 0.0
 	scale = Vector2.ONE
 	position = _base_pos
@@ -83,12 +76,9 @@ func hide_tool() -> void:
 
 ## Odtwarza krótką animację rotacji i skali jako feedback po mieszaniu.
 func play_mix_wobble() -> void:
-	if is_instance_valid(_wobble_tween):
-		_wobble_tween.kill()
+	_stop_tween()
 
-	_wobble_tween = create_tween()
-	_wobble_tween.set_trans(Tween.TRANS_SINE)
-	_wobble_tween.set_ease(Tween.EASE_OUT)
+	_wobble_tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 
 	rotation_degrees = 0.0
 	scale = Vector2.ONE
@@ -117,9 +107,9 @@ func play_mix_wobble() -> void:
 # OPCJONALNE ŚLEDZENIE MYSZY
 # =========================================================================
 
-## Jeżeli follow_mouse == true i bagietka jest aktywna, trzyma ją przy kursorze.
+## Jeżeli bagietka jest aktywna, trzyma ją przy kursorze.
 func _process(_delta: float) -> void:
-	if is_active and follow_mouse:
+	if is_active:
 		global_position = get_global_mouse_position()
 
 
@@ -136,8 +126,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		cancel_requested.emit()
 		get_viewport().set_input_as_handled()
-		return
-
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
+	elif event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		cancel_requested.emit()
 		get_viewport().set_input_as_handled()
+
+
+func _stop_tween() -> void:
+	if is_instance_valid(_wobble_tween):
+		_wobble_tween.kill()
+	_wobble_tween = null

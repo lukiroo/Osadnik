@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://blpe5vfvjnmd"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_7lhge"]
+
+[resource]
+script = ExtResource("1_7lhge")
+id = "Ba(NO3)2"
+display_name = "Ba(NO₃)₂"
+ions = {
+"Ba2+": 50,
+"NO3-": 50
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

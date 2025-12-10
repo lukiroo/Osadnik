@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="ReagentBuffer" load_steps=2 format=3 uid="uid://w5kbbq5mbxlj"]
+
+[ext_resource type="Script" uid="uid://cpe12xtxjiaco" path="res://chem/reagentbuffer.gd" id="1_jf7gc"]
+
+[resource]
+script = ExtResource("1_jf7gc")
+is_buffer = true
+buffer_cap_per_click = 50.0
+buffer_bias = 50.0
+id = "NH3NH4Cl"
+display_name = "b. amonowy"
+ions = {
+"NH3": 20
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

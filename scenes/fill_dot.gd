@@ -32,15 +32,13 @@ var _has_level01: bool = false
 # =========================================================================
 
 ## Przygotowuje wskaźnik po starcie:
-## - duplikuje materiał wypełnienia, żeby uniformy były per instancja,
 ## - sprawdza, czy shader wystawia uniform `level01`,
 ## - nakłada stan początkowy (0.0).
 func _ready() -> void:
-	if fill_sprite and fill_sprite.material:
-		fill_sprite.material = fill_sprite.material.duplicate()
-		var shader_material := fill_sprite.material as ShaderMaterial
-		if shader_material and shader_material.shader:
-			for uniform in shader_material.shader.get_shader_uniform_list():
+	if fill_sprite and fill_sprite.material is ShaderMaterial:
+		var shader_material: ShaderMaterial = fill_sprite.material as ShaderMaterial
+		if shader_material.shader:
+			for uniform: Dictionary in shader_material.shader.get_shader_uniform_list():
 				if String(uniform.get("name", "")) == "level01":
 					_has_level01 = true
 					break
@@ -49,7 +47,7 @@ func _ready() -> void:
 
 
 # =========================================================================
-# A# METODY WYWOŁYWANE Z ZEWNĄTRZ 
+# METODY WYWOŁYWANE Z ZEWNĄTRZ
 # =========================================================================
 
 ## Ustawia poziom napełnienia (0..1) i odświeża widok.
@@ -78,11 +76,11 @@ func reset() -> void:
 ## - pokazuje/ukrywa obrys w zależności od progu outline_threshold.
 func _apply_visuals() -> void:
 	# Wypełnienie – jeżeli shader wspiera uniform `level01`, przekazujemy mu ułamek napełnienia.
-	if fill_sprite and _has_level01:
-		var shader_material := fill_sprite.material as ShaderMaterial
-		if shader_material and shader_material.shader:
+	if _has_level01 and fill_sprite and fill_sprite.material is ShaderMaterial:
+		var shader_material: ShaderMaterial = fill_sprite.material as ShaderMaterial
+		if shader_material:
 			shader_material.set_shader_parameter("level01", _fill01)
 
 	# Obrys – widoczny tylko powyżej progu, żeby pusta kropka nie „świeciła”.
 	if outline_sprite:
-		outline_sprite.visible = (_fill01 > outline_threshold)
+		outline_sprite.visible = _fill01 > outline_threshold

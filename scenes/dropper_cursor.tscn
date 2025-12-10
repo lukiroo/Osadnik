@@ -14,12 +14,12 @@ shader_parameter/edge_px = 1.0
 [node name="DropperCursor" type="Node2D"]
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(42, -55)
-scale = Vector2(0.30107522, 0.32069972)
+position = Vector2(36, -25)
+scale = Vector2(0.42022225, 0.4385802)
 texture = ExtResource("1_vtwc0")
 
 [node name="FillDot" type="Node2D" parent="."]
-position = Vector2(100, -111)
+position = Vector2(99.33, -96)
 scale = Vector2(0.295, 0.295)
 script = ExtResource("2_5stg7")
 

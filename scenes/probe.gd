@@ -1,6 +1,6 @@
 extends Node2D
 class_name Probe
-
+ 
 ## =========================================================================
 ## probe.gd – probówka robocza / startowa
 ## -------------------------------------------------------------------------
@@ -80,11 +80,11 @@ var _tilt_node: Node2D = null
 # =========================================================================
 
 @export_group("Chemia i objętość")
-@export var mixture := Mixture.new()
+@export var mixture: Mixture = Mixture.new()
 
 @export_subgroup("Poziom cieczy")
 @export_range(0.0, 1.0, 0.01) var fill_level: float = 1.0
-@export_range(0.0, 0.5, 0.01) var min_fill_level: float = 0.10
+@export_range(0.0, 0.5, 0.01) var min_fill_level: float = 0
 @export_range(0.05, 15.0, 0.05) var capacity_units: float = 1.0
 
 @export_subgroup("Krople reagentów")
@@ -119,7 +119,7 @@ var _recalc_scheduled: bool = false
 # =========================================================================
 
 @export_group("Chłodzenie (łaźnia)")
-@export_range(0.0, 60.0, 0.5) var cooling_time_s: float = 30.0
+@export_range(0.0, 60.0, 0.5) var cooling_time_s: float = 80.0
 
 const TAG_BATH_BOILING   := "bath_boiling"
 const TAG_COOLING_READY  := "cooling_ready"
@@ -227,6 +227,20 @@ func _ready() -> void:
 	_tilt_node.rotation_degrees = 0.0
 
 
+
+	# --- konfiguracja turbidity: maska = LiquidBody ---
+	if turbidity and turbidity.material is ShaderMaterial and liquid_body and liquid_body.texture:
+		var tmat := turbidity.material as ShaderMaterial
+		tmat.set_shader_parameter("use_mask", true)
+		tmat.set_shader_parameter("mask_tex", liquid_body.texture)
+		var size: Vector2i = liquid_body.texture.get_size()
+		if size.x > 0 and size.y > 0:
+			tmat.set_shader_parameter("mask_texel", Vector2(1.0 / float(size.x), 1.0 / float(size.y)))
+
+	_apply_liquid_fill_visual()
+	# dalej pivot, _Tilt itd...
+
+
 ## Aktualizuje probówkę w każdej klatce:
 ## - przelicza chłodzenie dla łaźni wodnej,
 ## - płynnie „dochodzi” do nowej mętności.
@@ -280,7 +294,7 @@ func get_indicator_grade_and_ph() -> Dictionary:
 
 ## Odczytuje ph_grade7 z tags i zwraca go jako int.
 func _get_ph_grade7() -> int:
-	if mixture and (mixture.tags is Dictionary):
+	if mixture.tags is Dictionary:
 		var grade_val: Variant = (mixture.tags as Dictionary).get("ph_grade7", null)
 		if grade_val is int or grade_val is float:
 			return int(grade_val)
@@ -303,12 +317,9 @@ func play_precip(mode: String, turb_color: Color, _sed_color: Color, intensity: 
 	var amount: float = clamp(intensity, 0.0, 1.0)
 
 	if mode == "crystal":
-		# klarowny roztwór + kryształki
 		_show_crystal_fx(turbidity_color, amount)
-		# lekka mętność jako tło
 		turbidity_target = max(initial_turbidity, 0.3 * amount)
 	else:
-		# zwykły mętny osad w całej objętości
 		_hide_crystal_fx()
 		turbidity_target = max(turbidity_target, max(initial_turbidity, amount))
 
@@ -356,49 +367,48 @@ func _on_probe_area_2d_input_event(_vp: Viewport, event: InputEvent, _shape_idx:
 		return
 
 	var lab: Node = get_tree().get_first_node_in_group("lab_root")
-	var ModeEnum: Variant = lab.get("Mode")
-	var cur_mode: Variant = lab.get("mode")
+	if lab == null:
+		return
+
+	var ModeEnum = lab.Mode
+	var cur_mode = lab.mode
 
 	if cur_mode == ModeEnum.STIR_ROD:
-		if lab.has_method("_stir_rod_use_on_probe"):
-			lab._stir_rod_use_on_probe(self)
+		lab._stir_rod_use_on_probe(self)
 		get_viewport().set_input_as_handled()
 		return
 
 	if cur_mode == ModeEnum.INDICATOR:
 		if lab.has_method("_indicator_use_on_probe"):
 			lab._indicator_use_on_probe(self)
-		elif lab.has_method("_indicator_use"):
+		else:
 			lab._indicator_use(self)
 		get_viewport().set_input_as_handled()
 		return
 
 	if cur_mode == ModeEnum.TRANSFER:
-		var dropper_is_loaded: bool = bool(lab.get("dropper_loaded"))
+		var dropper_is_loaded: bool = bool(lab.dropper_loaded)
 		if not dropper_is_loaded:
-			if has_any_liquid() and lab.has_method("_dropper_pick"):
+			if has_any_liquid():
 				lab._dropper_pick(self)
 		else:
-			if lab.has_method("_dropper_drop"):
-				lab._dropper_drop(self)
+			lab._dropper_drop(self)
 		get_viewport().set_input_as_handled()
 		return
 
 	if cur_mode == ModeEnum.SQUIRT:
-		if lab.has_method("_squirt_begin"):
-			lab._squirt_begin(self)
+		lab._squirt_begin(self)
 		return
 
 	if cur_mode == ModeEnum.HOLDING:
-		var reagent_id := String(lab.get("active_reagent_id"))
+		var reagent_id := String(lab.active_reagent_id)
 		if reagent_id != "":
 			receive_drop(reagent_id)
 			get_viewport().set_input_as_handled()
 		return
 
 	if cur_mode == ModeEnum.PLATIN_ROD:
-		if lab.has_method("_platin_rod_use_on_probe"):
-			lab._platin_rod_use_on_probe(self)
+		lab._platin_rod_use_on_probe(self)
 		get_viewport().set_input_as_handled()
 		return
 
@@ -409,9 +419,7 @@ func _on_probe_area_2d_input_event(_vp: Viewport, event: InputEvent, _shape_idx:
 
 ## Obsługuje ruch myszy i puszczenie LPM w trakcie dragowania probówki.
 func _input(event: InputEvent) -> void:
-	if _returning:
-		return
-	if not _dragging:
+	if _returning or not _dragging:
 		return
 
 	if event is InputEventMouseMotion:
@@ -453,7 +461,7 @@ func _start_drag() -> void:
 		_drag_origin_parent.call("on_probe_pickup", self)
 
 	var lab := get_tree().get_first_node_in_group("lab_root")
-	if lab and lab.has_method("probe_drag_started"):
+	if lab:
 		lab.probe_drag_started()
 
 
@@ -468,7 +476,7 @@ func _end_drag(emit_release: bool) -> void:
 	_dragging = false
 
 	var lab := get_tree().get_first_node_in_group("lab_root")
-	if lab and lab.has_method("probe_drag_ended"):
+	if lab:
 		lab.probe_drag_ended()
 
 	var accepted: bool = _try_drop_into_target()
@@ -537,7 +545,7 @@ func has_any_liquid() -> bool:
 	if fill_level > 0.001:
 		return true
 
-	if mixture and (mixture.ions is Dictionary) and mixture.ions.size() > 0:
+	if mixture.ions is Dictionary and mixture.ions.size() > 0:
 		return true
 
 	return false
@@ -577,9 +585,6 @@ func take_volume(units: float):
 	(taken.tags as Dictionary).erase("ph_samples")
 
 	if had_pellet:
-		# Supernatant znad pelletu:
-		# - pobieramy tylko roztwór (bez solids),
-		# - osady w probówce nie powinny się zmieniać.
 		taken.solids.clear()
 		(taken.tags as Dictionary).erase("precip_mode")
 
@@ -592,7 +597,6 @@ func take_volume(units: float):
 		if solids_backup.size() > 0:
 			mixture.solids = solids_backup
 	else:
-		# Zwykła zawiesina – jony i osady rozdzielają się proporcjonalnie.
 		mixture.subtract_fraction_in_place(fraction)
 
 	_set_fill_level(fill_level - real_units / max(0.0001, capacity_units))
@@ -662,8 +666,6 @@ func receive_mixture(mixture_in: Mixture, units: float = 0.18) -> float:
 	_set_fill_level(min(1.0, fill_level + real_units / max(0.0001, capacity_units)))
 
 	if had_pellet:
-		# Po dolaniu czegoś do probówki z pelletem zostawiamy pellet,
-		# ale resetujemy FX mętności – pellet zostaje oznaczony w tags.
 		ever_precipitated = false
 		turbidity_target = 0.0
 		display_turbidity = 0.0
@@ -685,24 +687,27 @@ func _set_fill_level(value: float) -> void:
 	_apply_liquid_fill_visual()
 
 
-## Aktualizuje skalę sprite’a cieczy, poziom mętności i maskę crystal_fx.
+## Aktualizuje wizualną wysokość cieczy i powiązane shadery.
 func _apply_liquid_fill_visual() -> void:
 	var level01: float = clamp(fill_level, 0.0, 1.0)
-	var visual_scale: float = level01 if (pellet != null and pellet.visible) else max(min_fill_level, level01)
 
+	# wysokość cieczy – LiquidBody
 	if liquid_body:
-		liquid_body.scale.y = visual_scale
+		liquid_body.scale.y = level01
 
-	if turbidity:
-		var turbidity_material := turbidity.material as ShaderMaterial
-		if turbidity_material and turbidity_material.shader and _shader_has_uniform(turbidity_material, "level01"):
-			_set_shader_param_safe(turbidity_material, "level01", level01)
-
+	# poziom menisku (shader)
 	if liquid_level_sprite:
 		var level_material := liquid_level_sprite.material as ShaderMaterial
 		if level_material and level_material.shader and _shader_has_uniform(level_material, "level01"):
 			_set_shader_param_safe(level_material, "level01", level01)
 
+	# turbidity – tylko uniform level01, BEZ skalowania sprite’a
+	if turbidity:
+		var turb_mat := turbidity.material as ShaderMaterial
+		if turb_mat and turb_mat.shader and _shader_has_uniform(turb_mat, "level01"):
+			_set_shader_param_safe(turb_mat, "level01", level01)
+
+	# (opcjonalnie) maska dla crystal_fx tak jak wcześniej
 	if crystal_fx:
 		var crystal_material := crystal_fx.material as ShaderMaterial
 		if crystal_material and crystal_material.shader:
@@ -718,6 +723,7 @@ func _apply_liquid_fill_visual() -> void:
 							"mask_texel",
 							Vector2(1.0 / float(size.x), 1.0 / float(size.y))
 						)
+
 
 
 # =========================================================================
@@ -798,10 +804,7 @@ func _run_recalc() -> void:
 
 ## Czyści zawartość probówki (jony, osady, tagi) i resetuje FX wizualne.
 func _clear_contents_completely() -> void:
-	if mixture and mixture.has_method("clear_all"):
-		mixture.clear_all()
-	else:
-		mixture = Mixture.new()
+	mixture.clear_all()
 
 	if not (mixture.tags is Dictionary):
 		mixture.tags = {}
@@ -917,7 +920,7 @@ func clear_precip_fx(fade_sec: float = 0.35) -> void:
 		pellet.visible = false
 		pellet.modulate = Color(1, 1, 1, 1)
 
-	if mixture and (mixture.tags is Dictionary):
+	if mixture.tags is Dictionary:
 		(mixture.tags as Dictionary).erase("pellet_ready")
 
 	turbidity_target = initial_turbidity
@@ -1029,7 +1032,6 @@ func has_dry_pellet() -> bool:
 	var pellet_ready := _has_pellet_ready()
 
 	var no_liquid := (fill_level <= 0.001) \
-		and mixture \
 		and (mixture.ions is Dictionary) \
 		and mixture.ions.size() == 0
 
@@ -1059,8 +1061,8 @@ func show_pellet(on: bool, color: Color = Color.WHITE) -> void:
 	display_turbidity = 0.0
 	_set_turbidity_value(0.0)
 
-	if mixture and (mixture.tags is Dictionary):
-		mixture.tags["pellet_ready"] = true
+	if mixture.tags is Dictionary:
+		(mixture.tags as Dictionary)["pellet_ready"] = true
 
 
 ## Chowa pellet i usuwa tag pellet_ready.
@@ -1068,7 +1070,7 @@ func hide_pellet() -> void:
 	if pellet:
 		pellet.visible = false
 		pellet.modulate = Color(1, 1, 1, 1)
-	if mixture and (mixture.tags is Dictionary):
+	if mixture.tags is Dictionary:
 		(mixture.tags as Dictionary).erase("pellet_ready")
 
 
@@ -1092,8 +1094,7 @@ func stir_with_rod(strength: float = 0.6) -> void:
 	if was_pellet:
 		hide_pellet()
 
-		# Po rozmieszaniu pelletu probówka nie jest już „centrifuged”.
-		if mixture and (mixture.tags is Dictionary):
+		if mixture.tags is Dictionary:
 			var tags_dict := mixture.tags as Dictionary
 			tags_dict.erase("centrifuged")
 
@@ -1117,7 +1118,6 @@ func stir_with_rod(strength: float = 0.6) -> void:
 		_schedule_recalc()
 		return
 
-	# Kryształki już są aktywne – delikatnie podbij progres.
 	if _crystal_fx_active():
 		var prog_target: float = clamp(0.4 + 0.4 * stir_strength, 0.0, 1.0)
 		_show_crystal_fx(turbidity_color, prog_target)
@@ -1152,7 +1152,7 @@ func resuspend_pellet(strength: float = 0.6) -> void:
 func _has_any_precipitate_or_suspension() -> bool:
 	if _has_pellet_ready():
 		return true
-	if mixture and (mixture.solids is Dictionary) and mixture.solids.size() > 0:
+	if mixture.solids is Dictionary and mixture.solids.size() > 0:
 		return true
 	if _crystal_fx_active():
 		return true

@@ -14,7 +14,7 @@ extends Node2D  ## Główny węzeł sceny stołu laboratoryjnego – centralny k
 ## - zarządzanie highlightami probówek (co można kliknąć, co jest zablokowane,
 ##   co stoi na półce),
 ## - obsługę strumieni pobierania / przelewania / dolewania wody (LPM trzymany),
-## - spójne odkładanie narzędzi (PPM / ESC) i blokady, żeby narzędzia się nie gryzły.
+## - spójne odkładanie narzędzi (PPM) i blokady, żeby narzędzia się nie gryzły.
 ## =========================================================================
 
 @onready var level_manager: LevelManager = $LevelManager
@@ -179,7 +179,7 @@ func _ready() -> void:
 	add_to_group("lab_root")
 
 	# W sandboxie przy prostych eksperymentach przycisk „Zakończ” nie jest potrzebny.
-	if level_manager.is_sandbox_branch() and finish_btn:
+	if level_manager.is_sandbox_branch():
 		finish_btn.visible = false
 
 	# Kopiuje stan opcji highlightów z autoloada Settings.
@@ -188,44 +188,30 @@ func _ready() -> void:
 		Settings.changed.connect(_on_settings_changed)
 
 	# Podłącza butelkę z wodą na stole (squirt).
-	if squirt_on_table:
-		squirt_on_table.visible = true
-		if squirt_on_table.has_signal("left_clicked"):
-			squirt_on_table.left_clicked.connect(_on_squirt_on_table_clicked)
+	squirt_on_table.visible = true
+	squirt_on_table.left_clicked.connect(_on_squirt_on_table_clicked)
 
 	# Podłącza butelki z reagentami (grupa "bottles").
 	for bottle_node: Node in get_tree().get_nodes_in_group("bottles"):
-		if bottle_node and bottle_node.has_signal("left_clicked"):
-			bottle_node.left_clicked.connect(_on_bottle_left_clicked)
+		bottle_node.left_clicked.connect(_on_bottle_left_clicked)
 
 	# Podłącza dropper leżący na stole.
-	if dropper_on_table and dropper_on_table.has_signal("left_clicked"):
-		dropper_on_table.left_clicked.connect(_on_dropper_on_table_clicked)
+	dropper_on_table.left_clicked.connect(_on_dropper_on_table_clicked)
 
 	# Podłącza pudełko z papierkami.
-	if indicator_box and indicator_box.has_signal("left_clicked"):
-		indicator_box.left_clicked.connect(_on_indicator_box_clicked)
+	indicator_box.left_clicked.connect(_on_indicator_box_clicked)
 
 	# Podłącza bagietkę na stole oraz sygnał anulowania z kursora.
-	if stir_rod_on_table and stir_rod_on_table.has_signal("left_clicked"):
-		stir_rod_on_table.left_clicked.connect(_on_stir_rod_on_table_clicked)
-
-	if stir_rod_cursor and stir_rod_cursor.has_signal("cancel_requested"):
-		stir_rod_cursor.cancel_requested.connect(_on_stir_rod_cancel)
+	stir_rod_on_table.left_clicked.connect(_on_stir_rod_on_table_clicked)
+	stir_rod_cursor.cancel_requested.connect(_on_stir_rod_cancel)
 
 	# Podłącza drucik platynowy na stole.
-	if platin_rod_on_table and platin_rod_on_table.has_signal("left_clicked"):
-		platin_rod_on_table.left_clicked.connect(_on_platin_rod_on_table_clicked)
+	platin_rod_on_table.left_clicked.connect(_on_platin_rod_on_table_clicked)
 
 	# Podłącza palnik (wejście drucika w płomień).
-	if bunsen_burner and bunsen_burner.has_signal("flame_entered"):
-		bunsen_burner.flame_entered.connect(_on_bunsen_flame_entered)
-
-	if bunsen_burner and bunsen_burner.has_signal("flame_test_finished"):
-		bunsen_burner.flame_test_finished.connect(_on_bunsen_flame_test_finished)
-
-	if bunsen_burner and bunsen_burner.has_signal("flame_exited"):
-		bunsen_burner.flame_exited.connect(_on_bunsen_flame_exited)
+	bunsen_burner.flame_entered.connect(_on_bunsen_flame_entered)
+	bunsen_burner.flame_test_finished.connect(_on_bunsen_flame_test_finished)
+	bunsen_burner.flame_exited.connect(_on_bunsen_flame_exited)
 
 	# Ustawia poprawną interaktywność Area2D probówek.
 	_ensure_probes_pickable()
@@ -236,7 +222,6 @@ func _ready() -> void:
 	_refresh_table_hovers()
 	_update_dropper_ui()
 	_refresh_probe_highlights()
-	# Drugi refresh po 1 klatce – zabezpiecza przypadek, gdy probówki lub racki zmienią pozycję.
 	call_deferred("_refresh_probe_highlights")
 
 
@@ -248,12 +233,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	match mode:
 		Mode.HOLDING:
-			if pipette:
-				pipette.global_position = get_global_mouse_position() + PIPETTE_OFFSET
+			pipette.global_position = get_global_mouse_position() + PIPETTE_OFFSET
 
 		Mode.TRANSFER:
-			if dropper_cursor:
-				dropper_cursor.global_position = get_global_mouse_position() + DROPPER_OFFSET
+			dropper_cursor.global_position = get_global_mouse_position() + DROPPER_OFFSET
 			match _press_mode:
 				PressMode.PICKING:
 					_tick_pick(delta)
@@ -263,16 +246,13 @@ func _process(delta: float) -> void:
 					pass
 
 		Mode.STIR_ROD:
-			if stir_rod_cursor:
-				stir_rod_cursor.global_position = get_global_mouse_position() + STIR_ROD_OFFSET
+			stir_rod_cursor.global_position = get_global_mouse_position() + STIR_ROD_OFFSET
 
 		Mode.PLATIN_ROD:
-			if platin_rod_cursor:
-				platin_rod_cursor.global_position = get_global_mouse_position() + PLATIN_ROD_OFFSET
+			platin_rod_cursor.global_position = get_global_mouse_position() + PLATIN_ROD_OFFSET
 
 		Mode.SQUIRT:
-			if squirt_cursor:
-				squirt_cursor.global_position = get_global_mouse_position() + SQUIRT_OFFSET
+			squirt_cursor.global_position = get_global_mouse_position() + SQUIRT_OFFSET
 			_tick_squirt(delta)
 
 		_:
@@ -310,7 +290,6 @@ func _on_settings_changed() -> void:
 ## - PPM próbuje odłożyć aktualne narzędzie,
 ## - ESC odkłada wybrane narzędzia i wraca do trybu IDLE.
 func _unhandled_input(event: InputEvent) -> void:
-	# Puszczenie LPM – kończy strumienie.
 	if event is InputEventMouseButton and not event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		if _press_mode == PressMode.PICKING:
 			_press_mode = PressMode.NONE
@@ -322,7 +301,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			_squirt_lmb_down = false
 			_squirt_dst = null
 
-	# PPM – odkłada narzędzie jeśli to możliwe.
 	if event is InputEventMouseButton and event.pressed and (
 		event.button_index == MOUSE_BUTTON_RIGHT or event.is_action_pressed("right_click")
 	):
@@ -357,7 +335,6 @@ func _unhandled_input(event: InputEvent) -> void:
 			_:
 				pass
 
-	# ESC – szybkie odłożenie narzędzia bez konieczności celowania.
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		match mode:
 			Mode.INDICATOR:
@@ -470,9 +447,7 @@ func _on_bottle_left_clicked(bottle: Node) -> void:
 		if bottle.has_method("show_empty"):
 			bottle.show_empty()
 
-		if pipette:
-			pipette.visible = true
-
+		pipette.visible = true
 		mode = Mode.HOLDING
 
 		_set_bottles_hover_except(active_bottle)
@@ -490,8 +465,7 @@ func _on_bottle_left_clicked(bottle: Node) -> void:
 
 ## Czyści stan pipety (bez animacji ducha) i wraca do trybu IDLE.
 func _reset_pipette_only() -> void:
-	if pipette:
-		pipette.visible = false
+	pipette.visible = false
 	mode = Mode.IDLE
 	active_reagent_id = &""
 	active_bottle = null
@@ -519,10 +493,8 @@ func _dropper_take_from_table() -> void:
 	mode = Mode.TRANSFER
 	_clear_dropper_state()
 
-	if dropper_cursor:
-		dropper_cursor.visible = true
-	if dropper_on_table:
-		dropper_on_table.visible = false
+	dropper_cursor.visible = true
+	dropper_on_table.visible = false
 
 	_set_all_bottles_hover(false)
 	_refresh_probe_highlights()
@@ -554,10 +526,8 @@ func _dropper_put_back(animated: bool = false) -> void:
 	var target_pos: Vector2 = _get_anchor_global(dropper_on_table) + DROPPER_OFFSET
 
 	var finish_put_back := func() -> void:
-		if dropper_cursor:
-			dropper_cursor.visible = false
-		if dropper_on_table:
-			dropper_on_table.visible = true
+		dropper_cursor.visible = false
+		dropper_on_table.visible = true
 		_clear_dropper_state()
 		_update_dropper_ui()
 		_refresh_probe_highlights()
@@ -573,8 +543,6 @@ func _dropper_put_back(animated: bool = false) -> void:
 
 ## Daje krótką animację „wstrząśnięcia”, gdy użytkownik próbuje odłożyć pełny dropper.
 func _dropper_deny_put_back_feedback() -> void:
-	if not dropper_cursor:
-		return
 	var base_rotation: float = dropper_cursor.rotation_degrees
 	var tween: Tween = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(dropper_cursor, "rotation_degrees", base_rotation + 7.0, 0.06)
@@ -792,13 +760,12 @@ func _indicator_pick() -> void:
 
 	indicator_paper = indicator_paper_scene.instantiate() as IndicatorPaper
 	add_child(indicator_paper)
-	indicator_paper.follow_mouse = true
 	indicator_paper.cursor_offset = Vector2(8, -40)
 
 	indicator_active = true
 	mode = Mode.INDICATOR
 
-	if indicator_paper and not indicator_paper.is_connected("used_on_probe", Callable(self, "_on_indicator_used")):
+	if not indicator_paper.is_connected("used_on_probe", Callable(self, "_on_indicator_used")):
 		indicator_paper.used_on_probe.connect(_on_indicator_used)
 
 	_set_all_bottles_hover(false)
@@ -824,9 +791,6 @@ func _indicator_put_back(animated: bool = false) -> void:
 	if not indicator_paper:
 		indicator_active = false
 		return
-
-	if "follow_mouse" in indicator_paper:
-		indicator_paper.follow_mouse = false
 
 	var target_pos: Vector2 = _get_anchor_global(indicator_box)
 
@@ -865,7 +829,7 @@ func _indicator_use_on_probe(probe: Node) -> void:
 		return
 
 	var grade: int = 0
-	if probe and probe.has_method("get_indicator_grade"):
+	if probe.has_method("get_indicator_grade"):
 		grade = int(probe.get_indicator_grade())
 
 	indicator_paper.use_on_probe(probe, grade)
@@ -895,11 +859,9 @@ func _on_stir_rod_on_table_clicked(_node: Node) -> void:
 func _stir_rod_take_from_table() -> void:
 	mode = Mode.STIR_ROD
 
-	if stir_rod_cursor:
-		stir_rod_cursor.visible = true
-		stir_rod_cursor.global_position = get_global_mouse_position() + STIR_ROD_OFFSET
-	if stir_rod_on_table:
-		stir_rod_on_table.visible = false
+	stir_rod_cursor.visible = true
+	stir_rod_cursor.global_position = get_global_mouse_position() + STIR_ROD_OFFSET
+	stir_rod_on_table.visible = false
 
 	_set_all_bottles_hover(false)
 	_refresh_probe_highlights()
@@ -923,10 +885,8 @@ func _stir_rod_put_back(animated: bool = true) -> void:
 	var target_pos: Vector2 = _get_anchor_global(stir_rod_on_table) + STIR_ROD_OFFSET
 
 	var finish_put_back := func() -> void:
-		if stir_rod_cursor:
-			stir_rod_cursor.visible = false
-		if stir_rod_on_table:
-			stir_rod_on_table.visible = true
+		stir_rod_cursor.visible = false
+		stir_rod_on_table.visible = true
 		_refresh_table_hovers()
 		_refresh_probe_highlights()
 
@@ -962,7 +922,7 @@ func _stir_rod_use_on_probe(probe: Node) -> void:
 
 	if probe.has_method("stir_with_rod"):
 		probe.stir_with_rod(0.65)
-		if stir_rod_cursor and stir_rod_cursor.has_method("play_mix_wobble"):
+		if stir_rod_cursor.has_method("play_mix_wobble"):
 			stir_rod_cursor.play_mix_wobble()
 		get_viewport().set_input_as_handled()
 
@@ -986,15 +946,14 @@ func _on_platin_rod_on_table_clicked(_node: Node) -> void:
 func _platin_rod_take_from_table() -> void:
 	mode = Mode.PLATIN_ROD
 
-	if platin_rod_cursor:
-		platin_rod_cursor.visible = true
-		platin_rod_cursor.global_position = get_global_mouse_position() + PLATIN_ROD_OFFSET
-	if platin_rod_on_table:
-		platin_rod_on_table.visible = false
+	platin_rod_cursor.visible = true
+	platin_rod_cursor.global_position = get_global_mouse_position() + PLATIN_ROD_OFFSET
+	platin_rod_on_table.visible = false
 
 	_set_all_bottles_hover(false)
 	_refresh_probe_highlights()
 	_refresh_table_hovers()
+
 
 ## Odkłada drucik platynowy na stół (z animacją lub bez) i wraca do trybu IDLE.
 func _platin_rod_put_back(animated: bool = true) -> void:
@@ -1003,7 +962,6 @@ func _platin_rod_put_back(animated: bool = true) -> void:
 	_refresh_probe_highlights()
 	_refresh_table_hovers()
 
-	# Jeśli brakuje któregoś z węzłów – sprzątamy tyle, ile się da.
 	if not platin_rod_cursor or not platin_rod_on_table:
 		if platin_rod_cursor:
 			if platin_rod_cursor.has_method("hide_tool"):
@@ -1019,16 +977,13 @@ func _platin_rod_put_back(animated: bool = true) -> void:
 	var target_pos: Vector2 = _get_anchor_global(platin_rod_on_table) + PLATIN_ROD_OFFSET
 
 	var finish_put_back := func() -> void:
-		if platin_rod_cursor:
-			# Reset stanu drucika (schowany, bez próbki, bez obrotu).
-			if platin_rod_cursor.has_method("hide_tool"):
-				platin_rod_cursor.hide_tool()
-			else:
-				platin_rod_cursor.visible = false
-				platin_rod_cursor.rotation_degrees = 0.0
-				platin_rod_cursor.scale = Vector2.ONE
-		if platin_rod_on_table:
-			platin_rod_on_table.visible = true
+		if platin_rod_cursor.has_method("hide_tool"):
+			platin_rod_cursor.hide_tool()
+		else:
+			platin_rod_cursor.visible = false
+			platin_rod_cursor.rotation_degrees = 0.0
+			platin_rod_cursor.scale = Vector2.ONE
+		platin_rod_on_table.visible = true
 		_refresh_table_hovers()
 		_refresh_probe_highlights()
 
@@ -1055,33 +1010,25 @@ func _platin_rod_use_on_probe(probe: Node) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	# Jeżeli drucik ma już próbkę – nie pobiera kolejnej.
-	if platin_rod_cursor:
-		var has_sample_val :Variant = platin_rod_cursor.get("has_sample")
-		if has_sample_val is bool and has_sample_val:
-			get_viewport().set_input_as_handled()
-			return
+	if platin_rod_cursor.get("has_sample"):
+		get_viewport().set_input_as_handled()
+		return
 
-	# Pobranie mieszaniny z probówki – bez jej modyfikowania.
 	var mixture: Mixture = probe.get("mixture") as Mixture
 	if mixture == null:
 		get_viewport().set_input_as_handled()
 		return
 
-	# Mała „teoretyczna” próbka – np. 10% zawartości, ale tylko jako kopia.
-	var sample_fraction: float = 0.1
-	var sample_mix: Mixture = mixture.scaled_fraction(sample_fraction)
+	var sample_mix: Mixture = mixture.scaled_fraction(1.0)
 
-	# DEBUG: co drucik skopiował z probówki
 	print("[PLATINROD] próbka:  IONS=", sample_mix.ions, "  SOLIDS=", sample_mix.solids, "  TAGS=", sample_mix.tags)
 
-	if platin_rod_cursor:
-		if platin_rod_cursor.has_method("set_sample"):
-			platin_rod_cursor.set_sample(sample_mix)
+	if platin_rod_cursor.has_method("set_sample"):
+		platin_rod_cursor.set_sample(sample_mix)
+	if platin_rod_cursor.has_method("play_sample_rotation"):
+		platin_rod_cursor.play_sample_rotation()
 
-		if platin_rod_cursor.has_method("play_sample_rotation"):
-			platin_rod_cursor.play_sample_rotation()
-
+	_refresh_probe_highlights()
 	get_viewport().set_input_as_handled()
 
 
@@ -1091,7 +1038,6 @@ func _platin_rod_use_on_probe(probe: Node) -> void:
 ## - przekazuje słownik jonów z próbki do palnika,
 ## - czyści próbkę z drucika (traktujemy ją jako „spaloną”).
 func _on_bunsen_flame_entered(burner: BunsenBurner) -> void:
-	print("[LAB] flame entered, mode=", mode)
 	if mode != Mode.PLATIN_ROD:
 		return
 
@@ -1108,11 +1054,8 @@ func _on_bunsen_flame_entered(burner: BunsenBurner) -> void:
 		get_viewport().set_input_as_handled()
 		return
 
-	if burner and burner.has_method("apply_flame_test_for_ions"):
+	if burner.has_method("apply_flame_test_for_ions"):
 		burner.apply_flame_test_for_ions(sample_mix.ions)
-
-	# Uwaga: próbki NIE czyścimy tutaj.
-	# Zniknie dopiero, gdy palnik wyemituje flame_test_finished po test_duration_sec.
 
 	get_viewport().set_input_as_handled()
 
@@ -1125,14 +1068,9 @@ func _on_bunsen_flame_test_finished(_burner: BunsenBurner) -> void:
 		return
 
 	var rod := platin_rod_cursor as PlatinRodCursor
-	if rod == null:
-		return
-
-	if not rod.has_sample:
-		return
-
-	rod.clear_sample()
-	_refresh_probe_highlights()
+	if rod and rod.has_sample:
+		rod.clear_sample()
+		_refresh_probe_highlights()
 
 
 func _on_bunsen_flame_exited(_burner: BunsenBurner) -> void:
@@ -1143,13 +1081,12 @@ func _on_bunsen_flame_exited(_burner: BunsenBurner) -> void:
 	if rod == null:
 		return
 
-	# Jeśli próbka jest już spalona (has_sample == false) i drucik jest przekręcony,
-	# wracamy płynnie do pozycji bazowej.
 	if not rod.has_sample and rod.rotation_degrees != 0.0:
 		if rod.has_method("tween_back_to_base"):
 			rod.tween_back_to_base()
 		else:
 			rod.rotation_degrees = 0.0
+
 
 # =============================================================================
 # SQUIRT BOTTLE (woda) – podnoszenie, wylewanie ciągłe i odkładanie
@@ -1173,11 +1110,9 @@ func _squirt_take_from_table() -> void:
 	_squirt_dst = null
 	_squirt_lmb_down = false
 
-	if squirt_cursor:
-		squirt_cursor.visible = true
-		squirt_cursor.global_position = get_global_mouse_position() + SQUIRT_OFFSET
-	if squirt_on_table:
-		squirt_on_table.visible = false
+	squirt_cursor.visible = true
+	squirt_cursor.global_position = get_global_mouse_position() + SQUIRT_OFFSET
+	squirt_on_table.visible = false
 
 	_set_all_bottles_hover(false)
 	_refresh_probe_highlights()
@@ -1205,10 +1140,8 @@ func _squirt_put_back(animated: bool = true) -> void:
 	var target_pos: Vector2 = _get_anchor_global(squirt_on_table) + SQUIRT_OFFSET
 
 	var finish_put_back := func() -> void:
-		if squirt_cursor:
-			squirt_cursor.visible = false
-		if squirt_on_table:
-			squirt_on_table.visible = true
+		squirt_cursor.visible = false
+		squirt_on_table.visible = true
 		_refresh_table_hovers()
 		_refresh_probe_highlights()
 
@@ -1316,7 +1249,7 @@ func _has_liquid(probe: Node) -> bool:
 
 ## Sprawdza, czy probówka jest pełna (jeśli ma is_full()).
 func _is_full(probe: Node) -> bool:
-	return (probe and probe.has_method("is_full") and bool(probe.is_full()))
+	return probe and probe.has_method("is_full") and bool(probe.is_full())
 
 
 ## Nadaje highlight probówkom według podanego predykatu:
@@ -1382,19 +1315,16 @@ func _refresh_probe_highlights() -> void:
 			)
 
 		Mode.PLATIN_ROD:
-			_set_highlights_by(func(probe: Node) -> bool:
-				# jeśli drucik ma już próbkę – nie pokazujemy żadnych highlightów
-				if platin_rod_cursor:
-					var has_sample_val :Variant = platin_rod_cursor.get("has_sample")
-					if has_sample_val is bool and has_sample_val:
-						return false
+			var rod := platin_rod_cursor as PlatinRodCursor
+			if rod and rod.has_sample:
+				_set_all_probes_highlight(false)
+				return
 
+			_set_highlights_by(func(probe: Node) -> bool:
 				if _locked(probe):
 					return false
-				# drucik działa jak „mini-dropper” – interesują nas probówki z cieczą
 				return _has_liquid(probe)
 			)
-
 
 		Mode.SQUIRT:
 			_set_highlights_by(func(probe: Node) -> bool:
@@ -1482,8 +1412,7 @@ func _reset_to_idle() -> void:
 
 	active_bottle = null
 	active_reagent_id = &""
-	if pipette:
-		pipette.visible = false
+	pipette.visible = false
 
 	if mode == Mode.TRANSFER and _dropper_can_put_back():
 		_dropper_put_back(false)
@@ -1518,7 +1447,7 @@ func _clear_dropper_state() -> void:
 func _set_all_bottles_hover(enabled: bool) -> void:
 	var allow_hover: bool = enabled and _highlights_enabled_global
 	for bottle_node: Node in get_tree().get_nodes_in_group("bottles"):
-		if bottle_node and bottle_node.has_method("set_hover_enabled"):
+		if bottle_node.has_method("set_hover_enabled"):
 			var skip_pipette: bool = (bottle_node is Node2D and bottle_node.name == "PipetteCursor")
 			bottle_node.set_hover_enabled(allow_hover and not skip_pipette)
 
@@ -1526,7 +1455,7 @@ func _set_all_bottles_hover(enabled: bool) -> void:
 ## Włącza hover tylko na wskazanej butelce – pozostałe wyłącza.
 func _set_bottles_hover_except(only_this: Node) -> void:
 	for bottle_node: Node in get_tree().get_nodes_in_group("bottles"):
-		if bottle_node and bottle_node.has_method("set_hover_enabled"):
+		if bottle_node.has_method("set_hover_enabled"):
 			var allow_hover: bool = (bottle_node == only_this) and _highlights_enabled_global
 			bottle_node.set_hover_enabled(allow_hover)
 
@@ -1576,42 +1505,40 @@ func _can_pick_table_tool() -> bool:
 ## Ustawia hover na dropperze leżącym na stole (gdy można go podnieść).
 func _update_dropper_table_hover() -> void:
 	var can_highlight: bool = _can_pick_table_tool() and _highlights_enabled_global
-	if dropper_on_table and dropper_on_table.has_method("set_hover_enabled"):
+	if dropper_on_table.has_method("set_hover_enabled"):
 		dropper_on_table.set_hover_enabled(can_highlight)
 
 
 ## Ustawia hover na pudełku z papierkiem (gdy można go podnieść).
 func _update_indicator_table_hover() -> void:
 	var can_highlight: bool = _can_pick_table_tool() and _highlights_enabled_global
-	if indicator_box and indicator_box.has_method("set_hover_enabled"):
+	if indicator_box.has_method("set_hover_enabled"):
 		indicator_box.set_hover_enabled(can_highlight)
 
 
 ## Ustawia hover na bagietce leżącej na stole.
 func _update_stir_rod_table_hover() -> void:
 	var can_highlight: bool = _can_pick_table_tool() and _highlights_enabled_global
-	if stir_rod_on_table and stir_rod_on_table.has_method("set_hover_enabled"):
+	if stir_rod_on_table.has_method("set_hover_enabled"):
 		stir_rod_on_table.set_hover_enabled(can_highlight)
 
 
 ## Ustawia hover na druciku platynowym leżącym na stole.
 func _update_platin_rod_table_hover() -> void:
 	var can_highlight: bool = _can_pick_table_tool() and _highlights_enabled_global
-	if platin_rod_on_table and platin_rod_on_table.has_method("set_hover_enabled"):
+	if platin_rod_on_table.has_method("set_hover_enabled"):
 		platin_rod_on_table.set_hover_enabled(can_highlight)
 
 
 ## Ustawia hover na butelce z wodą leżącej na stole.
 func _update_squirt_table_hover() -> void:
 	var can_highlight: bool = _can_pick_table_tool() and _highlights_enabled_global
-	if squirt_on_table and squirt_on_table.has_method("set_hover_enabled"):
+	if squirt_on_table.has_method("set_hover_enabled"):
 		squirt_on_table.set_hover_enabled(can_highlight)
 
 
 ## Aktualizuje wskaźnik napełnienia „FillDot” na kursorowym dropperze.
 func _update_dropper_ui() -> void:
-	if not dropper_cursor:
-		return
 	var fill_ratio: float = clamp(dropper_units / max(0.0001, dropper_capacity_units), 0.0, 1.0)
 
 	var fill_dot: Node = dropper_cursor.get_node_or_null("FillDot")
@@ -1628,9 +1555,6 @@ func _update_dropper_ui() -> void:
 ## - opcjonalnie animuje „ducha” pipety wracającego do butelki,
 ## - czyści tymczasowe obiekty i odświeża highlighty.
 func _pipette_put_back(animated: bool = true) -> void:
-	if not pipette:
-		return
-
 	var target_bottle: Node = active_bottle
 
 	mode = Mode.IDLE

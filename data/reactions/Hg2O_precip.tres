@@ -14,6 +14,4 @@ products_solids = {
 "Hg2O_s": 1
 }
 require_pH = Array[String](["basic"])
-note = "brunatny osad Ag2O"
-intensity = 1.0
 metadata/_custom_type_script = "uid://djapafftkk5kc"

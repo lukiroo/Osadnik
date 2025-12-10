@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://cfre8cdxq7nua"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_by518"]
+
+[resource]
+script = ExtResource("1_by518")
+id = "Ag2SO3_precip"
+priority = 10
+reactants_ions = {
+"Ag+": 1,
+"SO32-": 1
+}
+products_solids = {
+"Ag2SO3_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://dkktf2ajtqne"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_sk1uk"]
+
+[resource]
+script = ExtResource("1_sk1uk")
+id = "Sb_iodide"
+priority = 14
+reactants_ions = {
+"I-": 1,
+"Sb5+": 1
+}
+products_solids = {
+"I2": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

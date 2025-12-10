@@ -7,6 +7,8 @@ script = ExtResource("1_g54pv")
 id = "NH4OH"
 display_name = "NH3"
 ions = {
-"OH-": 50
+"NH3": 30,
+"NH4+": 30,
+"OH-": 30
 }
 metadata/_custom_type_script = "uid://bp7lhj2v28shg"

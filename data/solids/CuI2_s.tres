@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://fplvbdswd063"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_btmem"]
+
+[resource]
+script = ExtResource("1_btmem")
+id = "CuI2_s"
+color = Color(0.08707837, 0.07445984, 2.4065375e-08, 1)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

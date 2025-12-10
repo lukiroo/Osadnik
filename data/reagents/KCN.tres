@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://b3sa6igc0tpe2"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_cs8c7"]
+
+[resource]
+script = ExtResource("1_cs8c7")
+id = "KCN"
+display_name = "KCN"
+ions = {
+"CN-": 30,
+"K+": 30
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

@@ -1,94 +1,99 @@
 shader_type canvas_item;
 
-// 0 = żółty płomień "bez powietrza", 1 = niebieski płomień "z powietrzem"
-uniform int  flame_mode       : hint_range(0, 1) = 0;
+// 0 = żółty płomień, 1 = niebieski płomień
+uniform int  flame_mode        : hint_range(0, 1) = 0;
 
-// Ogólna jasność
-uniform float brightness      : hint_range(0.0, 3.0) = 1.4;
+// Określa ogólną jasność płomienia
+uniform float brightness       : hint_range(0.0, 3.0) = 1.8;
 
-// Siła migotania
-uniform float flicker_strength: hint_range(0.0, 0.5) = 0.18;
+// Określa siłę migotania
+uniform float flicker_strength : hint_range(0.0, 0.5) = 0.18;
 
-// Skala wysokości płomienia (1.0 = normalny, >1.0 = wyższy)
-// Używana np. przy próbie płomieniowej (1.2 dla testu barwnego)
-uniform float height_scale    : hint_range(0.5, 2.0) = 1.0;
+// Skaluje wysokość płomienia (1.0 = normalny, >1.0 = wyższy)
+uniform float height_scale     : hint_range(0.5, 2.0) = 1.0;
 
-// Kolory bazowe dwóch trybów
-uniform vec4 yellow_color = vec4(1.0, 0.80, 0.30, 1.0); // trochę jaśniejszy żółty
-uniform vec4 blue_color   = vec4(0.35, 0.95, 1.0, 1.0); // jaśniejszy niebieski
+// Określa kolory bazowe dwóch trybów
+uniform vec4 yellow_color = vec4(1.0, 0.82, 0.32, 1.0);
+uniform vec4 blue_color   = vec4(0.35, 0.95, 1.0, 1.0);
 
-// Kolor testowy dla próby płomieniowej (np. Ba2+ → zielony, Sr2+ → czerwony itd.)
+// Kolor dla próby płomieniowej
 uniform bool use_test_color = false;
 uniform vec4 test_color     = vec4(1.0, 0.9, 0.4, 1.0); // nadpisywane z kodu
-uniform float test_mix      = 0.8;  // ile test_color domieszamy do bazowego (0..1)
+uniform float test_mix      = 0.8;  // domieszka koloru testu do koloru bazy
 
-void fragment()
-{
-	// UV 0..1, środek płomienia w x=0.5, dół w y=0.0, góra w y=1.0
-	vec2 uv = UV;
+void fragment() {
+    // Przepisuje UV, żeby łatwiej się do nich odwoływać
+    vec2 uv = UV;
 
-	// „Fizyczna” wysokość w teksturze – nie modyfikujemy UV
-	float y = clamp(uv.y, 0.0, 1.0);
+    // Odcina y do zakresu [0,1]
+    float y = clamp(uv.y, 0.0, 1.0);
 
-	// x = 0 w środku, zakres -1..1
-	float x = (uv.x - 0.5) * 2.0;
+    // Przesuwa x tak, żeby 0 było na środku i skaluje do [-1,1]
+    float x = (uv.x - 0.5) * 2.0;
 
-	// Delikatne falowanie tylko w górnej części płomienia
-	float wobble = sin(y * 8.0 + TIME * 6.0) * (1.0 - y) * 0.03;
-	x += wobble;
+    // Dodaje falowanie płomienia (lekko odchyla środek w poziomie)
+    float wobble = sin(y * 8.0 + TIME * 6.0) * (1.0 - y) * 0.03;
+    x += wobble;
 
-	// --- Skala wysokości ---
-	float user_scale = max(height_scale, 0.01);   // z uniformu
-	float base_vertical_scale = 1.25;            // bazowe „ściśnięcie” w pionie
-	// Żółty płomień jest ~30% wyższy od niebieskiego
-	float mode_scale = (flame_mode == 0) ? 1.3 : 1.0;
-	// Im większy mode_scale → mniejszy vertical_scale → bardziej wydłużony płomień
-	float vertical_scale = base_vertical_scale / (user_scale * mode_scale);
+    // Skala wysokości
+    float user_scale = max(height_scale, 0.01);   // chroni przed dzieleniem przez 0
+    float base_vertical_scale = 1.25;            // bazowe „ściśnięcie” w pionie
+    // Żółty płomień jest trochę wyższy od niebieskiego
+    float mode_scale = (flame_mode == 0) ? 1.3 : 1.0;
+    float vertical_scale = base_vertical_scale / (user_scale * mode_scale);
 
-	// Kształt płomienia: elipsa / kropla
-	vec2 flame_p = vec2(x * 0.65, (1.0 - y) * vertical_scale);
-	float dist = length(flame_p);
+    // Wyznacza kształt płomienia w postaci „kropli”
+    vec2 flame_p = vec2(x * 0.65, (1.0 - y) * vertical_scale);
+    float dist = length(flame_p);
 
-	// Maska kształtu (1.0 w środku, 0.0 poza płomieniem)
-	float flame_mask = 1.0 - smoothstep(0.45, 0.9, dist);
+    // Tworzy maskę kształtu 0–1
+    float flame_mask = 1.0 - smoothstep(0.45, 0.9, dist);
 
-	// Zawężenie podstawy (żeby nie była kwadratowa)
-	float base_cut = smoothstep(0.0, 0.1, y);
-	flame_mask *= base_cut;
+    // Zawęża podstawę płomienia przy palniku
+    float base_cut = smoothstep(0.0, 0.1, y);
+    flame_mask *= base_cut;
 
-	// Jeśli praktycznie nie ma płomienia w tym miejscu – rysujemy przezroczystość.
-	if (flame_mask <= 0.01)
-	{
-		COLOR = vec4(0.0);
-	}
-	else
-	{
-		// Rdzeń płomienia jaśniejszy w środku i bliżej podstawy
-		float core_factor = 1.0 - smoothstep(0.0, 0.4, dist);
-		float vertical = 1.0 - y; // dół jaśniejszy niż góra
+    // Jeśli w danym miejscu nie ma praktycznie płomienia, robi piksel całkowicie przezroczysty
+    if (flame_mask <= 0.01) {
+        COLOR = vec4(0.0);
+    } else {
+        // Wyznacza „rdzeń” płomienia – jaśniejszy w środku niż na brzegu
+        float core_factor = 1.0 - smoothstep(0.0, 0.4, dist);
 
-		// Wybór koloru bazowego (tylko dwa tryby)
-		vec4 base_color = (flame_mode == 0) ? yellow_color : blue_color;
+        // Dół płomienia jest jaśniejszy niż góra
+        float vertical = 1.0 - y;
 
-		// Test płomieniowy: mieszamy bazę z test_color tylko dla płomienia niebieskiego
-		if (use_test_color && flame_mode == 1)
-		{
-			float mix_val = clamp(test_mix, 0.0, 1.0);
-			base_color.rgb = mix(base_color.rgb, test_color.rgb, mix_val);
-		}
+        // Wybiera bazowy kolor (żółty albo niebieski)
+        vec4 base_color = (flame_mode == 0) ? yellow_color : blue_color;
 
-		// Delikatne „oddychanie” jasności – szybkie, ale o małej amplitudzie
-		float flicker = 1.0 + sin(TIME * 10.0 + y * 7.0) * flicker_strength;
+        // Dla próby płomieniowej miesza kolor testowy z bazowym (tylko w trybie niebieskim)
+        if (use_test_color && flame_mode == 1) {
+            float m = clamp(test_mix, 0.0, 1.0);
+            base_color.rgb = base_color.rgb * (1.0 - m) + test_color.rgb * m;
+        }
 
-		// Ostateczna intensywność – trochę podbita
-		float intensity = flame_mask
-			* (0.5 + 0.7 * core_factor)   // mocniejszy rdzeń
-			* (0.7 + 0.5 * vertical)      // jaśniejszy dół
-			* flicker;
+        // Dodaje lekkie „oddychanie” jasności (migotanie)
+        float flicker = 1.0 + sin(TIME * 10.0 + y * 7.0) * flicker_strength;
 
-		vec3 color = base_color.rgb * intensity * brightness;
-		float alpha = flame_mask * base_color.a;
+        // Liczy bazową intensywność płomienia (środek i dół mocniejsze)
+        float raw_intensity = flame_mask
+            * (0.5 + 0.7 * core_factor)
+            * (0.7 + 0.5 * vertical)
+            * flicker;
 
-		COLOR = vec4(color, alpha);
-	}
+        // Ogranicza zakres intensywności
+        float intensity = clamp(raw_intensity, 0.0, 1.5);
+
+        // Dodaje minimalną jasność, żeby brzegi nie były zupełnie czarne
+        float edge_fill = 0.3 + 0.7 * intensity;
+
+        // Wylicza końcowy kolor – zawsze lekko świecący, najmocniej w rdzeniu
+        vec3 color = base_color.rgb * edge_fill * brightness;
+
+        // Ustawia alfę na podstawie maski kształtu
+        float alpha = flame_mask * base_color.a;
+
+        // Zapisuje wynikowy kolor płomienia
+        COLOR = vec4(color, alpha);
+    }
 }

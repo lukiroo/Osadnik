@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://caol2moly45iv"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_7agum"]
+
+[resource]
+script = ExtResource("1_7agum")
+id = "Fe(OH)2_s"
+color = Color(1.0528602e-07, 0.14445207, 0.07061518, 0.9529412)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

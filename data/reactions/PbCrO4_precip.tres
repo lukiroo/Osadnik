@@ -1,4 +1,4 @@
-[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://djra7aqu4pm7n"]
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://opk1e1uorebu"]
 
 [ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_08wfl"]
 
@@ -13,6 +13,4 @@ reactants_ions = {
 products_solids = {
 "PbCrO4_s": 1
 }
-note = "jasnożółty osad AgI"
-intensity = 0.9
 metadata/_custom_type_script = "uid://djapafftkk5kc"

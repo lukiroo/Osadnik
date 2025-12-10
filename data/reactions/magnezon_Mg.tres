@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://bu1t6nb0rirkr"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_washq"]
+
+[resource]
+script = ExtResource("1_washq")
+id = "magnezon_Mg"
+priority = 12
+reactants_ions = {
+"Mg2+": 1,
+"magnezon": 1
+}
+products_solids = {
+"Mgmagnezon_s": 1
+}
+require_pH = Array[String](["strong_base", "basic"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

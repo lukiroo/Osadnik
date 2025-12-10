@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://b65g74cbf8vyo"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_4ycfq"]
+
+[resource]
+script = ExtResource("1_4ycfq")
+id = "HgO_s"
+display_name = "HgO"
+color = Color(0.68235296, 0.5254902, 0, 0.8862745)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

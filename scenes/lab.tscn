@@ -1,8 +1,9 @@
-[gd_scene load_steps=28 format=3 uid="uid://cbijtqnh0c654"]
+[gd_scene load_steps=29 format=3 uid="uid://cbijtqnh0c654"]
 
 [ext_resource type="Script" uid="uid://cpu3bsk01o2g2" path="res://scenes/lab.gd" id="1_l8eg8"]
 [ext_resource type="PackedScene" uid="uid://c75ytlngbysag" path="res://scenes/indicator_paper.tscn" id="2_hxoer"]
-[ext_resource type="Texture2D" uid="uid://dyon62ngtyvul" path="res://assets/background.png" id="3_h0d28"]
+[ext_resource type="Script" uid="uid://dejvcgkh4uimi" path="res://scenes/camera.gd" id="3_658bn"]
+[ext_resource type="Texture2D" uid="uid://bjbk42qdt76wt" path="res://assets/background2.png" id="4_658bn"]
 [ext_resource type="PackedScene" uid="uid://8uwsyddrgaam" path="res://scenes/reagent_bottle.tscn" id="4_yyhnv"]
 [ext_resource type="PackedScene" uid="uid://d4ng3sfiswdat" path="res://scenes/probe_beaker3.tscn" id="10_jie0k"]
 [ext_resource type="PackedScene" uid="uid://cje4bowu4owl8" path="res://scenes/probe_rack.tscn" id="14_q5yt0"]
@@ -29,71 +30,163 @@
 [ext_resource type="PackedScene" uid="uid://dvkbqcgjlqkwr" path="res://scenes/squirt_bottle_cursor.tscn" id="31_h6p5o"]
 
 [node name="Lab" type="Node2D"]
+scale = Vector2(0.7, 0.7)
 script = ExtResource("1_l8eg8")
+tool_return_time = 0.8
 
 [node name="LevelManager" type="Node" parent="."]
 script = ExtResource("24_qempp")
 
+[node name="Camera2D" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+limit_left = 0
+limit_top = 0
+limit_right = 1474
+limit_bottom = 719
+limit_smoothed = true
+script = ExtResource("3_658bn")
+
 [node name="Background" type="Sprite2D" parent="."]
 z_index = -2
-position = Vector2(645.5, 365.50006)
-scale = Vector2(0.86914057, 0.73339844)
-texture = ExtResource("3_h0d28")
+position = Vector2(1048.297, 516.28595)
+scale = Vector2(0.9363481, 1.006138)
+texture = ExtResource("4_658bn")
 
 [node name="ReagentShelf" type="Node2D" parent="."]
 
 [node name="Bottle1" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
-position = Vector2(53, 84)
+position = Vector2(141, 74)
 
 [node name="Bottle2" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
-position = Vector2(138, 82)
+position = Vector2(228.601, 74)
 
 [node name="Bottle3" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
-position = Vector2(216, 82)
+position = Vector2(317.306, 74)
 
 [node name="Bottle4" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
-position = Vector2(294, 80)
+position = Vector2(405.89, 74)
 
 [node name="Bottle5" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
-position = Vector2(54, 267)
+position = Vector2(496.691, 74)
+
+[node name="Bottle6" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(584.561, 74)
+
+[node name="Bottle7" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(671.171, 74)
+
+[node name="Bottle8" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(758.571, 74)
+
+[node name="Bottle9" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(847.143, 74)
+
+[node name="Bottle10" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(937.143, 74)
+
+[node name="Bottle11" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1030, 74)
+
+[node name="Bottle12" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1121.429, 74)
+
+[node name="Bottle13" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1211.4286, 74)
+
+[node name="Bottle14" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1299.2986, 74)
+
+[node name="Bottle15" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1385.9086, 74)
+
+[node name="Bottle16" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1473.3086, 74)
+
+[node name="Bottle17" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1561.8806, 74)
+
+[node name="Bottle18" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1651.8806, 74)
+
+[node name="Bottle19" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(141, 276)
+
+[node name="Bottle20" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(228.571, 276)
+
+[node name="Bottle21" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(317.30643, 276)
+
+[node name="Bottle22" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(405.89044, 276)
+
+[node name="Bottle23" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(496.69144, 276)
+
+[node name="Bottle24" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(584.5614, 276)
+
+[node name="Bottle25" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(671.17145, 276)
+
+[node name="Bottle26" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(758.5714, 276)
+
+[node name="Bottle27" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(847.14343, 276)
+
+[node name="Bottle28" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(937.14343, 276)
+
+[node name="Bottle29" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1030.0005, 276)
+
+[node name="Bottle30" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1121.4294, 276)
+
+[node name="Bottle31" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1211.4291, 276)
+
+[node name="Bottle32" parent="ReagentShelf" instance=ExtResource("4_yyhnv")]
+position = Vector2(1299.2991, 276)
 
 [node name="Centrifuge" parent="." instance=ExtResource("20_l5iwd")]
-position = Vector2(1154.0001, 114)
-scale = Vector2(0.205, 0.205)
+position = Vector2(417.14285, 602.8572)
 
 [node name="WaterBath" parent="." instance=ExtResource("19_tyay7")]
-position = Vector2(679, 218)
+position = Vector2(190.00002, 769.99994)
+scale = Vector2(0.9, 0.9)
 
 [node name="WasteBeaker" parent="." groups=["probe_dropzones"] instance=ExtResource("29_t554p")]
 z_index = -1
-position = Vector2(923.99994, 675)
-scale = Vector2(0.215, 0.215)
+position = Vector2(1670.0001, 657.1429)
+scale = Vector2(0.28, 0.28)
 
 [node name="ProbeBeaker1" parent="." instance=ExtResource("23_ylpa4")]
 visible = false
-position = Vector2(337, 448)
+position = Vector2(728.5715, 672.8572)
 
 [node name="ProbeBeaker2" parent="." instance=ExtResource("25_ffhs6")]
 visible = false
-position = Vector2(301, 452)
+position = Vector2(682.8572, 645.7143)
 
 [node name="ProbeBeaker3" parent="." instance=ExtResource("10_jie0k")]
 visible = false
-position = Vector2(354, 387)
+position = Vector2(677.1429, 655.7143)
 
 [node name="ShelfPlace" type="Node2D" parent="."]
-position = Vector2(1090, 300)
+position = Vector2(1615.508, 298.571)
 script = ExtResource("27_g70h3")
 place_type = "shelf"
 
 [node name="Hint" type="Sprite2D" parent="ShelfPlace"]
 visible = false
-position = Vector2(2.9999905, -2.0000072)
-scale = Vector2(0.25572217, 0.26651984)
+position = Vector2(-4.500024, 6.5000014)
+scale = Vector2(0.17600621, 0.13436125)
 texture = ExtResource("28_o3afa")
 
 [node name="TablePlace1" type="Node2D" parent="."]
-position = Vector2(633, 488)
+position = Vector2(1004.286, 708)
 script = ExtResource("27_g70h3")
 
 [node name="Hint" type="Sprite2D" parent="TablePlace1"]
@@ -103,7 +196,7 @@ scale = Vector2(0.27466464, 0.30396476)
 texture = ExtResource("28_o3afa")
 
 [node name="TablePlace2" type="Node2D" parent="."]
-position = Vector2(1077, 490)
+position = Vector2(1400, 708)
 script = ExtResource("27_g70h3")
 
 [node name="Hint" type="Sprite2D" parent="TablePlace2"]
@@ -113,13 +206,13 @@ scale = Vector2(0.29202843, 0.3039647)
 texture = ExtResource("28_o3afa")
 
 [node name="ProbeRack1" parent="." groups=["probe_dropzones", "work_slots"] instance=ExtResource("14_q5yt0")]
-position = Vector2(1598, 665)
+position = Vector2(2567.143, 904.2857)
 shelf_place_path = NodePath("../ShelfPlace")
 table_place1_path = NodePath("../TablePlace1")
 table_place2_path = NodePath("../TablePlace2")
 
 [node name="ProbeRack2" parent="." groups=["probe_dropzones", "work_slots"] instance=ExtResource("14_q5yt0")]
-position = Vector2(1604, 400)
+position = Vector2(2588.5715, 595.7143)
 start_on_shelf = true
 shelf_place_path = NodePath("../ShelfPlace")
 table_place1_path = NodePath("../TablePlace1")
@@ -130,7 +223,7 @@ visible = false
 z_index = 100
 
 [node name="DropperOnTable" parent="." instance=ExtResource("17_ky6ns")]
-position = Vector2(475, 648)
+position = Vector2(1027.1428, 831.4285)
 
 [node name="Anchor" type="Node2D" parent="DropperOnTable"]
 position = Vector2(-17, 108)
@@ -140,14 +233,14 @@ visible = false
 z_index = 100
 
 [node name="StirRodOnTable" parent="." instance=ExtResource("21_h88sg")]
-position = Vector2(244, 656)
+position = Vector2(1295.7142, 830)
 
 [node name="StirRodCursor" parent="." instance=ExtResource("22_mqst2")]
 visible = false
 z_index = 100
 
 [node name="SquirtBottleOnTable" parent="." instance=ExtResource("30_exfyd")]
-position = Vector2(50, 505)
+position = Vector2(1708.5714, 780)
 scale = Vector2(0.27, 0.27)
 
 [node name="SquirtBottleCursor" parent="." instance=ExtResource("31_h6p5o")]
@@ -156,26 +249,28 @@ z_index = 100
 scale = Vector2(0.255, 0.255)
 
 [node name="IndicatorBox" parent="." instance=ExtResource("18_mluu5")]
-position = Vector2(864, 88)
-scale = Vector2(0.57, 0.57)
+position = Vector2(1422.989, 311.429)
+scale = Vector2(0.49, 0.49)
 
 [node name="IndicatorPaper" parent="." instance=ExtResource("2_hxoer")]
 visible = false
 
 [node name="PlatinRodOnTable" parent="." instance=ExtResource("25_iyn56")]
-position = Vector2(689, 659)
+position = Vector2(1972.8573, 812.8571)
 
 [node name="PlatinRodCursor" parent="." instance=ExtResource("24_iyn56")]
+visible = false
 
 [node name="BunsenBurner" parent="." instance=ExtResource("25_gpqbo")]
-position = Vector2(727.9999, 535)
-scale = Vector2(0.34, 0.34)
+position = Vector2(1970, 628.5714)
+scale = Vector2(0.5, 0.5)
 
 [node name="BackBtn" parent="." instance=ExtResource("22_kxeyc")]
-offset_left = 12.0
-offset_top = 625.0
-offset_right = 92.0
-offset_bottom = 665.0
+offset_left = 11.428568
+offset_top = 947.1428
+offset_right = 91.428566
+offset_bottom = 987.1428
+scale = Vector2(1.3, 1.3)
 metadata/_edit_use_anchors_ = true
 
 [node name="Label" type="Label" parent="BackBtn"]
@@ -203,12 +298,13 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = 1001.0
-offset_top = 659.0
-offset_right = 1201.0
-offset_bottom = 699.0
+offset_left = 1457.1428
+offset_top = 932.85706
+offset_right = 1732.857
+offset_bottom = 988.5714
 grow_horizontal = 2
 grow_vertical = 2
+scale = Vector2(1.3, 1.3)
 
 [node name="Label" type="Label" parent="FinishBtn"]
 layout_mode = 1

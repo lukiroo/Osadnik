@@ -36,7 +36,6 @@ func is_free() -> bool:
 func claim(by: Node) -> bool:
 	if not is_free():
 		return false
-
 	_occupied_by = by
 	return true
 

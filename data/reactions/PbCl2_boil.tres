@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_2yykc")
 id = "PbCl2_boil"
-priority = 6
+priority = 9
 reactants_solids = {
 "PbCl2_s": 1
 }

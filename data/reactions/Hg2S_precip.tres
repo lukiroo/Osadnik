@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://rb4t41ngrq6n"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_w0lxy"]
+
+[resource]
+script = ExtResource("1_w0lxy")
+id = "Hg2S_precip"
+priority = 2
+reactants_ions = {
+"H+": 1,
+"Hg22+": 1,
+"S2-": 1
+}
+products_solids = {
+"Hg2S_s": 1
+}
+require_pH = Array[String](["acidic"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

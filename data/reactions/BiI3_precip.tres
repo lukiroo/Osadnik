@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://d2ou84trhnnqk"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_3kjpk"]
+
+[resource]
+script = ExtResource("1_3kjpk")
+id = "BiI3_precip"
+priority = 14
+reactants_ions = {
+"Bi3+": 1,
+"I-": 1
+}
+products_solids = {
+"BiI3_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://56chctlaq0pk"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_voees"]
+
+[resource]
+script = ExtResource("1_voees")
+id = "Zn(CN)2_s"
+color = Color(0.95633584, 0.9598381, 0.9869172, 1)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

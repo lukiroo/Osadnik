@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://b1g72b2m4imdn"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_u5skf"]
+
+[resource]
+script = ExtResource("1_u5skf")
+id = "Pb(OH)2_precip"
+priority = 14
+reactants_ions = {
+"OH-": 1,
+"Pb2+": 1
+}
+products_solids = {
+"Pb(OH)2_s": 1
+}
+require_pH = Array[String](["basic"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

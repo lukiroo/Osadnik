@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_sv6cg")
 id = "PbI2_reprecip"
-priority = 10
+priority = 5
 reactants_ions = {
 "I-": 1,
 "Pb2+": 1
@@ -18,6 +18,6 @@ require_tags_all = {
 "cooling_ready": true
 }
 forbid_tags_any = Array[String](["bath_boiling"])
-note = "PbCl2 krystalizuje"
+note = "PbI2 krystalizuje"
 precip_mode = "crystal"
 metadata/_custom_type_script = "uid://djapafftkk5kc"

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://dnn6p3ki8vh2t"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_rjisn"]
+
+[resource]
+script = ExtResource("1_rjisn")
+id = "HgNH2Cl_precip"
+reactants_ions = {
+"NH3": 10
+}
+reactants_solids = {
+"Hg2Cl2_s": 1
+}
+products_solids = {
+"HgNH2Cl_s": 1
+}
+require_pH = Array[String](["basic", "strong_base", "very_strong_base"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://dfxjo3mcq7ksx"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_3ph1b"]
+
+[resource]
+script = ExtResource("1_3ph1b")
+id = "Pb(OH)2_dissolve"
+priority = 20
+reactants_ions = {
+"OH-": 2
+}
+reactants_solids = {
+"Pb(OH)2_s": 1
+}
+products_ions = {
+"Pb(OH)42-": 1
+}
+require_pH = Array[String](["strong_base", "very_strong_base"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

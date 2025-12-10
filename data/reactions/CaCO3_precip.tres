@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://b6hp7ugvg2xid"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_6s86k"]
+
+[resource]
+script = ExtResource("1_6s86k")
+id = "CaCO3_precip"
+priority = 10
+reactants_ions = {
+"CO32-": 1,
+"Ca2+": 1
+}
+products_solids = {
+"CaCO3_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

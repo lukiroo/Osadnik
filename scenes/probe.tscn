@@ -4,13 +4,13 @@
 [ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="2_7m7ac"]
 [ext_resource type="Texture2D" uid="uid://j7x2jdvdctmn" path="res://assets/emptytube.png" id="3_7m7ac"]
 [ext_resource type="Shader" uid="uid://dme1hcdfnx27m" path="res://resources/level_clip_scroll.gdshader" id="3_dgx63"]
-[ext_resource type="Texture2D" uid="uid://b5qclyefkt8ba" path="res://assets/liquidtube.png" id="4_bv7ge"]
+[ext_resource type="Texture2D" uid="uid://da7qdfas75tni" path="res://assets/turb2.png" id="4_tnybu"]
 [ext_resource type="Texture2D" uid="uid://cnhcpsccyd76f" path="res://assets/emptytubefront.png" id="5_bv7ge"]
-[ext_resource type="Texture2D" uid="uid://b1847snh2iwmf" path="res://assets/liquid.png" id="5_d2v0j"]
-[ext_resource type="Texture2D" uid="uid://cfl0c1r0wuf8k" path="res://assets/turbidity.png" id="6_ca6b4"]
+[ext_resource type="Texture2D" uid="uid://cp4dtt0sb858w" path="res://assets/liquid2.png" id="5_tnybu"]
 [ext_resource type="Material" uid="uid://brrw7vgih8ufj" path="res://resources/fog.tres" id="6_s0m5e"]
 [ext_resource type="Shader" uid="uid://dcmf3ks8y6nuu" path="res://resources/crystals.gdshader" id="8_cnpu5"]
 [ext_resource type="Texture2D" uid="uid://denfpy0x3d6ol" path="res://assets/pixel.png" id="9_tnybu"]
+[ext_resource type="Texture2D" uid="uid://hy3iqt7bem06" path="res://assets/liquidtube2.png" id="10_2qgy4"]
 [ext_resource type="Texture2D" uid="uid://cs64yr2alt0o5" path="res://assets/pellet.png" id="10_tnybu"]
 [ext_resource type="FontFile" uid="uid://clh45esrwpolm" path="res://resources/markerfont.ttf" id="14_2qgy4"]
 
@@ -25,15 +25,16 @@ shader_parameter/crystal_color = Color(1, 1, 1, 1)
 shader_parameter/grain = 160.0
 shader_parameter/edge_soft = 0.5
 shader_parameter/use_mask = false
-shader_parameter/mask_texel = Vector2(0, 0)
 shader_parameter/level01 = 1.0
+shader_parameter/drift_speed = 0.04
+shader_parameter/drift_amount = 0.25
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_yr4bq"]
 resource_local_to_scene = true
 shader = ExtResource("3_dgx63")
 shader_parameter/level01 = 1.0
 shader_parameter/edge_softness_px = 2.000000095
-shader_parameter/scroll_uv = true
+shader_parameter/scroll_uv = false
 shader_parameter/use_mask = false
 shader_parameter/mask_texel = Vector2(0, 0)
 shader_parameter/wall_softness_px = 1.5
@@ -49,7 +50,9 @@ shader_parameter/outline_width = 10.0
 shader_parameter/alpha_threshold = 0.1
 
 [node name="Probe" type="Node2D"]
+scale = Vector2(0.8, 0.95)
 script = ExtResource("1_jyxx6")
+cooling_time_s = 40.0
 pellet_brightness = 0.99
 
 [node name="ProbeArea2D" type="Area2D" parent="."]
@@ -59,62 +62,63 @@ position = Vector2(0, -7)
 shape = SubResource("CapsuleShape2D_pf5rm")
 
 [node name="GlassShapeSprite2D" type="Sprite2D" parent="."]
-position = Vector2(0, 4.5000005)
-scale = Vector2(0.4, 0.491573)
+scale = Vector2(0.45, 0.5)
 texture = ExtResource("3_7m7ac")
 
 [node name="LiquidFill" type="Node2D" parent="."]
+position = Vector2(0, 6.905)
+scale = Vector2(0.45, 0.5)
 
 [node name="TurbidityOverlay" type="Sprite2D" parent="LiquidFill"]
 z_index = 1
 material = ExtResource("6_s0m5e")
-position = Vector2(-1, 7.768841)
-scale = Vector2(0.40000004, 1.104136)
-texture = ExtResource("6_ca6b4")
+position = Vector2(-1, 1.508)
+scale = Vector2(1.1238096, 0.99591684)
+texture = ExtResource("4_tnybu")
 
 [node name="LiquidBody" type="Sprite2D" parent="LiquidFill"]
 modulate = Color(1, 1, 1, 0.055000003)
 self_modulate = Color(1, 1, 1, 0.58000004)
 z_index = 2
-position = Vector2(-1, 8.1334305)
-scale = Vector2(0.40000004, 1.0686435)
-texture = ExtResource("5_d2v0j")
+position = Vector2(4.61936e-07, 4.8908997)
+texture = ExtResource("5_tnybu")
 
 [node name="CrystalFX" type="Sprite2D" parent="LiquidFill"]
+visible = false
 self_modulate = Color(1, 1, 1, 0)
 z_index = 10
 material = SubResource("ShaderMaterial_2qgy4")
-position = Vector2(-0.025, 13.645002)
-scale = Vector2(22.25, 127.29001)
+position = Vector2(-1.0000005, 12.890896)
+scale = Vector2(57.999996, 276)
 texture = ExtResource("9_tnybu")
 
 [node name="Pellet" type="Sprite2D" parent="LiquidFill"]
 visible = false
 z_index = 10
-position = Vector2(0, 49.77)
-scale = Vector2(1.8333334, 1.7368422)
+position = Vector2(1.0638323, 70.502495)
+scale = Vector2(4.521277, 5.0361843)
 texture = ExtResource("10_tnybu")
 
 [node name="LiquidLevelSprite2D" type="Sprite2D" parent="LiquidFill"]
 z_index = 12
 material = SubResource("ShaderMaterial_yr4bq")
-position = Vector2(-0.99999905, 2.2668533)
-scale = Vector2(0.40000007, 1.1446942)
-texture = ExtResource("4_bv7ge")
+position = Vector2(-3.0260136, 1.9454498)
+scale = Vector2(1.0593572, 1.0117906)
+texture = ExtResource("10_2qgy4")
 
 [node name="GlassSprite2D" type="Sprite2D" parent="."]
 z_index = 10
 material = SubResource("ShaderMaterial_m08cl")
-position = Vector2(0, 5.0000076)
-scale = Vector2(0.4, 0.494382)
+position = Vector2(-2.30968e-07, 7.63955)
+scale = Vector2(0.45, 0.5)
 texture = ExtResource("5_bv7ge")
 
 [node name="NumLabel" type="Label" parent="."]
 z_index = 10
 offset_left = -17.0
-offset_top = -64.0
+offset_top = -61.0
 offset_right = 18.0
-offset_bottom = -35.0
+offset_bottom = -32.0
 theme_override_colors/font_color = Color(0, 0, 0, 1)
 theme_override_fonts/font = ExtResource("14_2qgy4")
 theme_override_font_sizes/font_size = 22

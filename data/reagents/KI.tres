@@ -7,8 +7,7 @@ script = ExtResource("1_pgvbq")
 id = "KI"
 display_name = "KI"
 ions = {
-"I-": 1,
+"I-": 30,
 "K+": 1
 }
-sets_pH = "neutral"
 metadata/_custom_type_script = "uid://bp7lhj2v28shg"

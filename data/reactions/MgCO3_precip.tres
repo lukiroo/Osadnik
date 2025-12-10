@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://dyxjm17t5jw88"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_yn2k0"]
+
+[resource]
+script = ExtResource("1_yn2k0")
+id = "MgCO3_precip"
+priority = 10
+reactants_ions = {
+"CO32-": 1,
+"Mg2+": 1
+}
+products_solids = {
+"MgCO3_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

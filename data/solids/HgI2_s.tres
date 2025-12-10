@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://yvk6d42x66l3"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_e7hl0"]
+
+[resource]
+script = ExtResource("1_e7hl0")
+id = "HgI2_s"
+color = Color(0.7644225, 0.14280844, 3.85046e-07, 1)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

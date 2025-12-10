@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://38b5vfepaqc7"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_800pp"]
+
+[resource]
+script = ExtResource("1_800pp")
+id = "PbSO4_precip"
+priority = 10
+reactants_ions = {
+"Pb2+": 1,
+"SO42-": 1
+}
+products_solids = {
+"PbSO4_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

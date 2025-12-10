@@ -1,8 +1,8 @@
 [gd_scene load_steps=6 format=3 uid="uid://n383gm1hms3s"]
 
 [ext_resource type="Script" uid="uid://xvkuskj4kbkq" path="res://scenes/waste_beaker.gd" id="1_1ceie"]
-[ext_resource type="Texture2D" uid="uid://ckqnydjjmho8e" path="res://assets/probe.png" id="2_spkwn"]
 [ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="2_tl0e3"]
+[ext_resource type="Texture2D" uid="uid://dbrwrix0hpo6b" path="res://assets/waste.png" id="3_spkwn"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_t5yyk"]
 shader = ExtResource("2_tl0e3")
@@ -20,8 +20,8 @@ script = ExtResource("1_1ceie")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_t5yyk")
-scale = Vector2(3.7717395, 0.7109471)
-texture = ExtResource("2_spkwn")
+scale = Vector2(2.398148, 2.3703701)
+texture = ExtResource("3_spkwn")
 
 [node name="Area2D" type="Area2D" parent="."]
 

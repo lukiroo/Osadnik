@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://b1d771a4ldd1q"]
+
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_otigg"]
+
+[resource]
+script = ExtResource("1_otigg")
+id = "Bi2O3_s"
+color = Color(1, 0.9784886, 0.9601957, 1)
+metadata/_custom_type_script = "uid://cseysmrx52n3i"

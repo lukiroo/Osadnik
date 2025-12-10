@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://c7bttfftear35"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_5usba"]
+
+[resource]
+script = ExtResource("1_5usba")
+id = "SbI3_precip"
+priority = 14
+reactants_ions = {
+"I-": 1,
+"Sb3+": 1
+}
+products_solids = {
+"SbI3": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

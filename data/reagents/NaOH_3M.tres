@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="Reagent" load_steps=2 format=3 uid="uid://hivu2n8p08h6"]
+
+[ext_resource type="Script" uid="uid://bp7lhj2v28shg" path="res://chem/reagent.gd" id="1_xeabp"]
+
+[resource]
+script = ExtResource("1_xeabp")
+id = "NaOH_3M"
+display_name = "NaOH 3M"
+ions = {
+"Na+": 1,
+"OH-": 200
+}
+metadata/_custom_type_script = "uid://bp7lhj2v28shg"

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://c3csoh5fx7ybv"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_jkxo8"]
+
+[resource]
+script = ExtResource("1_jkxo8")
+id = "CoS_precip"
+priority = 1
+reactants_ions = {
+"Co2+": 1,
+"NH3": 1,
+"S2-": 1
+}
+products_solids = {
+"CoS_s": 1
+}
+require_pH = Array[String](["basic"])
+require_boiling = true
+min_boil_time = 10.0
+metadata/_custom_type_script = "uid://djapafftkk5kc"

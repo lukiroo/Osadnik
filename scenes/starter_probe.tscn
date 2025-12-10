@@ -36,11 +36,11 @@ shader_parameter/meniscus_boost = 0.0
 shader_parameter/meniscus_band_px = 1.0
 
 [node name="Probe" instance=ExtResource("1_6wi3s")]
-scale = Vector2(1.5, 1.5)
+scale = Vector2(1.2, 1.2)
 capacity_units = 5.0
 
 [node name="TurbidityOverlay" parent="LiquidFill" index="0"]
 material = SubResource("ShaderMaterial_42r2o")
 
-[node name="LiquidLevelSprite2D" parent="LiquidFill" index="2"]
+[node name="LiquidLevelSprite2D" parent="LiquidFill" index="4"]
 material = SubResource("ShaderMaterial_q8aww")

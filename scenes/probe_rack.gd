@@ -14,7 +14,7 @@ class_name ProbeRack
 # -------------------- USTAWIENIA --------------------
 
 @export var start_on_shelf: bool = false          ## Czy stojak startuje na półce.
-@export var shelf_scale: float = 0.8              ## Skala stojaka na półce.
+@export var shelf_scale: float = 0.6            ## Skala stojaka na półce.
 @export var table_scale: float = 1.0              ## Skala stojaka na stole.
 @export var tween_time: float = 0.22              ## Czas tweena przy przenoszeniu stojaka.
 @export var accept_radius: float = 100.0          ## Promień „trafienia” RackPlace.
@@ -69,10 +69,9 @@ func _ready() -> void:
 
 	var start_place: RackPlace = null
 
-	if start_on_shelf:
-		if _shelf_place and _shelf_place.is_free():
-			start_place = _shelf_place
-	else:
+	if start_on_shelf and _shelf_place and _shelf_place.is_free():
+		start_place = _shelf_place
+	elif not start_on_shelf:
 		start_place = _pick_free_table_place()
 
 	if start_place == null:
@@ -82,7 +81,6 @@ func _ready() -> void:
 	else:
 		_claim_and_snap(start_place, true)
 
-	# Po jednej klatce sloty są już gotowe – jeszcze raz dopasowujemy tryb.
 	call_deferred("_reapply_place_mode_after_ready")
 
 
@@ -92,7 +90,7 @@ func _reapply_place_mode_after_ready() -> void:
 	_apply_place_mode(place_type)
 
 
-## Aktualizuje pozycję stojaka w trakcie dragowania (podąża za kursorem).
+## Aktualizuje pozycję stojaka w trakcie dragowania (podąża za kurso­rem).
 func _process(_delta: float) -> void:
 	if _is_dragging:
 		global_position = get_global_mouse_position() + _drag_offset
@@ -127,20 +125,15 @@ func _on_handle_input_event(_vp, event: InputEvent, _shape_idx: int) -> void:
 		return
 
 	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_LEFT:
-			# LMB: tylko z półki na stół.
-			if _is_on_shelf():
-				_begin_drag(MOUSE_BUTTON_LEFT)
-				get_viewport().set_input_as_handled()
-		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			# RMB: tylko ze stołu (stół → stół / półka).
-			if _is_on_table():
-				_begin_drag(MOUSE_BUTTON_RIGHT)
-				get_viewport().set_input_as_handled()
-	elif event is InputEventMouseButton and not event.pressed:
-		if _is_dragging and event.button_index == _drag_button:
-			_end_drag()
+		if event.button_index == MOUSE_BUTTON_LEFT and _is_on_shelf():
+			_begin_drag(MOUSE_BUTTON_LEFT)
 			get_viewport().set_input_as_handled()
+		elif event.button_index == MOUSE_BUTTON_RIGHT and _is_on_table():
+			_begin_drag(MOUSE_BUTTON_RIGHT)
+			get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and not event.pressed and _is_dragging and event.button_index == _drag_button:
+		_end_drag()
+		get_viewport().set_input_as_handled()
 
 
 # =========================================================================
@@ -160,7 +153,7 @@ func _begin_drag(button: int) -> void:
 	_drag_start_place = _current_place
 
 	_z_before_drag = z_index
-	z_index = 99   # Na czas dragowania stojak idzie „na wierzch”.
+	z_index = 99
 
 	if _current_place:
 		_current_place.release(self)
@@ -181,16 +174,13 @@ func _end_drag() -> void:
 	var target_place: RackPlace = null
 
 	if _drag_button == MOUSE_BUTTON_LEFT:
-		# Półka → stół – szukamy najbliższego wolnego stołu.
 		target_place = _pick_nearest_free_table_place(global_position, accept_radius)
 	else:
-		# RMB: stół → stół / półka.
 		target_place = _pick_nearest_free_table_place(global_position, accept_radius)
 		if target_place == null and _shelf_place and _shelf_place.is_free():
 			if _shelf_place.global_position.distance_to(global_position) <= accept_radius:
 				target_place = _shelf_place
 
-	# Jeśli nie znaleźliśmy sensownego miejsca – próbujemy wrócić na start.
 	if target_place == null:
 		if _drag_start_place and _drag_start_place.claim(self):
 			_current_place = _drag_start_place
@@ -198,7 +188,6 @@ func _end_drag() -> void:
 			_apply_place_mode(_drag_start_place.place_type)
 			_notify_lab_refresh_probes()
 		else:
-			# Jeszcze jeden fallback: wracamy w poprzednie miejsce bez claimu.
 			create_tween().tween_property(self, "global_position", _drag_start_pos, tween_time)
 		return
 
@@ -213,7 +202,7 @@ func _end_drag() -> void:
 ## - jeśli claim się uda, wywołuje _snap_to i _apply_place_mode,
 ## - powiadamia Lab o zmianie (refresh highlightów probówek).
 func _claim_and_snap(place: RackPlace, instant: bool) -> void:
-	if not place or not place.claim(self):
+	if not place.claim(self):
 		return
 
 	_current_place = place
@@ -240,16 +229,15 @@ func _apply_place_mode(place_type: String) -> void:
 	var target_scale: float = table_scale if place_type == "table" else shelf_scale
 	create_tween().tween_property(self, "scale", Vector2(target_scale, target_scale), tween_time)
 
-	var allow_probes: bool = (place_type == "table")
-	if disable_probe_interactions_on_shelf:
-		for slot in _get_my_slots():
-			if slot.has_method("set_enabled"):
-				slot.call("set_enabled", allow_probes)
+	if not disable_probe_interactions_on_shelf:
+		return
 
-			if slot.has_method("get_current_probe"):
-				var probe_node := slot.call("get_current_probe") as Node2D
-				if probe_node:
-					_set_probe_interactions(probe_node, allow_probes)
+	var allow_probes: bool = (place_type == "table")
+	for slot in _get_my_slots():
+		slot.set_enabled(allow_probes)
+		var probe_node: Node2D = slot.get_current_probe()
+		if probe_node:
+			_set_probe_interactions(probe_node, allow_probes)
 
 
 # =========================================================================
@@ -258,22 +246,17 @@ func _apply_place_mode(place_type: String) -> void:
 
 ## Sprawdza, czy stojak stoi na półce.
 func _is_on_shelf() -> bool:
-	return _is_place_type(_current_place, "shelf")
+	return _current_place != null and _current_place.place_type == "shelf"
 
 
 ## Sprawdza, czy stojak stoi na stole.
 func _is_on_table() -> bool:
-	return _is_place_type(_current_place, "table")
-
-
-## Sprawdza, czy konkretne miejsce ma określony typ (np. "shelf", "table").
-func _is_place_type(place: RackPlace, place_type: String) -> bool:
-	return place != null and place.place_type == place_type
+	return _current_place != null and _current_place.place_type == "table"
 
 
 ## Zwraca dowolne wolne miejsce na stole (najbliższe aktualnej pozycji stojaka).
 func _pick_free_table_place() -> RackPlace:
-	var candidates: Array = []
+	var candidates: Array[RackPlace] = []
 
 	if _table_place1 and _table_place1.is_free():
 		candidates.append(_table_place1)
@@ -284,7 +267,7 @@ func _pick_free_table_place() -> RackPlace:
 		return null
 
 	candidates.sort_custom(
-		func(a, b) -> bool:
+		func(a: RackPlace, b: RackPlace) -> bool:
 			return a.global_position.distance_to(global_position) < b.global_position.distance_to(global_position)
 	)
 
@@ -296,17 +279,13 @@ func _pick_nearest_free_table_place(from_pos: Vector2, radius: float) -> RackPla
 	var best_place: RackPlace = null
 	var best_dist: float = INF
 
-	var candidates: Array = []
+	var candidates: Array[RackPlace] = []
 	if _table_place1 and _table_place1.is_free():
 		candidates.append(_table_place1)
 	if _table_place2 and _table_place2.is_free():
 		candidates.append(_table_place2)
 
-	for place in candidates:
-		var rack_place := place as RackPlace
-		if rack_place == null:
-			continue
-
+	for rack_place in candidates:
 		var dist: float = rack_place.global_position.distance_to(from_pos)
 		if dist <= radius and dist < best_dist:
 			best_dist = dist
@@ -321,31 +300,37 @@ func _pick_nearest_free_table_place(from_pos: Vector2, radius: float) -> RackPla
 
 ## Zwraca wszystkie sloty należące do tego stojaka:
 ## - szuka dzieci i wnuków w grupie "work_slots".
-func _get_my_slots() -> Array:
-	var result: Array = []
+func _get_my_slots() -> Array[ProbeSlot]:
+	var result: Array[ProbeSlot] = []
 
 	for child in get_children():
-		if child is Node and child.is_in_group("work_slots"):
-			result.append(child)
+		if child is ProbeSlot:
+			result.append(child as ProbeSlot)
 
 		for grand in child.get_children():
-			if grand is Node and grand.is_in_group("work_slots"):
-				result.append(grand)
+			if grand is ProbeSlot:
+				result.append(grand as ProbeSlot)
 
 	return result
 
 
 ## Ustawia interakcje probówki (drag, highlight, input pickable) na włączone/wyłączone.
 func _set_probe_interactions(probe: Node2D, enabled: bool) -> void:
-	if probe.has_method("set_highlight_enabled"):
-		probe.call("set_highlight_enabled", enabled)
-
-	if probe.has_method("set"):
-		probe.set("draggable", enabled)
-
-	var probe_area := probe.get_node_or_null("ProbeArea2D") as Area2D
-	if probe_area:
-		probe_area.input_pickable = enabled
+	var p := probe as Probe
+	if p:
+		p.set_highlight_enabled(enabled)
+		p.draggable = enabled
+		if p.area:
+			p.area.input_pickable = enabled
+	else:
+		# awaryjnie (gdyby w slocie wylądowało coś innego niż Probe)
+		if probe.has_method("set_highlight_enabled"):
+			probe.call("set_highlight_enabled", enabled)
+		if probe.has_method("set"):
+			probe.set("draggable", enabled)
+		var probe_area := probe.get_node_or_null("ProbeArea2D") as Area2D
+		if probe_area:
+			probe_area.input_pickable = enabled
 
 
 # =========================================================================
@@ -359,22 +344,7 @@ func _can_drag_now() -> bool:
 	var lab := get_tree().get_first_node_in_group("lab_root")
 	if lab == null:
 		return true
-
-	var mode_enum: Variant = lab.get("Mode")
-	var current_mode: Variant = lab.get("mode")
-
-	if mode_enum is Dictionary and mode_enum.has("IDLE"):
-		return current_mode == mode_enum["IDLE"]
-
-	var tool_active: Variant = lab.get("tool_active")
-	if tool_active is bool and tool_active:
-		return false
-
-	var holding: Variant = lab.get("holding")
-	if holding is bool and holding:
-		return false
-
-	return true
+	return lab.mode == lab.Mode.IDLE
 
 
 # =========================================================================
@@ -385,7 +355,7 @@ func _can_drag_now() -> bool:
 ## - LMB: shelf → table → pokazuje tylko wolne stoły,
 ## - RMB: table → table/shelf → pokazuje wolne stoły i ewentualnie półkę.
 func _update_place_hints(show_hints: bool) -> void:
-	var allow_table: bool = (_drag_button == MOUSE_BUTTON_LEFT) or (_drag_button == MOUSE_BUTTON_RIGHT)
+	var allow_table: bool = (_drag_button == MOUSE_BUTTON_LEFT or _drag_button == MOUSE_BUTTON_RIGHT)
 	var allow_shelf: bool = (_drag_button == MOUSE_BUTTON_RIGHT)
 
 	if _table_place1:

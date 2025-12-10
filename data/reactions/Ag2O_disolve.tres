@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://dwrc36tphrtnk"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_qrojw"]
+
+[resource]
+script = ExtResource("1_qrojw")
+id = "Ag2O_disolve"
+priority = 1
+reactants_ions = {
+"NH4+": 10
+}
+reactants_solids = {
+"Ag2O_s": 1
+}
+products_ions = {
+"Ag(NH3)2+": 1
+}
+require_pH = Array[String](["basic"])
+metadata/_custom_type_script = "uid://djapafftkk5kc"

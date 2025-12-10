@@ -7,7 +7,7 @@ script = ExtResource("1_sen8o")
 id = "HCl"
 display_name = "HCl"
 ions = {
-"Cl-": 1,
-"H+": 100
+"Cl-": 50,
+"H+": 50
 }
 metadata/_custom_type_script = "uid://bp7lhj2v28shg"

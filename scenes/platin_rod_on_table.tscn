@@ -23,13 +23,15 @@ script = ExtResource("1_xlf21")
 material = SubResource("ShaderMaterial_bly4o")
 position = Vector2(-11.000004, 7)
 rotation = 0.27750736
-scale = Vector2(0.30933335, 0.18392348)
+scale = Vector2(0.759, 0.433)
 texture = ExtResource("3_xlf21")
 
 [node name="Area2D" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+position = Vector2(1.999999, 3.0000005)
 rotation = 1.2566371
+scale = Vector2(0.74, 0.74)
 shape = SubResource("CapsuleShape2D_jym16")
 
 [connection signal="input_event" from="Area2D" to="." method="_on_area_input"]

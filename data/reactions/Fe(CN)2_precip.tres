@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://r8k3vpx8ghkv"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_b4jx2"]
+
+[resource]
+script = ExtResource("1_b4jx2")
+id = "Fe(CN)2_precip"
+priority = 14
+reactants_ions = {
+"CN-": 1,
+"Fe2+": 1
+}
+products_solids = {
+"Fe(CN)2_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://jp7iujsaeyly"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_hvx0a"]
+
+[resource]
+script = ExtResource("1_hvx0a")
+id = "Sb2S5_precip"
+priority = 1
+reactants_ions = {
+"Cl-": 1,
+"H+": 1,
+"S2-": 1,
+"Sb5+": 1
+}
+products_solids = {
+"Sb2S5_s": 1
+}
+require_pH = Array[String](["acidic"])
+require_boiling = true
+min_boil_time = 10.0
+metadata/_custom_type_script = "uid://djapafftkk5kc"

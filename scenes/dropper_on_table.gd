@@ -31,10 +31,9 @@ var _hover_enabled: bool = true               ## Możliwość czasowego wyłącz
 ## - duplikuje materiał sprita,
 ## - wyłącza outline na starcie.
 func _ready() -> void:
-	if dropper_sprite and dropper_sprite.material:
+	if dropper_sprite.material:
 		dropper_sprite.material = dropper_sprite.material.duplicate()
 	_shader_mat = dropper_sprite.material as ShaderMaterial
-
 	_set_outline(false)
 
 
@@ -43,8 +42,9 @@ func _ready() -> void:
 # =========================================================================
 
 ## Obsługuje kliknięcie LPM na dropperze – emituje left_clicked(dropper).
-func _on_area_input(_viewport: Node, event: InputEvent, _shape_idx: int) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+func _on_area_input(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event and mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
 		left_clicked.emit(self)
 
 
@@ -65,7 +65,8 @@ func _on_mouse_exited() -> void:
 
 ## Globalnie reaguje na klik LPM – gasi outline, żeby nie „zaczepiał się” przy dragowaniu.
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+	var mouse_event := event as InputEventMouseButton
+	if mouse_event and mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT:
 		_set_outline(false)
 
 
@@ -88,16 +89,5 @@ func set_hover_enabled(enabled: bool) -> void:
 func _set_outline(on: bool) -> void:
 	if _shader_mat == null:
 		return
-	_set_shader_param_safe(_shader_mat, "highlight", on)
-	_set_shader_param_safe(_shader_mat, "highlight_strength", (1.0 if on else 0.0))
-
-
-## Bezpiecznie ustawia uniform w shaderze, tylko jeśli shader faktycznie go definiuje.
-func _set_shader_param_safe(mat: ShaderMaterial, param_name: String, value) -> void:
-	if mat == null or mat.shader == null:
-		return
-	for u in mat.shader.get_shader_uniform_list():
-		var info: Dictionary = u
-		if String(info.get("name", "")) == param_name:
-			mat.set_shader_parameter(param_name, value)
-			return
+	_shader_mat.set_shader_parameter("highlight", on)
+	_shader_mat.set_shader_parameter("highlight_strength", (1.0 if on else 0.0))

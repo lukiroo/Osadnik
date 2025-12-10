@@ -1,48 +1,70 @@
-[gd_scene load_steps=5 format=3 uid="uid://c0keditw53ojs"]
+[gd_scene load_steps=10 format=3 uid="uid://c0keditw53ojs"]
 
 [ext_resource type="Script" uid="uid://5dn8j1afa8l" path="res://scenes/water_bath.gd" id="1_mwq1g"]
 [ext_resource type="Texture2D" uid="uid://cnjwydfcwumdr" path="res://assets/waterheater.png" id="2_5xcty"]
+[ext_resource type="Texture2D" uid="uid://dyr6eso8o3wj" path="res://assets/waterheater2.png" id="3_7ltl5"]
+[ext_resource type="Texture2D" uid="uid://cm2hxraps1elx" path="res://assets/ledgreen.png" id="3_mwq1g"]
 [ext_resource type="PackedScene" uid="uid://nt5ipyk1bagx" path="res://scenes/probe_slot.tscn" id="3_x01e5"]
+[ext_resource type="Texture2D" uid="uid://bn0uskr3wr2lt" path="res://assets/waterheater3.png" id="4_5xrln"]
+[ext_resource type="Shader" uid="uid://bc776weywwf53" path="res://resources/bubbles.gdshader" id="4_7ltl5"]
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_5xrln"]
+shader = ExtResource("4_7ltl5")
+shader_parameter/boiling = false
+shader_parameter/bubbles_density = 11.0
+shader_parameter/bubble_radius = 0.025
+shader_parameter/bubble_alpha = 0.3
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5xrln"]
-size = Vector2(36, 30)
+size = Vector2(37, 33)
 
 [node name="WaterBath" type="Node2D"]
 script = ExtResource("1_mwq1g")
 
 [node name="HeaterSprite2D" type="Sprite2D" parent="."]
-scale = Vector2(1.2322276, 0.4620939)
+position = Vector2(-22.715004, -57.000008)
+scale = Vector2(0.414, 0.343)
 texture = ExtResource("2_5xcty")
 
-[node name="WaterSprite2D" type="Sprite2D" parent="."]
+[node name="BeakerSprite2D" type="Sprite2D" parent="HeaterSprite2D"]
+z_index = 22
+position = Vector2(0.71500397, 0.10501099)
+texture = ExtResource("3_7ltl5")
 
-[node name="BeakerSprite2D" type="Sprite2D" parent="."]
+[node name="WaterSprite2D" type="Sprite2D" parent="HeaterSprite2D"]
+z_index = 17
+material = SubResource("ShaderMaterial_5xrln")
+position = Vector2(-0.28499603, 1.105011)
+texture = ExtResource("4_5xrln")
 
 [node name="LedOn" type="Sprite2D" parent="."]
-
-[node name="ColorRect" type="ColorRect" parent="LedOn"]
-offset_left = 113.0
-offset_top = 73.0
-offset_right = 149.0
-offset_bottom = 101.0
-color = Color(0.25715026, 0.6056659, 0.2537831, 1)
+position = Vector2(47.558, 33.5)
+scale = Vector2(0.4817709, 0.42307693)
+texture = ExtResource("3_mwq1g")
 
 [node name="Slots" type="Node2D" parent="."]
+scale = Vector2(1.1, 1.1)
 
 [node name="ProbeSlot" parent="Slots" instance=ExtResource("3_x01e5")]
-position = Vector2(-88, -71)
-snap_radius = 70.0
+position = Vector2(-90.909, -110)
+snap_radius = 25.0
 
 [node name="ProbeSlot2" parent="Slots" instance=ExtResource("3_x01e5")]
-position = Vector2(-20, -71)
+position = Vector2(-53.636, -100)
+snap_radius = 25.0
 
 [node name="ProbeSlot3" parent="Slots" instance=ExtResource("3_x01e5")]
-position = Vector2(49, -72)
+position = Vector2(-7.126, -100)
+snap_radius = 25.0
+
+[node name="ProbeSlot4" parent="Slots" instance=ExtResource("3_x01e5")]
+position = Vector2(31.818, -110)
+snap_radius = 25.0
 
 [node name="HeatButton" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="HeatButton"]
-position = Vector2(-12, 91)
+position = Vector2(-30, 38)
 shape = SubResource("RectangleShape2D_5xrln")
 
 [connection signal="input_event" from="HeatButton" to="." method="_on_heat_button_input_event"]

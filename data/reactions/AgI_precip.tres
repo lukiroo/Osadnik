@@ -14,6 +14,4 @@ products_solids = {
 "AgI_s": 1
 }
 note = "jasnożółty osad AgI"
-precip_color = Color(1, 0.95468724, 0.5917481, 1)
-intensity = 0.9
 metadata/_custom_type_script = "uid://djapafftkk5kc"

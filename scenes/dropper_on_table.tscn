@@ -1,8 +1,8 @@
 [gd_scene load_steps=6 format=3 uid="uid://b5q72wc3qjvkm"]
 
 [ext_resource type="Script" uid="uid://dgtd65x518no4" path="res://scenes/dropper_on_table.gd" id="1_ot4vj"]
-[ext_resource type="Texture2D" uid="uid://dubbvkku3yoin" path="res://assets/dropperlaying.png" id="1_ugjjp"]
 [ext_resource type="Shader" uid="uid://4j84kdpyxw4" path="res://resources/outline.gdshader" id="2_6pvfk"]
+[ext_resource type="Texture2D" uid="uid://dmt4qkj6g5yg3" path="res://assets/dropper.png" id="3_6pvfk"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_4256i"]
 shader = ExtResource("2_6pvfk")
@@ -21,13 +21,15 @@ script = ExtResource("1_ot4vj")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 material = SubResource("ShaderMaterial_4256i")
-scale = Vector2(0.41025642, 0.42708334)
-texture = ExtResource("1_ugjjp")
+rotation = 0.5742133
+scale = Vector2(0.5, 0.52)
+texture = ExtResource("3_6pvfk")
 
 [node name="Area2D" type="Area2D" parent="."]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
-rotation = 1.0419616
+position = Vector2(-2, 1)
+rotation = 1.2496557
 shape = SubResource("CapsuleShape2D_ot4vj")
 
 [connection signal="input_event" from="Area2D" to="." method="_on_area_input"]

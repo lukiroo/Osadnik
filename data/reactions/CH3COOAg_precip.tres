@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="Reaction" load_steps=2 format=3 uid="uid://jn6yu5sxv7pj"]
+
+[ext_resource type="Script" uid="uid://djapafftkk5kc" path="res://chem/reaction.gd" id="1_wfceg"]
+
+[resource]
+script = ExtResource("1_wfceg")
+id = "CH3COOAg_precip"
+priority = 10
+reactants_ions = {
+"Ag+": 1,
+"CH3COO-": 1
+}
+products_solids = {
+"CH3COOAg_s": 1
+}
+metadata/_custom_type_script = "uid://djapafftkk5kc"
