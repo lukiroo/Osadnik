@@ -26,6 +26,10 @@ const ION_LABELS := {
 	"K+": "K⁺", "Na+": "Na⁺", "NH4+": "NH₄⁺"
 }
 
+@export_group("Font label")
+@export var ion_label_font: Font
+
+
 @onready var title_label: Label              = $MarginContainer/VBox/Title
 @onready var items_box: VBoxContainer        = $MarginContainer/VBox/Items
 @onready var result_box: VBoxContainer       = $ResultBox

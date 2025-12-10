@@ -25,6 +25,9 @@ const ION_LABELS := {
 	"NO3-": "NO₃⁻", "ClO3-": "ClO₃⁻", "ClO4-": "ClO₄⁻", "MnO4-": "MnO₄⁻",
 	"SO42-": "SO₄²⁻", "F-": "F⁻"
 }
+@export_group("Font label")
+@export var ion_label_font: Font
+
 
 @onready var title_label: Label              = $MarginContainer/VBox/Title
 @onready var items_box: VBoxContainer        = $MarginContainer/VBox/Items
@@ -176,6 +179,10 @@ func _build_single_rows() -> void:
 			var label_node := ion_button.get_node("Label") as Label
 			label_node.text = ION_LABELS.get(ion_id, ion_id)
 
+			if ion_label_font:
+				label_node.add_theme_font_override("font", ion_label_font)
+
+
 			ion_button.toggled.connect(_on_answer_button_toggled.bind(ion_button))
 			row_buttons.append(ion_button)
 			buttons_box.add_child(ion_button)
@@ -231,6 +238,8 @@ func _build_mix_row() -> void:
 
 				var label_node := ion_button.get_node("Label") as Label
 				label_node.text = ION_LABELS.get(ion_id, ion_id)
+				if ion_label_font:
+					label_node.add_theme_font_override("font", ion_label_font)
 
 				ion_button.toggled.connect(_on_answer_button_toggled.bind(ion_button))
 				_mix_buttons.append(ion_button)
@@ -253,6 +262,8 @@ func _build_mix_row() -> void:
 
 			var label_node := ion_button.get_node("Label") as Label
 			label_node.text = ION_LABELS.get(ion_id, ion_id)
+			if ion_label_font:
+				label_node.add_theme_font_override("font", ion_label_font)
 
 			ion_button.toggled.connect(_on_answer_button_toggled.bind(ion_button))
 			_mix_buttons.append(ion_button)
