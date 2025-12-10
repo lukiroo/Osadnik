@@ -345,8 +345,8 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 		push_warning("QualEngine: reached max iterations (possible reaction loop).")
 
 	var mixture_end := tube.get("mixture") as Mixture
-	if DEBUG_CORE and mixture_end != null:
-		print("[QE DBG] AFTER LOOP  ", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture_end))
+	#if DEBUG_CORE and mixture_end != null:
+		#print("[QE DBG] AFTER LOOP  ", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture_end))
 
 	var solids_dict: Dictionary = {}
 	if mixture_end != null and (mixture_end.solids is Dictionary):
@@ -535,7 +535,7 @@ func _play_fx_from_current_mixture_if_any(tube: Node) -> void:
 ## - wybiera tryb FX na podstawie mixture.tags["precip_mode"],
 ## - opcjonalnie deduplikuje identyczne FX (ten sam kolor i tryb),
 ## - wywołuje Probe.play_precip(mode, turb_color, sed_color, intensity).
-func _emit_fx(tube: Node, color: Color, intensity: float, source: String) -> void:
+func _emit_fx(tube: Node, color: Color, intensity: float, _source: String) -> void:
 	if tube == null:
 		return
 
@@ -557,7 +557,7 @@ func _emit_fx(tube: Node, color: Color, intensity: float, source: String) -> voi
 		tube.set_meta("last_precip_fx", signature)
 
 	if DEBUG_CORE:
-		print("[QE FX] ", source, "  mode=", mode, "  intensity=", str(intensity))
+		#print("[QE FX] ", source, "  mode=", mode, "  intensity=", str(intensity))
 		pass
 
 	if not tube.has_method("play_precip"):
