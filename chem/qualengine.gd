@@ -113,7 +113,7 @@ func _register_res(path: String, register_func: Callable) -> void:
 
 ## Ładuje wszystkie Reagent (.tres) z podanego folderu.
 func _register_reagents_from_folder(dir_path: String) -> void:
-	var dir := DirAccess.open(dir_path)
+	var dir = DirAccess.open(dir_path)
 	if dir == null:
 		push_warning("[QE] cannot open folder: " + dir_path)
 		return
@@ -134,7 +134,7 @@ func _register_reagents_from_folder(dir_path: String) -> void:
 
 ## Ładuje wszystkie Solid (.tres) z podanego folderu.
 func _register_solids_from_folder(dir_path: String) -> void:
-	var dir := DirAccess.open(dir_path)
+	var dir = DirAccess.open(dir_path)
 	if dir == null:
 		push_warning("[QE] cannot open folder: " + dir_path)
 		return
@@ -155,7 +155,7 @@ func _register_solids_from_folder(dir_path: String) -> void:
 
 ## Ładuje wszystkie Reaction (.tres) z podanego folderu.
 func _register_reactions_from_folder(dir_path: String) -> void:
-	var dir := DirAccess.open(dir_path)
+	var dir = DirAccess.open(dir_path)
 	if dir == null:
 		push_warning("[QE] cannot open folder: " + dir_path)
 		return
@@ -188,12 +188,12 @@ func add_drop_to_tube(tube: Node, reagent_id: String) -> void:
 	if tube == null:
 		return
 
-	var reagent_resource := reagents.get(reagent_id, null) as Resource
+	var reagent_resource = reagents.get(reagent_id, null) as Resource
 	if reagent_resource == null:
 		push_warning("[QE] unknown reagent_id: " + reagent_id)
 		return
 
-	var mixture := tube.get("mixture") as Mixture
+	var mixture = tube.get("mixture") as Mixture
 	if mixture == null:
 		push_warning("[QE] tube has no 'mixture'")
 		return
@@ -251,7 +251,7 @@ func add_water_volume_step(tube: Node, volume_delta: float, step: float = -1.0) 
 	if tube == null or volume_delta <= 0.0:
 		return
 
-	var mixture := tube.get("mixture") as Mixture
+	var mixture = tube.get("mixture") as Mixture
 	if mixture == null:
 		return
 
@@ -308,13 +308,13 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 	if tube == null:
 		return
 
-	var mixture := tube.get("mixture") as Mixture
+	var mixture = tube.get("mixture") as Mixture
 	if mixture == null:
 		return
 
 	_update_pH_bucket_from_state(mixture)
 
-	const MAX_ITERS := 256
+	const MAX_ITERS = 256
 	var iteration_count: int = 0
 	var any_reaction: bool = false
 
@@ -345,7 +345,7 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 	if iteration_count >= MAX_ITERS:
 		push_warning("QualEngine: reached max iterations (possible reaction loop).")
 
-	var mixture_end := tube.get("mixture") as Mixture
+	var mixture_end = tube.get("mixture") as Mixture
 	#if DEBUG_CORE and mixture_end != null:
 		#print("[QE DBG] AFTER LOOP  ", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture_end))
 
@@ -379,7 +379,7 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 ## - uwzględnia warunki termiczne (boiling, min_boil_time),
 ## - sprawdza, czy są wymagane jony i osady.
 func _reaction_matches(tube: Node, reaction_res: Resource) -> bool:
-	var mixture := tube.get("mixture") as Mixture
+	var mixture = tube.get("mixture") as Mixture
 	if mixture == null:
 		return false
 
@@ -393,7 +393,7 @@ func _reaction_matches(tube: Node, reaction_res: Resource) -> bool:
 			if tag_val != null:
 				current_ph_label = str(tag_val)
 
-		var is_ok_pH := false
+		var is_ok_pH = false
 		for allowed_label in ph_list:
 			if str(allowed_label) == current_ph_label:
 				is_ok_pH = true
@@ -464,7 +464,7 @@ func _reaction_matches(tube: Node, reaction_res: Resource) -> bool:
 ## - ustawia/usuwa tagi z Reaction.set_tags / clear_tags,
 ## - jeśli są produkty stałe (solids), zapisuje tryb osadu (precip_mode).
 func _apply_reaction(tube: Node, reaction_res: Resource) -> void:
-	var mixture := tube.get("mixture") as Mixture
+	var mixture = tube.get("mixture") as Mixture
 	if mixture == null:
 		return
 
@@ -520,7 +520,7 @@ func _play_fx_from_current_mixture_if_any(tube: Node) -> void:
 	if not tube.has_method("play_precip"):
 		return
 
-	var mixture := tube.get("mixture") as Mixture
+	var mixture = tube.get("mixture") as Mixture
 	if mixture == null or not (mixture.solids is Dictionary) or (mixture.solids as Dictionary).size() == 0:
 		return
 
@@ -541,7 +541,7 @@ func _emit_fx(tube: Node, color: Color, intensity: float, _source: String) -> vo
 		return
 
 	var mode: String = "floc"
-	var mixture := tube.get("mixture") as Mixture
+	var mixture = tube.get("mixture") as Mixture
 	if mixture != null and (mixture.tags is Dictionary):
 		var pm_raw: Variant = (mixture.tags as Dictionary).get("precip_mode", "floc")
 		if pm_raw is String:
