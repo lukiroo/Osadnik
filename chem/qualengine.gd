@@ -87,11 +87,8 @@ func register_reaction(reaction_res: Resource) -> void:
 # =========================================================================
 
 ## Inicjalizuje silnik po starcie jako autoload:
-## - ładuje reagenty, osady i reakcje z katalogów /data,
-## - wypisuje listę zarejestrowanych zasobów (jeśli DEBUG_CORE).
+## - ładuje reagenty, osady i reakcje z katalogów /data
 func _ready() -> void:
-	print("[QE] START _ready")
-
 	reagents.clear()
 	solids.clear()
 	reactions.clear()
@@ -118,85 +115,11 @@ func _ready() -> void:
 		if rx != null:
 			register_reaction(rx)
 
-	if DEBUG_CORE:
-		print("[QE] reagents:  ", reagents.keys())
-		print("[QE] solids:    ", solids.keys())
-		print("[QE] reactions: ", reactions.size())
+	#if DEBUG_CORE:
+		#print("[QE] reagents:  ", reagents.keys())
+		#print("[QE] solids:    ", solids.keys())
+		#print("[QE] reactions: ", reactions.size())
 
-
-"""
-## Ładuje pojedynczy Resource i rejestruje go przez przekazaną funkcję.
-func _register_res(path: String, register_func: Callable) -> void:
-	var res: Resource = load(path)
-	if res == null:
-		push_warning("[QE] load failed: " + path)
-		return
-	register_func.call(res)
-
-
-## Ładuje wszystkie Reagent (.tres) z podanego folderu.
-func _register_reagents_from_folder(dir_path: String) -> void:
-	var dir = DirAccess.open(dir_path)
-	if dir == null:
-		push_warning("[QE] cannot open folder: " + dir_path)
-		return
-
-	dir.list_dir_begin()
-	while true:
-		var file_name: String = dir.get_next()
-		if file_name == "":
-			break
-		if dir.current_is_dir():
-			continue
-		if not (file_name.ends_with(".tres") or file_name.ends_with(".res")):
-			continue
-
-
-		_register_res(dir_path + "/" + file_name, register_reagent)
-	dir.list_dir_end()
-
-
-## Ładuje wszystkie Solid (.tres) z podanego folderu.
-func _register_solids_from_folder(dir_path: String) -> void:
-	var dir = DirAccess.open(dir_path)
-	if dir == null:
-		push_warning("[QE] cannot open folder: " + dir_path)
-		return
-
-	dir.list_dir_begin()
-	while true:
-		var file_name: String = dir.get_next()
-		if file_name == "":
-			break
-		if dir.current_is_dir():
-			continue
-		if not (file_name.ends_with(".tres") or file_name.ends_with(".res")):
-			continue
-
-		_register_res(dir_path + "/" + file_name, register_solid)
-	dir.list_dir_end()
-
-
-## Ładuje wszystkie Reaction (.tres) z podanego folderu.
-func _register_reactions_from_folder(dir_path: String) -> void:
-	var dir = DirAccess.open(dir_path)
-	if dir == null:
-		push_warning("[QE] cannot open folder: " + dir_path)
-		return
-
-	dir.list_dir_begin()
-	while true:
-		var file_name: String = dir.get_next()
-		if file_name == "":
-			break
-		if dir.current_is_dir():
-			continue
-		if not (file_name.ends_with(".tres") or file_name.ends_with(".res")):
-			continue
-
-		_register_res(dir_path + "/" + file_name, register_reaction)
-	dir.list_dir_end()
-"""
 
 # =========================================================================
 # AKCJE UŻYTKOWNIKA – DODAWANIE REAGENTÓW I WODY
