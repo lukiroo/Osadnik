@@ -125,8 +125,9 @@ func _register_reagents_from_folder(dir_path: String) -> void:
 			break
 		if dir.current_is_dir():
 			continue
-		if not file_name.ends_with(".tres"):
+		if not (file_name.ends_with(".tres") or file_name.ends_with(".res")):
 			continue
+
 
 		_register_res(dir_path + "/" + file_name, register_reagent)
 	dir.list_dir_end()
@@ -146,7 +147,7 @@ func _register_solids_from_folder(dir_path: String) -> void:
 			break
 		if dir.current_is_dir():
 			continue
-		if not file_name.ends_with(".tres"):
+		if not (file_name.ends_with(".tres") or file_name.ends_with(".res")):
 			continue
 
 		_register_res(dir_path + "/" + file_name, register_solid)
@@ -167,7 +168,7 @@ func _register_reactions_from_folder(dir_path: String) -> void:
 			break
 		if dir.current_is_dir():
 			continue
-		if not file_name.ends_with(".tres"):
+		if not (file_name.ends_with(".tres") or file_name.ends_with(".res")):
 			continue
 
 		_register_res(dir_path + "/" + file_name, register_reaction)
