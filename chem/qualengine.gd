@@ -90,7 +90,6 @@ func register_reaction(reaction_res: Resource) -> void:
 ## - ładuje reagenty, osady i reakcje z katalogów /data,
 ## - wypisuje listę zarejestrowanych zasobów (jeśli DEBUG_CORE).
 func _ready() -> void:
-	print("[QE] START _ready")
 	_register_reagents_from_folder("res://data/reagents")
 	_register_solids_from_folder("res://data/solids")
 	_register_reactions_from_folder("res://data/reactions")

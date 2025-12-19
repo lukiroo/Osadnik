@@ -17,6 +17,7 @@ config/icon="uid://03yyo74a5p0w"
 
 [autoload]
 
+ChemRegistry="*res://chem/chem_registry.tscn"
 Qualengine="*res://chem/qualengine.gd"
 Settings="*res://scenes/menu/settings.gd"
 
