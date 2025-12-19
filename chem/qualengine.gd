@@ -90,17 +90,41 @@ func register_reaction(reaction_res: Resource) -> void:
 ## - ładuje reagenty, osady i reakcje z katalogów /data,
 ## - wypisuje listę zarejestrowanych zasobów (jeśli DEBUG_CORE).
 func _ready() -> void:
-	_register_reagents_from_folder("res://data/reagents")
-	_register_solids_from_folder("res://data/solids")
-	_register_reactions_from_folder("res://data/reactions")
+	print("[QE] START _ready")
 
-	#if DEBUG_CORE:
-	print("[QE] reagents:  ", reagents.keys())
-	print("[QE] solids:    ", solids.keys())
-	print("[QE] reactions: ", str(reactions.size()))
-		#pass
+	reagents.clear()
+	solids.clear()
+	reactions.clear()
+
+	# Autoload sceny: Project Settings → Autoload → ChemRegistry = chem_registry.tscn
+	var reg := ChemRegistry  # singleton-autoload
+
+	if reg == null:
+		push_warning("[QE] ChemRegistry autoload not found")
+		return
+
+	# Reagenty
+	for r in reg.reagents:
+		if r != null:
+			register_reagent(r)
+
+	# Osady
+	for s in reg.solids:
+		if s != null:
+			register_solid(s)
+
+	# Reakcje
+	for rx in reg.reactions:
+		if rx != null:
+			register_reaction(rx)
+
+	if DEBUG_CORE:
+		print("[QE] reagents:  ", reagents.keys())
+		print("[QE] solids:    ", solids.keys())
+		print("[QE] reactions: ", reactions.size())
 
 
+"""
 ## Ładuje pojedynczy Resource i rejestruje go przez przekazaną funkcję.
 func _register_res(path: String, register_func: Callable) -> void:
 	var res: Resource = load(path)
@@ -172,7 +196,7 @@ func _register_reactions_from_folder(dir_path: String) -> void:
 
 		_register_res(dir_path + "/" + file_name, register_reaction)
 	dir.list_dir_end()
-
+"""
 
 # =========================================================================
 # AKCJE UŻYTKOWNIKA – DODAWANIE REAGENTÓW I WODY
