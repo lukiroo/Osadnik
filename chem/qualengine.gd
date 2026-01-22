@@ -293,8 +293,8 @@ func _apply_reactions_until_fixpoint(tube: Node) -> void:
 		push_warning("QualEngine: reached max iterations (possible reaction loop).")
 
 	var mixture_end = tube.get("mixture") as Mixture
-	#if DEBUG_CORE and mixture_end != null:
-		#print("[QE DBG] AFTER LOOP  ", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture_end))
+	if DEBUG_CORE and mixture_end != null:
+		print("[QE DBG]", _dbg_probe_name(tube), "  ", _dbg_mix_snap(mixture_end))
 
 	var solids_dict: Dictionary = {}
 	if mixture_end != null and (mixture_end.solids is Dictionary):

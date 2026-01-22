@@ -13,7 +13,7 @@ reactants_ions = {
 "Sb3+": 1
 }
 products_solids = {
-"Sb2S3_s": 0
+"Sb2S3_s": 1
 }
 require_pH = Array[String](["acidic"])
 require_boiling = true

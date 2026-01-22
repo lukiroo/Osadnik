@@ -7,7 +7,7 @@ script = ExtResource("1_j6x3b")
 id = "As2S5_precip"
 priority = 1
 reactants_ions = {
-"As5+": 1,
+"AsO43-": 1,
 "Cl-": 1,
 "H+": 1,
 "S2-": 1

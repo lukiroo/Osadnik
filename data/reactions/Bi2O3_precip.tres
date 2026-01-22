@@ -11,7 +11,7 @@ reactants_ions = {
 "OH-": 1
 }
 products_solids = {
-"Bi2O3_s": 0
+"Bi2O3_s": 1
 }
 require_pH = Array[String](["basic"])
 metadata/_custom_type_script = "uid://djapafftkk5kc"

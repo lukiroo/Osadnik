@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_sen8o")
 id = "HCl"
-display_name = "HCl"
+display_name = "HCl 1M"
 ions = {
 "Cl-": 50,
 "H+": 50

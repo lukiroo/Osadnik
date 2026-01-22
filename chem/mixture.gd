@@ -176,7 +176,7 @@ func has_ions(need: Dictionary) -> bool:
 
 
 ## Sprawdza, czy mieszanina zawiera wymagane osady:
-## - wartości dodatnie → sprawdza ilość (cur >= required),
+## - wartości dodatnie → sprawdza ilość (current >= required),
 ## - wartości <= 0 → traktuje jako „musi być obecny”.
 func has_solids(need: Dictionary) -> bool:
 	if need == null or not (need is Dictionary):
@@ -202,7 +202,7 @@ func is_empty() -> bool:
 # KOPIE I SCALANIE MIESZANIN
 # =========================================================================
 
-## Tworzy głęboką kopię mieszaniny (jonów, osadów i tagów).
+## Tworzy kopię mieszaniny (jonów, osadów i tagów).
 func clone() -> Mixture:
 	var copy: Mixture = Mixture.new()
 	copy.ions = ions.duplicate(true)
@@ -347,80 +347,6 @@ func subtract_fraction_in_place(frac: float) -> void:
 		tags["vol_u"] = vol_val * keep
 
 	recompute_acid_base_eq_from_ions()
-
-
-## Pobiera określoną objętość z mieszaniny (take_volume):
-## - zwraca nowy Mixture zawierający pobraną porcję,
-## - skaluje jony proporcjonalnie do objętości,
-## - dla osadów:
-##   - przy pełnym pobraniu i braku pelletu – przenosi wszystkie solids,
-##   - przy pellet_ready – supernatant nie niesie solids.
-func take_volume(vol: float) -> Mixture:
-	var out_mix: Mixture = Mixture.new()
-	var src_vol: float = get_vol()
-	if src_vol <= EPS or vol <= EPS:
-		return out_mix
-
-	var take_vol: float = clamp(vol, 0.0, src_vol)
-	var frac: float = take_vol / src_vol
-
-	var pellet_ready: bool = false
-	if tags is Dictionary:
-		pellet_ready = bool(tags.get("pellet_ready", false))
-
-	# jony – proporcjonalnie
-	var ion_keys: Array = ions.keys()
-	for ion_name in ion_keys:
-		var current_val: float = _get_float(ions, ion_name)
-		var part_val: float = current_val * frac
-		if part_val > EPS:
-			out_mix.ions[ion_name] = part_val
-			var left_val: float = current_val - part_val
-			if left_val <= EPS:
-				ions.erase(ion_name)
-			else:
-				ions[ion_name] = left_val
-
-	# osady – normalnie tylko przy pełnym pobraniu, przy pellecie supernatant nie niesie solids.
-	var full_take: bool = (1.0 - frac) <= EPS
-	if full_take and not pellet_ready:
-		for solid_name in solids.keys():
-			out_mix.solids[String(solid_name)] = solids[solid_name]
-		solids.clear()
-	elif pellet_ready:
-		out_mix.solids.clear()
-		out_mix.ensure_tags()
-		(out_mix.tags as Dictionary).erase("precip_mode")
-
-	# objętość + proste tagi
-	ensure_tags()
-	out_mix.ensure_tags()
-	var vol_val: float = _float_num(tags.get("vol_u", 0.0))
-	var out_vol: float = vol_val * frac
-	out_mix.tags["vol_u"] = out_vol
-	tags["vol_u"] = vol_val - out_vol
-
-	# jeżeli to nie jest supernatant znad pelletu i przelewamy całą probówkę,
-	# przenosimy też precip_mode do porcji
-	if not pellet_ready and full_take and (tags is Dictionary) and (tags as Dictionary).has("precip_mode"):
-		out_mix.tags["precip_mode"] = (tags as Dictionary)["precip_mode"]
-
-	# stan chłodzenia: cooling_ready / cooling_t_s / cooled_enough
-	if tags is Dictionary:
-		var src_tags: Dictionary = tags
-		for tag_name in ["cooling_ready", "cooling_t_s", "cooled_enough"]:
-			if src_tags.has(tag_name):
-				out_mix.tags[tag_name] = src_tags[tag_name]
-
-	recompute_acid_base_eq_from_ions()
-	out_mix.recompute_acid_base_eq_from_ions()
-	return out_mix
-
-
-## Pobiera ułamek objętości mieszanki (take_fraction) i zwraca nowy Mixture.
-func take_fraction(frac: float) -> Mixture:
-	var clamped_frac: float = clamp(frac, 0.0, 1.0)
-	return take_volume(get_vol() * clamped_frac)
 
 
 # =========================================================================

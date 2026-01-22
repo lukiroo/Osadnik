@@ -4,13 +4,13 @@
 
 [resource]
 script = ExtResource("1_xsrln")
-id = "BaBO3_precip"
+id = "Ba(BO2)2_precip"
 priority = 10
 reactants_ions = {
-"BO32-": 1,
+"BO2-": 1,
 "Ba2+": 1
 }
 products_solids = {
-"BaBO3_s": 1
+"Ba(BO2)2_s": 1
 }
 metadata/_custom_type_script = "uid://djapafftkk5kc"

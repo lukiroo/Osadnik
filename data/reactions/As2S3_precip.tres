@@ -7,7 +7,7 @@ script = ExtResource("1_e3tab")
 id = "As2S3_precip"
 priority = 1
 reactants_ions = {
-"As3+": 1,
+"AsO33-": 1,
 "Cl-": 1,
 "H+": 1,
 "S2-": 1

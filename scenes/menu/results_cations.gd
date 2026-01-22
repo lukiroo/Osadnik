@@ -19,16 +19,16 @@ const COLOR_TRUE_ANSWER  := Color(0.0, 0.737, 0.473, 0.2)
 
 const ION_LABELS := {
 	"Ag+": "Ag⁺", "Hg22+": "Hg₂²⁺", "Pb2+": "Pb²⁺",
-	"Hg2+":"Hg²⁺", "Cu2+": "Cu²⁺", "Bi3+": "Bi³⁺", "Cd2+": "Cd²⁺",
-	"As3+":"As³⁺", "As5+": "As⁵⁺", "Sb3+": "Sb³⁺", "Sb5+": "Sb⁵⁺", "Sn2+":"Sn²⁺", "Sn4+": "Sn⁴⁺",
-	"Zn2+":"Zn²⁺", "Ni2+":"Ni²⁺", "Co2+":"Co²⁺", "Mn2+":"Mn²⁺", "Fe2+":"Fe²⁺", "Fe3+":"Fe³⁺", "Al3+":"Al³⁺", "Cr3+":"Cr³⁺",
-	"Ca2+":"Ca²⁺", "Sr2+":"Sr²⁺", "Ba2+":"Ba²⁺", "Mg2+":"Mg²⁺",
-	"K+": "K⁺", "Na+": "Na⁺", "NH4+": "NH₄⁺"
+	"Hg2+": "Hg²⁺", "Cu2+": "Cu²⁺", "Bi3+": "Bi³⁺", "Cd2+": "Cd²⁺",
+	"As3+": "As³⁺", "As5+": "As⁵⁺", "Sb3+": "Sb³⁺", "Sb5+": "Sb⁵⁺", "Sn2+": "Sn²⁺", "Sn4+": "Sn⁴⁺",
+	"Zn2+": "Zn²⁺", "Ni2+": "Ni²⁺", "Co2+": "Co²⁺", "Mn2+": "Mn²⁺", "Fe2+": "Fe²⁺", "Fe3+": "Fe³⁺", "Al3+": "Al³⁺", "Cr3+": "Cr³⁺",
+	"Ca2+": "Ca²⁺", "Sr2+": "Sr²⁺", "Ba2+": "Ba²⁺", "Mg2+": "Mg²⁺",
+	"K+": "K⁺", "Na+": "Na⁺", "NH4+": "NH₄⁺",
+	"As": "As", "Sb": "Sb", "Sn": "Sn"
 }
 
 @export_group("Font label")
 @export var ion_label_font: Font
-
 
 @onready var title_label: Label              = $MarginContainer/VBox/Title
 @onready var items_box: VBoxContainer        = $MarginContainer/VBox/Items
@@ -54,7 +54,7 @@ var _mix_correct_list: Array = []
 
 var _locked_after_submit: bool = false
 
-const START_TUBE_LABELS: Array[String] = ["A","B","C","D","E"]
+const START_TUBE_LABELS: Array[String] = ["A", "B", "C", "D", "E"]
 
 
 ## Zamienia numer grupy (1–4) na zapis rzymski używany w tytule.
@@ -110,14 +110,14 @@ func _ions_for_group(group_id: int) -> Array[String]:
 	if group_id == 0:
 		return [
 			"Ag+","Hg22+","Pb2+","Hg2+","Cu2+","Bi3+","Cd2+",
-			"As3+","As5+","Sb3+","Sb5+","Sn2+","Sn4+","Zn2+",
+			"As","Sb","Sn","Zn2+",
 			"Ni2+","Co2+","Mn2+","Fe2+","Fe3+","Al3+","Cr3+",
 			"Ca2+","Sr2+","Ba2+","Mg2+","K+","Na+","NH4+"
 		]
 	if group_id == 1:
 		return ["Ag+","Hg22+","Pb2+"]
 	if group_id == 2:
-		return ["Hg2+","Pb2+","Cu2+","Bi3+","Cd2+","As3+","As5+","Sb3+","Sb5+","Sn2+","Sn4+"]
+		return ["Hg2+","Pb2+","Cu2+","Bi3+","Cd2+","As","Sb","Sn"]
 	if group_id == 3:
 		return ["Zn2+","Ni2+","Co2+","Mn2+","Fe2+","Fe3+","Al3+","Cr3+"]
 
@@ -136,7 +136,7 @@ func _build_single_rows() -> void:
 	var slots: Array = _single_correct_map.keys()
 	slots.sort()
 
-	var ion_choices := _ions_for_group(_group_id)
+	var ion_choices: Array[String] = _ions_for_group(_group_id)
 
 	for row_idx in range(slots.size()):
 		var slot_idx: int = int(slots[row_idx])
@@ -149,6 +149,8 @@ func _build_single_rows() -> void:
 		var tube_label := Label.new()
 		var tube_name := _slot_index_to_letter(slot_idx)
 		tube_label.text = "PROBÓWKA %s:" % tube_name
+		if ion_label_font != null:
+			tube_label.add_theme_font_override("font", ion_label_font)
 		row.add_child(tube_label)
 
 		var group := ButtonGroup.new()
@@ -168,8 +170,11 @@ func _build_single_rows() -> void:
 			ion_button.self_modulate = COLOR_NEUTRAL
 			ion_button.set_meta("ion_id", ion_id)
 
-			var label_node := ion_button.get_node("Label") as Label
-			label_node.text = ION_LABELS.get(ion_id, ion_id)
+			var label_node := ion_button.get_node_or_null("Label") as Label
+			if label_node != null:
+				label_node.text = String(ION_LABELS.get(ion_id, ion_id))
+				if ion_label_font != null:
+					label_node.add_theme_font_override("font", ion_label_font)
 
 			ion_button.toggled.connect(_on_answer_button_toggled.bind(ion_button))
 			row_buttons.append(ion_button)
@@ -195,9 +200,12 @@ func _build_mix_row() -> void:
 	var hint_label := Label.new()
 	hint_label.text = "ZAZNACZ WSZYSTKIE KATIONY ZIDENTYFIKOWANE W PROBÓWCE"
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	if ion_label_font != null:
+		hint_label.add_theme_font_override("font", ion_label_font)
 	root_box.add_child(hint_label)
 
 	if _group_id == 0:
+		# Egzamin: Pb2+ jest tylko w wierszu grupy 1, a nie w wierszu grupy 2.
 		var exam_rows: Array = []
 
 		exam_rows.append(_ions_for_group(1))
@@ -223,8 +231,11 @@ func _build_mix_row() -> void:
 				ion_button.self_modulate = COLOR_NEUTRAL
 				ion_button.set_meta("ion_id", ion_id)
 
-				var label_node := ion_button.get_node("Label") as Label
-				label_node.text = ION_LABELS.get(ion_id, ion_id)
+				var label_node := ion_button.get_node_or_null("Label") as Label
+				if label_node != null:
+					label_node.text = String(ION_LABELS.get(ion_id, ion_id))
+					if ion_label_font != null:
+						label_node.add_theme_font_override("font", ion_label_font)
 
 				ion_button.toggled.connect(_on_answer_button_toggled.bind(ion_button))
 				_mix_buttons.append(ion_button)
@@ -237,7 +248,7 @@ func _build_mix_row() -> void:
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 8)
 
-		var ion_choices := _ions_for_group(_group_id)
+		var ion_choices: Array[String] = _ions_for_group(_group_id)
 		for ion_id in ion_choices:
 			var ion_button := ANSWER_BUTTON_SCENE.instantiate() as TextureButton
 			ion_button.toggle_mode = true
@@ -245,8 +256,11 @@ func _build_mix_row() -> void:
 			ion_button.self_modulate = COLOR_NEUTRAL
 			ion_button.set_meta("ion_id", ion_id)
 
-			var label_node := ion_button.get_node("Label") as Label
-			label_node.text = ION_LABELS.get(ion_id, ion_id)
+			var label_node := ion_button.get_node_or_null("Label") as Label
+			if label_node != null:
+				label_node.text = String(ION_LABELS.get(ion_id, ion_id))
+				if ion_label_font != null:
+					label_node.add_theme_font_override("font", ion_label_font)
 
 			ion_button.toggled.connect(_on_answer_button_toggled.bind(ion_button))
 			_mix_buttons.append(ion_button)
@@ -338,14 +352,14 @@ func _on_confirm_btn_pressed() -> void:
 
 # =================== KOLOROWANIE WYNIKÓW =========================
 
-## EX1 – zaznaczone odpowiedzi na zielono/czerwono, prawidłowa na żółto jeśli nie zaznaczona.
+## EX1 – zaznaczone odpowiedzi na zielono/czerwono, prawidłowa na zielonkawe tło jeśli nie zaznaczona.
 func _apply_result_colors_single() -> void:
 	var slots: Array = _single_correct_map.keys()
 	slots.sort()
 
 	for row_idx in range(slots.size()):
 		var slot_idx: int = int(slots[row_idx])
-		var correct_ion: String = _single_correct_map[slot_idx]
+		var correct_ion: String = String(_single_correct_map[slot_idx])
 
 		for btn in _single_row_buttons[row_idx]:
 			var ion_button := btn as TextureButton
@@ -354,22 +368,16 @@ func _apply_result_colors_single() -> void:
 			var is_correct := (ion_id == correct_ion)
 
 			if ion_button.button_pressed:
-				if is_correct:
-					ion_button.self_modulate = COLOR_CORRECT
-				else:
-					ion_button.self_modulate = COLOR_WRONG
+				ion_button.self_modulate = COLOR_CORRECT if is_correct else COLOR_WRONG
 			else:
-				if is_correct:
-					ion_button.self_modulate = COLOR_TRUE_ANSWER
-				else:
-					ion_button.self_modulate = COLOR_NEUTRAL
+				ion_button.self_modulate = COLOR_TRUE_ANSWER if is_correct else COLOR_NEUTRAL
 
 
 ## EX2 – zaznaczone jony na zielono/czerwono, wszystkie prawidłowe podświetlone.
 func _apply_result_colors_mix() -> void:
 	var correct_set: Dictionary = {}
 	for ion_id in _mix_correct_list:
-		correct_set[ion_id] = true
+		correct_set[String(ion_id)] = true
 
 	for btn in _mix_buttons:
 		var ion_button := btn as TextureButton
@@ -378,15 +386,9 @@ func _apply_result_colors_mix() -> void:
 		var is_correct := correct_set.has(ion_id)
 
 		if ion_button.button_pressed:
-			if is_correct:
-				ion_button.self_modulate = COLOR_CORRECT
-			else:
-				ion_button.self_modulate = COLOR_WRONG
+			ion_button.self_modulate = COLOR_CORRECT if is_correct else COLOR_WRONG
 		else:
-			if is_correct:
-				ion_button.self_modulate = COLOR_TRUE_ANSWER
-			else:
-				ion_button.self_modulate = COLOR_NEUTRAL
+			ion_button.self_modulate = COLOR_TRUE_ANSWER if is_correct else COLOR_NEUTRAL
 
 
 # =================== BLOKOWANIE PO ZATWIERDZENIU =================

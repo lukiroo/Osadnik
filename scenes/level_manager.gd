@@ -162,6 +162,78 @@ func is_anions_branch() -> bool:
 func is_sandbox_branch() -> bool:
 	return branch == Branch.SANDBOX
 
+# =================================================================
+# MAPOWANIE: forma spawnowana w probówce -> forma kationowa do odpowiedzi
+# =================================================================
+func _answer_id_for_spawned_id(spawn_id: String) -> String:
+	match spawn_id:
+		"AsO33-":
+			return "As3+"
+		"AsO43-":
+			return "As5+"
+		_:
+			return spawn_id
+
+# =================================================================
+# MAPOWANIE DO ODPOWIEDZI W MIESZANINIE (EX2 / EGZAMIN)
+# - w mieszaninie nie rozróżniamy stopni utlenienia: As / Sb / Sn
+# =================================================================
+func _mix_answer_id_for_spawned_id(spawn_id: String) -> String:
+	match spawn_id:
+		# arsen (u Ciebie w probówce spawnuje się jako AsO33- albo AsO43-)
+		"AsO33-", "AsO43-":
+			return "As"
+		# antymon
+		"Sb3+", "Sb5+":
+			return "Sb"
+		# cyna
+		"Sn2+", "Sn4+":
+			return "Sn"
+		_:
+			return spawn_id
+
+
+# =================================================================
+# LOSOWANIE DO MIESZANINY (EX2)
+# - nie pozwala wylosować naraz dwóch form tego samego pierwiastka:
+#   As(III)+As(V) / Sb(III)+Sb(V) / Sn(II)+Sn(IV)
+# =================================================================
+func _pick_distinct_for_mix(pool: Array[String], n: int) -> Array[String]:
+	var tmp: Array[String] = pool.duplicate()
+	tmp.shuffle()
+
+	var used: Dictionary = {}
+	var out: Array[String] = []
+
+	for id in tmp:
+		var key := _mix_answer_id_for_spawned_id(String(id)) # np. AsO33- -> "As"
+		if used.has(key):
+			continue
+		used[key] = true
+		out.append(String(id))
+		if out.size() >= n:
+			break
+
+	return out
+
+
+# =================================================================
+# Buduje listę poprawnych odpowiedzi do EX2/egzaminu na bazie spawn_id
+# - mapuje AsO33-/AsO43- -> As, Sb3+/Sb5+ -> Sb, Sn2+/Sn4+ -> Sn
+# - usuwa duplikaty
+# =================================================================
+func _build_mix_answers_from_spawn_ids(spawn_ids: Array[String]) -> Array[String]:
+	var out: Array[String] = []
+	var seen: Dictionary = {}
+
+	for spawn_id in spawn_ids:
+		var ans := _mix_answer_id_for_spawned_id(String(spawn_id))
+		if not seen.has(ans):
+			seen[ans] = true
+			out.append(ans)
+
+	return out
+
 
 # =================================================================
 # KONFIGURACJA LEVELU – SANDBOX / EX1 / EX2
@@ -247,12 +319,14 @@ func _setup_exercise_single() -> void:
 		var tube_count_cations: int = min(starter_slots.size(), selected_cations.size())
 
 		for i in tube_count_cations:
-			var cation_id: String = String(selected_cations[i])
-			var solution_cation: Mixture = _make_simple_cation_solution(cation_id)
+			var spawn_id: String = String(selected_cations[i]) # to co spawnuje się do Mixture (np. AsO33-)
+			var solution_cation: Mixture = _make_simple_cation_solution(spawn_id)
 			var tube_cation: Node2D = _instantiate_probe_as_starter(solution_cation, false)
 			if tube_cation:
 				_snap_to_slot(tube_cation, starter_slots[i])
-				_single_answer_map[i] = cation_id
+
+			# do odpowiedzi zapisuje formę "kationową"
+			_single_answer_map[i] = _answer_id_for_spawned_id(spawn_id)
 
 	# Po ustawieniu probówek startowych uruchamia probówki robocze na stojakach.
 	_spawn_work_tubes()
@@ -345,12 +419,16 @@ func _setup_exercise_mix() -> void:
 			# Awaryjnie: gdyby nic nie weszło, losuje zwykłą listę z puli.
 			if chosen_ids.is_empty():
 				chosen_ids = _pick_distinct(group_cations, mix_difficulty)
+
 		else:
 			# Zwykłe EX2 – kilka kationów z jednej zadanej grupy.
-			chosen_ids = _pick_distinct(group_cations, mix_difficulty)
+			# Tu blokujemy sytuację AsO33-+AsO43- / Sb3+ + Sb5+ / Sn2+ + Sn4+ w jednej mieszaninie.
+			chosen_ids = _pick_distinct_for_mix(group_cations, mix_difficulty)
 
-		_mix_answer_list = chosen_ids
+		# EX2 + EGZAMIN: odpowiedzi uproszczone (As/Sb/Sn), reszta bez zmian
+		_mix_answer_list = _build_mix_answers_from_spawn_ids(chosen_ids)
 		mix_solution = _make_multi_cation_solution(chosen_ids)
+
 
 	if mix_solution == null:
 		return
@@ -784,7 +862,7 @@ func _index_to_letter(index: int) -> String:
 ## Zwraca listę kationów z danej grupy Freseniusa (lub wszystkie, gdy group == 0).
 func _get_group_cations(group: int) -> Array[String]:
 	var g1: Array[String] = ["Ag+", "Hg22+", "Pb2+"]
-	var g2: Array[String] = ["Hg2+", "Pb2+", "Cu2+", "Cd2+", "Bi3+", "As3+", "As5+", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]
+	var g2: Array[String] = ["Hg2+", "Pb2+", "Cu2+", "Cd2+", "Bi3+", "AsO33-", "AsO43-", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]
 	var g3: Array[String] = ["Zn2+", "Ni2+", "Co2+", "Mn2+", "Fe2+", "Fe3+", "Al3+", "Cr3+"]
 	var g4: Array[String]= ["Ca2+", "Sr2+", "Ba2+", "Mg2+", "K+", "Na+", "NH4+"]
 
@@ -824,7 +902,7 @@ func _pick_distinct(pool: Array[String], n: int) -> Array[String]:
 func _group_for_cation(cation_id: String) -> int:
 	if cation_id in ["Ag+", "Hg22+", "Pb2+"]:
 		return 1
-	elif cation_id in ["Hg2+", "Cu2+", "Cd2+", "Bi3+", "As3+", "As5+", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]:
+	elif cation_id in ["Hg2+", "Cu2+", "Cd2+", "Bi3+", "AsO33-", "AsO43-", "Sb3+", "Sb5+", "Sn2+", "Sn4+"]:
 		return 2
 	elif cation_id in ["Zn2+", "Ni2+", "Co2+", "Mn2+", "Fe2+", "Fe3+", "Al3+", "Cr3+"]:
 		return 3
@@ -862,7 +940,7 @@ func _make_multi_cation_solution(cation_ids: Array[String]) -> Mixture:
 func _get_group_anions(group: int) -> Array[String]:
 	var g1: Array[String] = ["Cl-","Br-","I-","CN-","SCN-"]
 	var g2: Array[String] = ["S2-","CH3COO-","NO2-"]
-	var g3: Array[String] = ["SO32-","CO32-","BO32-"]
+	var g3: Array[String] = ["SO32-","CO32-","BO2-"]
 	var g4: Array[String] = ["CrO42-","AsO33-","AsO43-","PO43-"]
 	var g5: Array[String] = ["NO3-","ClO3-","ClO4-","MnO4-","SO42-","F-"]
 

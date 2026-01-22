@@ -1,9 +1,9 @@
 [gd_resource type="Resource" script_class="Solid" load_steps=2 format=3 uid="uid://bec3448thy705"]
 
-[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_tasfa"]
+[ext_resource type="Script" uid="uid://cseysmrx52n3i" path="res://chem/solid.gd" id="1_m8jh8"]
 
 [resource]
-script = ExtResource("1_tasfa")
-id = "BaBO3_s"
+script = ExtResource("1_m8jh8")
+id = "Ba(BO2)2_s"
 color = Color(0.94171417, 0.94335765, 0.9421063, 1)
 metadata/_custom_type_script = "uid://cseysmrx52n3i"
