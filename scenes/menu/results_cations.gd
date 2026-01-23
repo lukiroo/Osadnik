@@ -104,14 +104,35 @@ func _ready() -> void:
 
 
 # ==================== LISTY KATIONÓW DLA GRUP ====================
+## Lista jonów, które mogą wystąpić w danej grupie
 
-## Lista jonów, które mogą wystąpić w danej grupie (0 = wszystkie).
-func _ions_for_group(group_id: int) -> Array[String]:
+## EX1: lista jonów do wyboru (szczegółowo)
+func _ions_for_group_ex1(group_id: int) -> Array[String]:
 	if group_id == 0:
 		return [
-			"Ag+","Hg22+","Pb2+","Hg2+","Cu2+","Bi3+","Cd2+",
-			"As","Sb","Sn","Zn2+",
-			"Ni2+","Co2+","Mn2+","Fe2+","Fe3+","Al3+","Cr3+",
+			"Ag+","Hg22+","Pb2+",
+			"Hg2+","Cu2+","Bi3+","Cd2+",
+			"As3+","As5+","Sb3+","Sb5+","Sn2+","Sn4+",
+			"Zn2+","Ni2+","Co2+","Mn2+","Fe2+","Fe3+","Al3+","Cr3+",
+			"Ca2+","Sr2+","Ba2+","Mg2+","K+","Na+","NH4+"
+		]
+	if group_id == 1:
+		return ["Ag+","Hg22+","Pb2+"]
+	if group_id == 2:
+		return ["Hg2+","Pb2+","Cu2+","Bi3+","Cd2+","As3+","As5+","Sb3+","Sb5+","Sn2+","Sn4+"]
+	if group_id == 3:
+		return ["Zn2+","Ni2+","Co2+","Mn2+","Fe2+","Fe3+","Al3+","Cr3+"]
+	# grupa IV+V
+	return ["Ca2+","Sr2+","Ba2+","Mg2+","K+","Na+","NH4+"]
+
+## EX2: lista jonów do wyboru - uproszczona
+func _ions_for_group_ex2(group_id: int) -> Array[String]:
+	if group_id == 0:
+		return [
+			"Ag+","Hg22+","Pb2+",
+			"Hg2+","Cu2+","Bi3+","Cd2+",
+			"As","Sb","Sn",
+			"Zn2+","Ni2+","Co2+","Mn2+","Fe2+","Fe3+","Al3+","Cr3+",
 			"Ca2+","Sr2+","Ba2+","Mg2+","K+","Na+","NH4+"
 		]
 	if group_id == 1:
@@ -121,7 +142,6 @@ func _ions_for_group(group_id: int) -> Array[String]:
 	if group_id == 3:
 		return ["Zn2+","Ni2+","Co2+","Mn2+","Fe2+","Fe3+","Al3+","Cr3+"]
 
-	# grupa IV+V
 	return ["Ca2+","Sr2+","Ba2+","Mg2+","K+","Na+","NH4+"]
 
 
@@ -136,7 +156,7 @@ func _build_single_rows() -> void:
 	var slots: Array = _single_correct_map.keys()
 	slots.sort()
 
-	var ion_choices: Array[String] = _ions_for_group(_group_id)
+	var ion_choices: Array[String] = _ions_for_group_ex1(_group_id)
 
 	for row_idx in range(slots.size()):
 		var slot_idx: int = int(slots[row_idx])
@@ -208,13 +228,14 @@ func _build_mix_row() -> void:
 		# Egzamin: Pb2+ jest tylko w wierszu grupy 1, a nie w wierszu grupy 2.
 		var exam_rows: Array = []
 
-		exam_rows.append(_ions_for_group(1))
+		exam_rows.append(_ions_for_group_ex2(1))
 
-		var group2 := _ions_for_group(2).duplicate()
+		var group2 := _ions_for_group_ex2(2).duplicate()
 		group2.erase("Pb2+")
 		exam_rows.append(group2)
 
-		exam_rows.append(_ions_for_group(3))
+		exam_rows.append(_ions_for_group_ex2(3))
+
 		exam_rows.append(["Ca2+","Sr2+","Ba2+"])
 		exam_rows.append(["Mg2+","K+","Na+","NH4+"])
 
@@ -248,7 +269,7 @@ func _build_mix_row() -> void:
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 8)
 
-		var ion_choices: Array[String] = _ions_for_group(_group_id)
+		var ion_choices: Array[String] = _ions_for_group_ex2(_group_id)
 		for ion_id in ion_choices:
 			var ion_button := ANSWER_BUTTON_SCENE.instantiate() as TextureButton
 			ion_button.toggle_mode = true

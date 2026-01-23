@@ -6,7 +6,7 @@
 script = ExtResource("1_o5v6x")
 id = "CuSO4"
 display_name = "CuSO₄"
-liquid_color = Color(0.13333334, 0.7254902, 1, 0.9490196)
+liquid_color = Color(0.13333334, 0.7254902, 1, 0.5764706)
 ions = {
 "Cu2+": 40,
 "SO42-": 40
