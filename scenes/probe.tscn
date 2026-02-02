@@ -52,7 +52,6 @@ shader_parameter/alpha_threshold = 0.1
 [node name="Probe" type="Node2D"]
 scale = Vector2(0.8, 0.95)
 script = ExtResource("1_jyxx6")
-cooling_time_s = 40.0
 pellet_brightness = 0.99
 
 [node name="ProbeArea2D" type="Area2D" parent="."]

@@ -5,9 +5,9 @@
 [resource]
 script = ExtResource("1_xygwo")
 id = "AgCl_dissolve"
-priority = 20
+priority = 12
 reactants_ions = {
-"NH3": 2
+"NH3": 1
 }
 reactants_solids = {
 "AgCl_s": 1

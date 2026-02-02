@@ -119,7 +119,7 @@ var _recalc_scheduled: bool = false
 # =========================================================================
 
 @export_group("Chłodzenie (łaźnia)")
-@export_range(0.0, 60.0, 0.5) var cooling_time_s: float = 80.0
+@export_range(0.0, 120.0, 0.5) var cooling_time_s: float = 100.0
 
 const TAG_BATH_BOILING   := "bath_boiling"
 const TAG_COOLING_READY  := "cooling_ready"

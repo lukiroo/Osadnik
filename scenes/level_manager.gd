@@ -46,7 +46,7 @@ const STARTER_LABEL_FONT_SIZE: int = 13
 ## EX1 – ilość jonów w pojedynczej probówce startowej.
 const STARTER_CATION_AMOUNT: int = 100
 ## EX2 / egzamin – ilość jonów na każdy składnik mieszaniny.
-const MIX_CATION_AMOUNT: int = 500
+const MIX_CATION_AMOUNT: int = 160
 
 # -------------------------- STAN POPRAWNYCH ODPOWIEDZI -------------------
 ## EX1: mapa „indeks probówki → jon” (kation/anion; indeks odpowiada literkom A/B/C...).

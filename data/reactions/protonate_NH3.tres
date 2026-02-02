@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1_g22l3")
 id = "protonate_NH3"
-priority = 12
+priority = 9
 reactants_ions = {
 "H+": 1,
 "NH3": 1
